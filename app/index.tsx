@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
+// アプリの初期画面として名言画面にリダイレクト
 export default function Index() {
-  // ルートパス（/）にアクセスした場合、ホーム画面にリダイレクト
-  return <Redirect href="/(tabs)/home" />;
+  return <Redirect href="/daily-quote" />;
 } 
