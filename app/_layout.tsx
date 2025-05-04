@@ -127,7 +127,16 @@ export default function RootLayout() {
   // スプラッシュ画面後は名言画面へ遷移
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack initialRouteName="daily-quote">
+      <Stack 
+        initialRouteName="daily-quote"
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          animationDuration: 450,
+          presentation: 'transparentModal',
+          contentStyle: { backgroundColor: projectColors.white1 }
+        }}
+      >
         <Stack.Screen name="daily-quote" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />

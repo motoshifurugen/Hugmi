@@ -69,25 +69,22 @@ export default function RoutineStepScreen() {
   }, []);
   
   // ステップが変わるたびのアニメーション
-  const animateTransition = () => {
-    Animated.sequence([
+  const animateTransition = (nextStep: number) => {
+    // フェードアウト
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 450,
+      useNativeDriver: true,
+    }).start(() => {
+      // フェードアウト完了後にステップを更新
+      setCurrentStep(nextStep);
+      
+      // フェードイン
       Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
         toValue: 1,
-        duration: 1,
+        duration: 450,
         useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      slideAnim.setValue(0);
+      }).start();
     });
   };
   
@@ -120,10 +117,7 @@ export default function RoutineStepScreen() {
         setRoutines(updatedRoutines);
         
         // アニメーションを実行して次のステップへ
-        animateTransition();
-        setTimeout(() => {
-          setCurrentStep(currentStep + 1);
-        }, 300);
+        animateTransition(currentStep + 1);
       } else {
         // 最後のステップを完了
         const updatedRoutines = [...routines];
@@ -143,10 +137,8 @@ export default function RoutineStepScreen() {
       updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
       setRoutines(updatedRoutines);
       
-      animateTransition();
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1);
-      }, 300);
+      // アニメーションを実行して次のステップへ
+      animateTransition(currentStep + 1);
     } else {
       // 最後のステップをスキップとしてマーク
       const updatedRoutines = [...routines];
@@ -201,11 +193,7 @@ export default function RoutineStepScreen() {
         style={[
           styles.routineContainer, 
           { 
-            opacity: fadeAnim,
-            transform: [{ translateX: slideAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 20]
-            })}]
+            opacity: fadeAnim
           }
         ]}
       >
