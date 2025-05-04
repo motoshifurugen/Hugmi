@@ -3,9 +3,9 @@ import { StyleSheet, FlatList, Pressable, TextInput, Alert } from 'react-native'
 import { router } from 'expo-router';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/common/ThemedText';
+import { ThemedView } from '@/components/common/ThemedView';
+import { IconSymbol } from '@/components/common/ui/IconSymbol';
 
 // 仮のルーティンデータ
 const INITIAL_ROUTINES = [

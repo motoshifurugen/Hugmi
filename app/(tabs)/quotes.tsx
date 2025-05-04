@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, FlatList, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/common/ThemedText';
+import { ThemedView } from '@/components/common/ThemedView';
+import { IconSymbol } from '@/components/common/ui/IconSymbol';
 
 // 仮の名言データ
 const SAMPLE_QUOTES = [

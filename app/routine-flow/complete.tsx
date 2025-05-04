@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Pressable, Animated, Image } from 'react-native';
 import { router } from 'expo-router';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/common/ThemedText';
+import { ThemedView } from '@/components/common/ThemedView';
+import { IconSymbol } from '@/components/common/ui/IconSymbol';
 
 export default function RoutineCompleteScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));

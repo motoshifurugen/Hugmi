@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Switch, Pressable } from 'react-native';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from '@/components/common/ThemedText';
+import { ThemedView } from '@/components/common/ThemedView';
+import { IconSymbol } from '@/components/common/ui/IconSymbol';
 
 export default function SettingsScreen() {
   // 設定の状態管理
