@@ -1,0 +1,1 @@
+export { runAllSeeds } from './seeds/index'; 
