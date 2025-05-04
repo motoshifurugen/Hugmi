@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, FlatList, Pressable, TextInput, Alert } from 'react-native';
 import { router } from 'expo-router';
-import DraggableFlatList from 'react-native-draggable-flatlist';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -16,10 +16,17 @@ const INITIAL_ROUTINES = [
   { id: '5', title: '朝食を食べる', completed: false, order: 5 },
 ];
 
+interface Routine {
+  id: string;
+  title: string;
+  completed: boolean;
+  order: number;
+}
+
 export default function RoutineEditScreen() {
-  const [routines, setRoutines] = useState(INITIAL_ROUTINES);
+  const [routines, setRoutines] = useState<Routine[]>(INITIAL_ROUTINES);
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
-  const [editingRoutineId, setEditingRoutineId] = useState(null);
+  const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
   const [editingRoutineTitle, setEditingRoutineTitle] = useState('');
   
   const handleSave = () => {
@@ -47,7 +54,7 @@ export default function RoutineEditScreen() {
     setNewRoutineTitle('');
   };
   
-  const handleStartEditing = (routine) => {
+  const handleStartEditing = (routine: Routine) => {
     setEditingRoutineId(routine.id);
     setEditingRoutineTitle(routine.title);
   };
@@ -68,7 +75,7 @@ export default function RoutineEditScreen() {
     setEditingRoutineTitle('');
   };
   
-  const handleDeleteRoutine = (id) => {
+  const handleDeleteRoutine = (id: string) => {
     Alert.alert(
       "ルーティンの削除",
       "このルーティンを削除しますか？",
@@ -91,16 +98,16 @@ export default function RoutineEditScreen() {
     );
   };
   
-  const handleDragEnd = ({ data }) => {
+  const handleDragEnd = ({ data }: { data: Routine[] }) => {
     // ドラッグ後に順序を更新
-    const reorderedRoutines = data.map((routine, index) => ({
+    const reorderedRoutines = data.map((routine: Routine, index: number) => ({
       ...routine,
       order: index + 1
     }));
     setRoutines(reorderedRoutines);
   };
   
-  const renderRoutineItem = ({ item, drag, isActive }) => {
+  const renderRoutineItem = ({ item, drag, isActive }: RenderItemParams<Routine>) => {
     const isEditing = item.id === editingRoutineId;
     
     return (

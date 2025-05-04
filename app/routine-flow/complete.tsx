@@ -28,7 +28,7 @@ export default function RoutineCompleteScreen() {
     ]).start();
   }, []);
   
-  const handleMoodSelect = (rating) => {
+  const handleMoodSelect = (rating: number) => {
     setMoodRating(rating);
   };
   

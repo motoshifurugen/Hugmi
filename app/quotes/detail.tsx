@@ -50,9 +50,18 @@ const SAMPLE_QUOTES = [
   },
 ];
 
+interface Quote {
+  id: string;
+  text: string;
+  author: string;
+  source: string;
+  category: string;
+  isFavorite: boolean;
+}
+
 export default function QuoteDetailScreen() {
   const { id } = useLocalSearchParams();
-  const [quote, setQuote] = useState(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   

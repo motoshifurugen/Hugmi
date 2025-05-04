@@ -15,11 +15,18 @@ const SAMPLE_ROUTINES = [
   { id: '5', title: '朝食を食べる', completed: false, order: 5 },
 ];
 
+interface Routine {
+  id: string;
+  title: string;
+  completed: boolean;
+  order: number;
+}
+
 export default function RoutineScreen() {
-  const [routines, setRoutines] = useState(SAMPLE_ROUTINES);
+  const [routines, setRoutines] = useState<Routine[]>(SAMPLE_ROUTINES);
 
   // ルーティンの表示用アイテム
-  const renderRoutineItem = ({ item }) => (
+  const renderRoutineItem = ({ item }: { item: Routine }) => (
     <ThemedView style={styles.routineItem}>
       <ThemedView style={styles.routineRow}>
         <ThemedText style={styles.routineOrder}>{item.order}</ThemedText>
