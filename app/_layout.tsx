@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { db } from '@/db';
+import { runAllSeeds } from '@/db/seeds';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -23,6 +24,10 @@ export default function RootLayout() {
       try {
         await db.initialize();
         console.log('Database initialized successfully');
+        
+        // 開発環境または必要に応じてシードデータを実行
+        // 本番環境では条件分岐などで制御するとよい
+        await runAllSeeds();
       } catch (error) {
         console.error('Error initializing database:', error);
       }
