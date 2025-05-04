@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { RoutineStatus } from './utils/routine_logs';
 
 // データベース名
 const DATABASE_NAME = 'hugmi.db';
@@ -68,6 +69,20 @@ class Database {
           is_active BOOLEAN DEFAULT 1,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
+        );`
+      );
+      
+      // ルーティンログテーブルの作成
+      this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS routine_logs (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          date TEXT NOT NULL,
+          routine_id TEXT NOT NULL,
+          status TEXT CHECK(status IN ('checked', 'skipped')),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (routine_id) REFERENCES routines(id)
         );`
       );
       
@@ -488,6 +503,143 @@ class Database {
       console.error("Error reordering routines:", error);
       return false;
     }
+  }
+
+  /**
+   * 特定の日付のユーザーのルーティンログを取得
+   */
+  public async getRoutineLogsByDate(userId: string, date: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      routine_id: string;
+      status: string;
+      created_at: string;
+    }>("SELECT * FROM routine_logs WHERE user_id = ? AND date = ?", [userId, date]);
+    return result;
+  }
+
+  /**
+   * 特定のルーティンの特定日付のログを取得
+   */
+  public async getRoutineLogByRoutineAndDate(routineId: string, date: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      routine_id: string;
+      status: string;
+      created_at: string;
+    }>("SELECT * FROM routine_logs WHERE routine_id = ? AND date = ?", [routineId, date]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 特定の期間のユーザーのルーティンログを取得
+   */
+  public async getRoutineLogsByDateRange(userId: string, startDate: string, endDate: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      routine_id: string;
+      status: string;
+      created_at: string;
+    }>("SELECT * FROM routine_logs WHERE user_id = ? AND date >= ? AND date <= ?", 
+      [userId, startDate, endDate]);
+    return result;
+  }
+
+  /**
+   * 新しいルーティンログを作成
+   */
+  public async createRoutineLog(logData: {
+    id: string;
+    userId: string;
+    date: string;
+    routineId: string;
+    status: RoutineStatus;
+  }) {
+    await this.db.runAsync(
+      `INSERT INTO routine_logs (id, user_id, date, routine_id, status) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        logData.id,
+        logData.userId,
+        logData.date,
+        logData.routineId,
+        logData.status
+      ]
+    );
+    return await this.getRoutineLogById(logData.id);
+  }
+
+  /**
+   * IDでルーティンログを取得
+   */
+  public async getRoutineLogById(id: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      routine_id: string;
+      status: string;
+      created_at: string;
+    }>("SELECT * FROM routine_logs WHERE id = ?", [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * ルーティンログを更新
+   */
+  public async updateRoutineLog(
+    id: string,
+    logData: {
+      status: RoutineStatus;
+    }
+  ) {
+    await this.db.runAsync(
+      "UPDATE routine_logs SET status = ? WHERE id = ?",
+      [logData.status, id]
+    );
+    return await this.getRoutineLogById(id);
+  }
+
+  /**
+   * ルーティンログを削除
+   */
+  public async deleteRoutineLog(id: string) {
+    await this.db.runAsync("DELETE FROM routine_logs WHERE id = ?", [id]);
+    return true;
+  }
+
+  /**
+   * 特定ルーティンの統計情報を取得（指定した期間内）
+   */
+  public async getRoutineStats(routineId: string, startDate: string, endDate: string) {
+    // 日付の総数を計算（開始日から終了日までの日数）
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    const diffTime = Math.abs(endDateObj.getTime() - startDateObj.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 は両端の日を含める
+    
+    // チェック済みと省略の件数を取得
+    const checkedResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM routine_logs WHERE routine_id = ? AND date >= ? AND date <= ? AND status = 'checked'",
+      [routineId, startDate, endDate]
+    );
+    
+    const skippedResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM routine_logs WHERE routine_id = ? AND date >= ? AND date <= ? AND status = 'skipped'",
+      [routineId, startDate, endDate]
+    );
+    
+    return {
+      total: diffDays,
+      checked: checkedResult[0].count,
+      skipped: skippedResult[0].count
+    };
   }
 }
 
