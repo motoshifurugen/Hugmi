@@ -9,8 +9,8 @@ import { projectColors } from '@/constants/Colors';
 export default function DailyQuotePage() {
   // 「今日の朝をはじめる」ボタンが押されたときの処理
   const handleStartDay = () => {
-    // 朝のルーティンページに遷移
-    router.replace('/routine-flow/morning');
+    // ルーティン実行画面へ直接遷移
+    router.push('/routine-flow/routine');
   };
 
   return (
