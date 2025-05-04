@@ -2,13 +2,13 @@ import { db } from '../';
 
 /**
  * データベースのスキーマを新しいバージョンに移行する
- * author_name カラムから author_ja と author_en カラムへの移行を行います
+ * 新しいカラム構造を確認し、必要に応じて修正を行います
  */
 export const migrateToNewSchema = async (): Promise<boolean> => {
   try {
     const database = db.getDatabase();
     
-    console.log('スキーマ移行を開始します...');
+    console.log('スキーマ確認を開始します...');
     
     // author_ja カラムが既に存在するか確認
     const hasAuthorJa = await hasColumn('quotes', 'author_ja');
@@ -25,10 +25,7 @@ export const migrateToNewSchema = async (): Promise<boolean> => {
       await database.runAsync('ALTER TABLE quotes ADD COLUMN author_ja TEXT');
       await database.runAsync('ALTER TABLE quotes ADD COLUMN author_en TEXT');
       
-      // author_name の値を author_ja にコピー
-      await database.runAsync('UPDATE quotes SET author_ja = author_name');
-      
-      console.log('スキーマの移行が完了しました。');
+      console.log('スキーマの更新が完了しました。');
       
       // トランザクションをコミット
       await database.runAsync('COMMIT');
@@ -36,7 +33,7 @@ export const migrateToNewSchema = async (): Promise<boolean> => {
     } catch (error) {
       // エラーが発生した場合はロールバック
       await database.runAsync('ROLLBACK');
-      console.error('スキーマ移行中にエラーが発生しました:', error);
+      console.error('スキーマ更新中にエラーが発生しました:', error);
       return false;
     }
   } catch (error) {
