@@ -6,6 +6,17 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+// プロジェクトカラー
+export const projectColors = {
+  primary: '#FFE0B2',
+  secondary: '#FFD6D6',
+  info: '#B7C5D3',
+  success: '#D7E8BA',
+  black1: '#4B4453',
+  black2: '#8C7E8C',
+  white1: '#FDF6F0',
+};
+
 export const colors = {
   light: {
     text: '#11181C',
