@@ -259,7 +259,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           />
           
           {/* 名言本文（日本語） */}
-          <Animated.View style={{ opacity: fadeTextJa }}>
+          <Animated.View style={{ opacity: fadeTextJa, marginTop: 12, paddingBottom: 12 }}>
             <ThemedText style={styles.quoteTextJa}>
               {dailyQuote.textJa.replace(/\\n/g, '\n')}
             </ThemedText>
@@ -364,11 +364,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   quoteTextJa: {
-    fontSize: 20,
+    fontSize: 21,
     fontFamily: 'ZenMaruGothic_700Bold',
     color: projectColors.black1,
-    textAlign: 'center',
-    lineHeight: 30,
+    textAlign: 'left',
+    lineHeight: 34,
     width: '100%',
     flexWrap: 'wrap',
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'ZenMaruGothic_400Regular',
     color: projectColors.black2,
-    textAlign: 'center',
+    textAlign: 'left',
     fontStyle: 'italic',
     lineHeight: 20,
   },
