@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Pressable, Animated, Alert, View } from 'react-native';
+import { StyleSheet, Pressable, Animated, Alert, View, Easing } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { 
   useFonts, 
@@ -14,11 +14,11 @@ import { projectColors } from '@/constants/Colors';
 
 // 仮のルーティンデータ（説明文を削除）
 const SAMPLE_ROUTINES = [
-  { id: '1', title: '白湯を飲む', completed: false, order: 1 },
-  { id: '2', title: '深呼吸', completed: false, order: 2 },
-  { id: '3', title: 'ストレッチ', completed: false, order: 3 },
-  { id: '4', title: '今日の目標を書く', completed: false, order: 4 },
-  { id: '5', title: '朝食を食べる', completed: false, order: 5 },
+  { id: '1', title: '白湯を飲む', completed: false, skipped: false, order: 1 },
+  { id: '2', title: '深呼吸', completed: false, skipped: false, order: 2 },
+  { id: '3', title: 'ストレッチ', completed: false, skipped: false, order: 3 },
+  { id: '4', title: '今日の目標を書く', completed: false, skipped: false, order: 4 },
+  { id: '5', title: '朝食を食べる', completed: false, skipped: false, order: 5 },
 ];
 
 export default function RoutineStepScreen() {
@@ -39,26 +39,33 @@ export default function RoutineStepScreen() {
     ZenMaruGothic_700Bold,
   });
   
-  // パルスアニメーションを開始
+  // パルスアニメーションを開始（よりスムーズな実装）
   useEffect(() => {
-    const startPulseAnimation = () => {
+    const pulseAnimation = Animated.loop(
       Animated.sequence([
+        // 大きくなるアニメーション
         Animated.timing(pulseAnim, {
-          toValue: 1.15, // アニメーションの膨張率を大きく
-          duration: 2000,
+          toValue: 1.15,
+          duration: 1500, // 拡大に1.5秒
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
+        // 小さくなるアニメーション
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: 1500, // 縮小にも1.5秒
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         })
-      ]).start(() => startPulseAnimation());
+      ])
+    );
+    
+    pulseAnimation.start();
+    
+    return () => {
+      pulseAnimation.stop();
+      pulseAnim.setValue(1);
     };
-    
-    startPulseAnimation();
-    
-    return () => pulseAnim.stopAnimation();
   }, []);
   
   // ステップが変わるたびのアニメーション
@@ -109,7 +116,7 @@ export default function RoutineStepScreen() {
       if (currentStep < totalSteps - 1) {
         // ルーティンを完了としてマーク
         const updatedRoutines = [...routines];
-        updatedRoutines[currentStep] = {...currentRoutine, completed: true};
+        updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
         setRoutines(updatedRoutines);
         
         // アニメーションを実行して次のステップへ
@@ -120,7 +127,7 @@ export default function RoutineStepScreen() {
       } else {
         // 最後のステップを完了
         const updatedRoutines = [...routines];
-        updatedRoutines[currentStep] = {...currentRoutine, completed: true};
+        updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
         setRoutines(updatedRoutines);
         
         // 完了画面へ遷移
@@ -130,29 +137,24 @@ export default function RoutineStepScreen() {
   };
   
   const handleSkipStep = () => {
-    Alert.alert(
-      "このステップをスキップしますか？",
-      "後で完了することもできます。",
-      [
-        {
-          text: "キャンセル",
-          style: "cancel"
-        },
-        { 
-          text: "スキップ", 
-          onPress: () => {
-            if (currentStep < totalSteps - 1) {
-              animateTransition();
-              setTimeout(() => {
-                setCurrentStep(currentStep + 1);
-              }, 300);
-            } else {
-              router.push('/routine-flow/complete');
-            }
-          } 
-        }
-      ]
-    );
+    if (currentStep < totalSteps - 1) {
+      // ルーティンをスキップとしてマーク
+      const updatedRoutines = [...routines];
+      updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+      setRoutines(updatedRoutines);
+      
+      animateTransition();
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 300);
+    } else {
+      // 最後のステップをスキップとしてマーク
+      const updatedRoutines = [...routines];
+      updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+      setRoutines(updatedRoutines);
+      
+      router.push('/routine-flow/complete');
+    }
   };
 
   // ステップインジケーターをレンダリング（点で表示）
@@ -165,7 +167,8 @@ export default function RoutineStepScreen() {
             style={[
               styles.stepDot, 
               index === currentStep ? styles.currentStepDot : null,
-              index < currentStep ? styles.completedStepDot : null
+              index < currentStep && routine.completed ? styles.completedStepDot : null,
+              index < currentStep && routine.skipped ? styles.skippedStepDot : null
             ]} 
           />
         ))}
@@ -278,7 +281,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   completedStepDot: {
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.primary,
+  },
+  skippedStepDot: {
+    backgroundColor: '#E0E0E0',
   },
   routineContainer: {
     flex: 1,
@@ -308,7 +314,7 @@ const styles = StyleSheet.create({
     color: projectColors.black1,
     fontFamily: 'ZenMaruGothic_700Bold',
     zIndex: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
     maxWidth: 250,
     lineHeight: 34,
   },
@@ -333,7 +339,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   buttonPressed: {
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.primary,
+    opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
   buttonText: {
@@ -345,7 +352,7 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 16,
     color: projectColors.black2,
-    marginTop: 20,
+    marginTop: 40,
     fontFamily: 'ZenMaruGothic_400Regular',
   },
 }); 

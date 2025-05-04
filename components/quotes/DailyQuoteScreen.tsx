@@ -428,7 +428,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonPressed: {
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.primary,
+    opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
   buttonText: {
