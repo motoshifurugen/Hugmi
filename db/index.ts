@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { RoutineStatus } from './utils/routine_logs';
+import { MoodType } from './utils/mood_logs';
 
 // データベース名
 const DATABASE_NAME = 'hugmi.db';
@@ -83,6 +84,20 @@ class Database {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (routine_id) REFERENCES routines(id)
+        );`
+      );
+      
+      // 気分ログテーブルの作成
+      this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS mood_logs (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          date TEXT NOT NULL,
+          mood TEXT CHECK(mood IN ('happy', 'tired', 'sad', 'anxious')),
+          quote_id TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (quote_id) REFERENCES quotes(id)
         );`
       );
       
@@ -639,6 +654,161 @@ class Database {
       total: diffDays,
       checked: checkedResult[0].count,
       skipped: skippedResult[0].count
+    };
+  }
+
+  /**
+   * 特定の日付のユーザーの気分ログを取得
+   */
+  public async getMoodLogByDate(userId: string, date: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      mood: string;
+      quote_id: string;
+      created_at: string;
+    }>("SELECT * FROM mood_logs WHERE user_id = ? AND date = ?", [userId, date]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 特定の期間のユーザーの気分ログを取得
+   */
+  public async getMoodLogsByDateRange(userId: string, startDate: string, endDate: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      mood: string;
+      quote_id: string;
+      created_at: string;
+    }>("SELECT * FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ?", 
+      [userId, startDate, endDate]);
+    return result;
+  }
+
+  /**
+   * 新しい気分ログを作成
+   */
+  public async createMoodLog(logData: {
+    id: string;
+    userId: string;
+    date: string;
+    mood: MoodType;
+    quoteId?: string;
+  }) {
+    await this.db.runAsync(
+      `INSERT INTO mood_logs (id, user_id, date, mood, quote_id) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        logData.id,
+        logData.userId,
+        logData.date,
+        logData.mood,
+        logData.quoteId || null
+      ]
+    );
+    return await this.getMoodLogById(logData.id);
+  }
+
+  /**
+   * IDで気分ログを取得
+   */
+  public async getMoodLogById(id: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      mood: string;
+      quote_id: string;
+      created_at: string;
+    }>("SELECT * FROM mood_logs WHERE id = ?", [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 気分ログを更新
+   */
+  public async updateMoodLog(
+    id: string,
+    logData: {
+      mood?: MoodType;
+      quoteId?: string;
+    }
+  ) {
+    const sets: string[] = [];
+    const values: any[] = [];
+
+    if (logData.mood !== undefined) {
+      sets.push("mood = ?");
+      values.push(logData.mood);
+    }
+
+    if (logData.quoteId !== undefined) {
+      sets.push("quote_id = ?");
+      values.push(logData.quoteId);
+    }
+
+    if (sets.length === 0) {
+      return await this.getMoodLogById(id);
+    }
+
+    values.push(id);
+    
+    await this.db.runAsync(
+      `UPDATE mood_logs SET ${sets.join(", ")} WHERE id = ?`,
+      values
+    );
+    
+    return await this.getMoodLogById(id);
+  }
+
+  /**
+   * 気分ログを削除
+   */
+  public async deleteMoodLog(id: string) {
+    await this.db.runAsync("DELETE FROM mood_logs WHERE id = ?", [id]);
+    return true;
+  }
+
+  /**
+   * ユーザーの気分の統計情報を取得（指定した期間内）
+   */
+  public async getMoodStats(userId: string, startDate: string, endDate: string) {
+    // 全ての記録数
+    const totalResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ?",
+      [userId, startDate, endDate]
+    );
+    
+    // 各気分の記録数
+    const happyResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ? AND mood = 'happy'",
+      [userId, startDate, endDate]
+    );
+    
+    const tiredResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ? AND mood = 'tired'",
+      [userId, startDate, endDate]
+    );
+    
+    const sadResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ? AND mood = 'sad'",
+      [userId, startDate, endDate]
+    );
+    
+    const anxiousResult = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM mood_logs WHERE user_id = ? AND date >= ? AND date <= ? AND mood = 'anxious'",
+      [userId, startDate, endDate]
+    );
+    
+    return {
+      total: totalResult[0].count,
+      happy: happyResult[0].count,
+      tired: tiredResult[0].count,
+      sad: sadResult[0].count,
+      anxious: anxiousResult[0].count
     };
   }
 }
