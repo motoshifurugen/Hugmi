@@ -6,8 +6,8 @@
 export const fonts = {
   // フォントファミリー
   families: {
-    primary: 'System', // システムデフォルトフォント
-    secondary: 'Helvetica',
+    primary: 'Zen Maru Gothic', // プロジェクトのメインフォント
+    secondary: 'Zen Kaku Gothic Antique', // プロジェクトのサブフォント
     // 必要に応じて追加のフォントファミリーを定義
   },
   
