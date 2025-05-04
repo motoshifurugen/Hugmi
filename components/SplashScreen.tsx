@@ -35,33 +35,35 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
   }, [fontsLoaded]);
 
   const startAnimations = () => {
-    // ロゴのフェードイン（1秒）
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-
-    // 背景の光アニメーション（1.5秒）
-    Animated.timing(lightAnim, {
-      toValue: 1,
-      duration: 1500,
-      useNativeDriver: true,
-    }).start();
-
-    // テキストのフェードイン（1.5秒後に開始）
-    setTimeout(() => {
+    // アニメーションをシーケンスとして定義
+    Animated.sequence([
+      // 最初にロゴと背景を同時にアニメーション
+      Animated.parallel([
+        // ロゴのフェードイン（1秒）
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        // 背景の光アニメーション（1.5秒）
+        Animated.timing(lightAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ]),
+      // その後、テキストをフェードイン（800ms）
       Animated.timing(textFadeAnim, {
         toValue: 1,
         duration: 800,
         useNativeDriver: true,
-      }).start();
-    }, 1500);
-
-    // スプラッシュ画面の表示時間（3秒）
-    setTimeout(() => {
+      }),
+      // 完了後に少し待機（700ms）
+      Animated.delay(700),
+    ]).start(() => {
+      // すべてのアニメーションが完了したらスプラッシュ画面を終了
       onFinish();
-    }, 3000);
+    });
   };
 
   if (!fontsLoaded) {
