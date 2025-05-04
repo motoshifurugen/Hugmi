@@ -28,6 +28,7 @@ export default function RoutineStepScreen() {
   const [slideAnim] = useState(new Animated.Value(0));
   const buttonScale = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const dotScaleAnim = useRef(new Animated.Value(1)).current;
   
   const currentRoutine = routines[currentStep];
   const totalSteps = routines.length;
@@ -68,6 +69,25 @@ export default function RoutineStepScreen() {
     };
   }, []);
   
+  // 現在のステップドットのアニメーション
+  useEffect(() => {
+    // ステップが変わるたびにドットアニメーションをリセットして再開
+    dotScaleAnim.setValue(0.8);
+    Animated.sequence([
+      Animated.timing(dotScaleAnim, {
+        toValue: 1.2,
+        duration: 300,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.back(2)),
+      }),
+      Animated.timing(dotScaleAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, [currentStep]);
+  
   // ステップが変わるたびのアニメーション
   const animateTransition = (nextStep: number) => {
     // フェードアウト
@@ -89,7 +109,7 @@ export default function RoutineStepScreen() {
   };
   
   // 「できた！」ボタンのアニメーション
-  const animateCompleteButton = () => {
+  const animateCompleteButton = (onComplete?: () => void) => {
     Animated.sequence([
       Animated.timing(buttonScale, {
         toValue: 1.1,
@@ -101,15 +121,17 @@ export default function RoutineStepScreen() {
         duration: 150,
         useNativeDriver: true,
       })
-    ]).start();
+    ]).start(() => {
+      // アニメーション完了時にコールバックを実行
+      if (onComplete) {
+        onComplete();
+      }
+    });
   };
   
   const handleCompleteStep = () => {
-    // ボタンのアニメーションを実行
-    animateCompleteButton();
-    
-    // 少し遅延を入れてトランジションを開始
-    setTimeout(() => {
+    // ボタンのアニメーションを実行し、完了時に次のステップへ移行
+    animateCompleteButton(() => {
       if (currentStep < totalSteps - 1) {
         // ルーティンを完了としてマーク
         const updatedRoutines = [...routines];
@@ -127,10 +149,11 @@ export default function RoutineStepScreen() {
         // 完了画面へ遷移
         router.push('/routine-flow/complete');
       }
-    }, 300);
+    });
   };
   
   const handleSkipStep = () => {
+    // スキップボタンも同様にアニメーションの完了コールバックを使用
     if (currentStep < totalSteps - 1) {
       // ルーティンをスキップとしてマーク
       const updatedRoutines = [...routines];
@@ -154,15 +177,25 @@ export default function RoutineStepScreen() {
     return (
       <View style={styles.stepIndicatorContainer}>
         {routines.map((routine, index) => (
-          <View 
-            key={routine.id} 
-            style={[
-              styles.stepDot, 
-              index === currentStep ? styles.currentStepDot : null,
-              index < currentStep && routine.completed ? styles.completedStepDot : null,
-              index < currentStep && routine.skipped ? styles.skippedStepDot : null
-            ]} 
-          />
+          index === currentStep ? (
+            <Animated.View 
+              key={routine.id}
+              style={[
+                styles.stepDot,
+                styles.currentStepDot,
+                { transform: [{ scale: dotScaleAnim }] }
+              ]} 
+            />
+          ) : (
+            <View 
+              key={routine.id} 
+              style={[
+                styles.stepDot, 
+                index < currentStep && routine.completed ? styles.completedStepDot : null,
+                index < currentStep && routine.skipped ? styles.skippedStepDot : null
+              ]} 
+            />
+          )
         ))}
       </View>
     );
@@ -220,12 +253,17 @@ export default function RoutineStepScreen() {
           </Pressable>
         </Animated.View>
         
-        <ThemedText 
-          style={styles.skipButtonText}
+        <Pressable 
           onPress={handleSkipStep}
+          style={({ pressed }) => [
+            styles.skipButtonContainer,
+            pressed && styles.skipButtonContainerPressed
+          ]}
         >
-          今日はスキップ
-        </ThemedText>
+          <ThemedText style={styles.skipButtonText}>
+            今日はスキップ
+          </ThemedText>
+        </Pressable>
       </View>
     </ThemedView>
   );
@@ -244,10 +282,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   stepText: {
-    fontSize: 16,
-    color: projectColors.black2,
+    fontSize: 18, // 16から18に拡大
+    color: '#5A5050', // 濃い目のグレーに変更
     marginBottom: 12,
-    fontFamily: 'ZenMaruGothic_500Medium',
+    fontFamily: 'ZenMaruGothic_700Bold', // Medium から Bold に変更
   },
   stepIndicatorContainer: {
     flexDirection: 'row',
@@ -264,9 +302,14 @@ const styles = StyleSheet.create({
   },
   currentStepDot: {
     backgroundColor: projectColors.secondary,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12, // 10から12に拡大
+    height: 12, // 10から12に拡大
+    borderRadius: 6, // 半径も調整
+    elevation: 2, // Androidでの影
+    shadowColor: '#000', // iOSでの影
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
   },
   completedStepDot: {
     backgroundColor: projectColors.primary,
@@ -340,7 +383,14 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 16,
     color: projectColors.black2,
-    marginTop: 40,
     fontFamily: 'ZenMaruGothic_400Regular',
+  },
+  skipButtonContainer: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 30,
+  },
+  skipButtonContainerPressed: {
+    opacity: 0.7,
   },
 }); 
