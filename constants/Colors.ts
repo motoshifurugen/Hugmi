@@ -15,6 +15,7 @@ export const projectColors = {
   black1: '#4B4453',
   black2: '#8C7E8C',
   white1: '#FDF6F0',
+  red1: '#E76F51',  // エラー表示用の赤
 };
 
 export const colors = {

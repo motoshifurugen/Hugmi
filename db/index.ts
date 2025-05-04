@@ -53,7 +53,8 @@ class Database {
           id TEXT PRIMARY KEY,
           text_ja TEXT NOT NULL,
           text_en TEXT,
-          author_name TEXT,
+          author_ja TEXT,
+          author_en TEXT,
           era TEXT,
           is_published BOOLEAN DEFAULT 1,
           image_path TEXT
@@ -108,6 +109,18 @@ class Database {
           user_id TEXT NOT NULL,
           quote_id TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (quote_id) REFERENCES quotes(id)
+        );`
+      );
+      
+      // 表示済み引用テーブルの作成
+      this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS viewed_quotes (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          quote_id TEXT NOT NULL,
+          viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id),
           FOREIGN KEY (quote_id) REFERENCES quotes(id)
         );`
@@ -230,7 +243,8 @@ class Database {
       id: string;
       text_ja: string;
       text_en: string;
-      author_name: string;
+      author_ja: string;
+      author_en: string;
       era: string;
       is_published: number;
       image_path: string;
@@ -246,7 +260,8 @@ class Database {
       id: string;
       text_ja: string;
       text_en: string;
-      author_name: string;
+      author_ja: string;
+      author_en: string;
       era: string;
       is_published: number;
       image_path: string;
@@ -262,7 +277,8 @@ class Database {
       id: string;
       text_ja: string;
       text_en: string;
-      author_name: string;
+      author_ja: string;
+      author_en: string;
       era: string;
       is_published: number;
       image_path: string;
@@ -278,7 +294,8 @@ class Database {
       id: string;
       text_ja: string;
       text_en: string;
-      author_name: string;
+      author_ja: string;
+      author_en: string;
       era: string;
       is_published: number;
       image_path: string;
@@ -293,21 +310,23 @@ class Database {
     id: string;
     textJa: string;
     textEn?: string;
-    authorName?: string;
+    authorJa?: string;
+    authorEn?: string;
     era?: string;
     isPublished?: boolean;
     imagePath?: string;
   }) {
     await this.db.runAsync(
-      `INSERT INTO quotes (id, text_ja, text_en, author_name, era, is_published, image_path) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO quotes (id, text_ja, text_en, author_ja, author_en, era, is_published, image_path) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         quoteData.id,
         quoteData.textJa,
         quoteData.textEn || null,
-        quoteData.authorName || null,
+        quoteData.authorJa || null,
+        quoteData.authorEn || null,
         quoteData.era || null,
-        quoteData.isPublished !== undefined ? (quoteData.isPublished ? 1 : 0) : 1,
+        quoteData.isPublished === false ? 0 : 1,
         quoteData.imagePath || null
       ]
     );
@@ -322,7 +341,8 @@ class Database {
     quoteData: {
       textJa?: string;
       textEn?: string;
-      authorName?: string;
+      authorJa?: string;
+      authorEn?: string;
       era?: string;
       isPublished?: boolean;
       imagePath?: string;
@@ -341,9 +361,14 @@ class Database {
       values.push(quoteData.textEn);
     }
 
-    if (quoteData.authorName !== undefined) {
-      sets.push("author_name = ?");
-      values.push(quoteData.authorName);
+    if (quoteData.authorJa !== undefined) {
+      sets.push("author_ja = ?");
+      values.push(quoteData.authorJa);
+    }
+
+    if (quoteData.authorEn !== undefined) {
+      sets.push("author_en = ?");
+      values.push(quoteData.authorEn);
     }
 
     if (quoteData.era !== undefined) {
@@ -848,17 +873,17 @@ class Database {
       created_at: string;
       text_ja: string;
       text_en: string;
-      author_name: string;
+      author_ja: string;
+      author_en: string;
       era: string;
       image_path: string;
     }>(`
-      SELECT fq.*, q.text_ja, q.text_en, q.author_name, q.era, q.image_path 
+      SELECT fq.*, q.text_ja, q.text_en, q.author_ja, q.author_en, q.era, q.image_path 
       FROM favorite_quotes fq
       JOIN quotes q ON fq.quote_id = q.id
       WHERE fq.user_id = ?
       ORDER BY fq.created_at DESC
     `, [userId]);
-    
     return result;
   }
 
@@ -916,6 +941,77 @@ class Database {
       [id]
     );
     return true;
+  }
+
+  /**
+   * ユーザーがまだ表示していない名言をランダムに1件取得
+   */
+  public async getUnviewedRandomQuote(userId: string) {
+    // ユーザーがすでに表示した名言のIDを取得
+    const viewedQuoteIds = await this.db.getAllAsync<{quote_id: string}>(
+      "SELECT quote_id FROM viewed_quotes WHERE user_id = ?", 
+      [userId]
+    );
+    
+    let query = "SELECT * FROM quotes WHERE is_published = 1";
+    const params: any[] = [];
+    
+    // 表示済みの名言がある場合、それらを除外
+    if (viewedQuoteIds.length > 0) {
+      const excludeIds = viewedQuoteIds.map(item => `'${item.quote_id}'`).join(', ');
+      query += ` AND id NOT IN (${excludeIds})`;
+    }
+    
+    // ランダムに1件取得
+    query += " ORDER BY RANDOM() LIMIT 1";
+    
+    const result = await this.db.getAllAsync<{
+      id: string;
+      text_ja: string;
+      text_en: string;
+      author_ja: string;
+      author_en: string;
+      era: string;
+      is_published: number;
+      image_path: string;
+    }>(query, params);
+    
+    // 表示されていない名言がない場合（すべて表示済みの場合）は、すべての名言からランダムに1件取得
+    if (result.length === 0) {
+      return await this.getRandomQuote();
+    }
+    
+    return result[0];
+  }
+
+  /**
+   * 名言を表示済みとして記録
+   */
+  public async recordViewedQuote(viewedData: {
+    id: string;
+    userId: string;
+    quoteId: string;
+  }) {
+    await this.db.runAsync(
+      "INSERT INTO viewed_quotes (id, user_id, quote_id) VALUES (?, ?, ?)",
+      [viewedData.id, viewedData.userId, viewedData.quoteId]
+    );
+    
+    return true;
+  }
+
+  /**
+   * ユーザーの表示済み名言をすべて取得
+   */
+  public async getViewedQuotesByUserId(userId: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      quote_id: string;
+      viewed_at: string;
+    }>("SELECT * FROM viewed_quotes WHERE user_id = ? ORDER BY viewed_at DESC", [userId]);
+    
+    return result;
   }
 }
 
