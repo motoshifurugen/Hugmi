@@ -5,12 +5,10 @@ import { router } from 'expo-router';
 import DailyQuoteScreen from '@/components/quotes/DailyQuoteScreen';
 
 export default function DailyQuoteRoute() {
-  // 朝のルーティン開始または別の画面へ遷移
+  // 朝のルーティン開始画面へ遷移
   const handleStart = () => {
-    // 将来的には時間によって遷移先を変更する
-    // 朝: ルーティン開始画面へ
-    // それ以外: ホーム画面へ
-    router.replace('/(tabs)/home');
+    // ルーティン実行画面へ直接遷移
+    router.push('/routine-flow/routine');
   };
 
   return (
