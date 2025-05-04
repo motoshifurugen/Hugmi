@@ -101,6 +101,18 @@ class Database {
         );`
       );
       
+      // お気に入り引用テーブルの作成
+      this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS favorite_quotes (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          quote_id TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (quote_id) REFERENCES quotes(id)
+        );`
+      );
+      
       console.log('Database initialized successfully');
       return Promise.resolve();
     } catch (error) {
@@ -810,6 +822,100 @@ class Database {
       sad: sadResult[0].count,
       anxious: anxiousResult[0].count
     };
+  }
+
+  /**
+   * ユーザーのお気に入り引用を全て取得
+   */
+  public async getFavoriteQuotesByUserId(userId: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      quote_id: string;
+      created_at: string;
+    }>("SELECT * FROM favorite_quotes WHERE user_id = ? ORDER BY created_at DESC", [userId]);
+    return result;
+  }
+
+  /**
+   * ユーザーのお気に入り引用に関連する引用情報も合わせて取得
+   */
+  public async getFavoriteQuotesWithDetailsByUserId(userId: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      quote_id: string;
+      created_at: string;
+      text_ja: string;
+      text_en: string;
+      author_name: string;
+      era: string;
+      image_path: string;
+    }>(`
+      SELECT fq.*, q.text_ja, q.text_en, q.author_name, q.era, q.image_path 
+      FROM favorite_quotes fq
+      JOIN quotes q ON fq.quote_id = q.id
+      WHERE fq.user_id = ?
+      ORDER BY fq.created_at DESC
+    `, [userId]);
+    
+    return result;
+  }
+
+  /**
+   * 引用がユーザーのお気に入りに入っているか確認
+   */
+  public async isFavoriteQuote(userId: string, quoteId: string) {
+    const result = await this.db.getAllAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM favorite_quotes WHERE user_id = ? AND quote_id = ?",
+      [userId, quoteId]
+    );
+    return result[0].count > 0;
+  }
+
+  /**
+   * お気に入り引用を追加
+   */
+  public async addFavoriteQuote(favoriteData: {
+    id: string;
+    userId: string;
+    quoteId: string;
+  }) {
+    await this.db.runAsync(
+      "INSERT INTO favorite_quotes (id, user_id, quote_id) VALUES (?, ?, ?)",
+      [favoriteData.id, favoriteData.userId, favoriteData.quoteId]
+    );
+    
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      quote_id: string;
+      created_at: string;
+    }>("SELECT * FROM favorite_quotes WHERE id = ?", [favoriteData.id]);
+    
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * お気に入り引用を削除（ユーザーIDと引用IDによる指定）
+   */
+  public async removeFavoriteQuote(userId: string, quoteId: string) {
+    await this.db.runAsync(
+      "DELETE FROM favorite_quotes WHERE user_id = ? AND quote_id = ?",
+      [userId, quoteId]
+    );
+    return true;
+  }
+
+  /**
+   * お気に入り引用を削除（IDによる指定）
+   */
+  public async deleteFavoriteQuoteById(id: string) {
+    await this.db.runAsync(
+      "DELETE FROM favorite_quotes WHERE id = ?",
+      [id]
+    );
+    return true;
   }
 }
 
