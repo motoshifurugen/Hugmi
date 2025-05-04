@@ -10,12 +10,6 @@ import {
   ImageSourcePropType,
   ActivityIndicator
 } from 'react-native';
-import { 
-  useFonts, 
-  ZenMaruGothic_400Regular, 
-  ZenMaruGothic_500Medium, 
-  ZenMaruGothic_700Bold 
-} from '@expo-google-fonts/zen-maru-gothic';
 
 import { projectColors } from '@/constants/Colors';
 import { ThemedView } from '@/components/common/ThemedView';
@@ -99,17 +93,9 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   const fadeAuthor = useRef(new Animated.Value(0)).current;
   const fadeButton = useRef(new Animated.Value(0)).current;
 
-  // フォントの読み込み
-  const [fontsLoaded] = useFonts({
-    ZenMaruGothic_400Regular,
-    ZenMaruGothic_500Medium,
-    ZenMaruGothic_700Bold,
-  });
-
   useEffect(() => {
     // 名言データを取得
     const fetchQuote = async () => {
-      setLoading(true);
       try {
         console.log('[DEBUG] 名言取得プロセスを開始');
         // ユーザーがまだ表示していない名言をランダムに取得
@@ -170,11 +156,11 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && !loading && dailyQuote) {
-      // フォントが読み込まれ、データが取得できたらアニメーションを開始
+    if (!loading && dailyQuote) {
+      // データが取得できたらアニメーションを開始
       startAnimations();
     }
-  }, [fontsLoaded, loading, dailyQuote]);
+  }, [loading, dailyQuote]);
 
   const startAnimations = () => {
     // アニメーションをシーケンスとして定義
@@ -182,36 +168,37 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
       // 日本語名言をフェードイン
       Animated.timing(fadeTextJa, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,  // 1000から800msに短縮
         useNativeDriver: true,
       }),
       // 英語名言をフェードイン
       Animated.timing(fadeTextEn, {
         toValue: 1,
-        duration: 800,
+        duration: 600,  // 800から600msに短縮
         useNativeDriver: true,
-        delay: 200,
+        delay: 150,     // 200から150msに短縮
       }),
       // 著者名をフェードイン
       Animated.timing(fadeAuthor, {
         toValue: 1,
-        duration: 800,
+        duration: 600,  // 800から600msに短縮
         useNativeDriver: true,
-        delay: 200,
+        delay: 150,     // 200から150msに短縮
       }),
       // ボタンをフェードイン
       Animated.timing(fadeButton, {
         toValue: 1,
-        duration: 800,
+        duration: 600,  // 800から600msに短縮
         useNativeDriver: true,
-        delay: 200,
+        delay: 150,     // 200から150msに短縮
       }),
     ]).start();
   };
 
-  if (!fontsLoaded || loading) {
+  // ローディング中の表示（スタイルを背景色なしに変更してスプラッシュ画面との切り替えをスムーズに）
+  if (loading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
+      <ThemedView style={styles.container}>
         <ActivityIndicator size="large" color={projectColors.primary} />
       </ThemedView>
     );
@@ -219,7 +206,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
 
   if (!dailyQuote) {
     return (
-      <ThemedView style={styles.loadingContainer}>
+      <ThemedView style={styles.container}>
         <ThemedText style={styles.errorText}>
           名言データの取得に失敗しました。再度お試しください。
         </ThemedText>
@@ -420,12 +407,14 @@ const styles = StyleSheet.create({
     backgroundColor: projectColors.primary,
     paddingVertical: 18,
     paddingHorizontal: 40,
-    borderRadius: 30,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    width: '70%',
+    alignSelf: 'center',
   },
   buttonPressed: {
     backgroundColor: projectColors.primary,
