@@ -58,6 +58,19 @@ class Database {
         );`
       );
       
+      // ルーティンテーブルの作成
+      this.db.execAsync(
+        `CREATE TABLE IF NOT EXISTS routines (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          "order" INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          is_active BOOLEAN DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );`
+      );
+      
       console.log('Database initialized successfully');
       return Promise.resolve();
     } catch (error) {
@@ -326,6 +339,155 @@ class Database {
   public async deleteQuote(id: string) {
     await this.db.runAsync("DELETE FROM quotes WHERE id = ?", [id]);
     return true;
+  }
+
+  /**
+   * ユーザーIDに紐づくすべてのルーティンを取得
+   */
+  public async getRoutinesByUserId(userId: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      order: number;
+      title: string;
+      is_active: number;
+      created_at: string;
+    }>("SELECT * FROM routines WHERE user_id = ? ORDER BY \"order\" ASC", [userId]);
+    return result;
+  }
+
+  /**
+   * ユーザーIDに紐づく有効なルーティンのみ取得
+   */
+  public async getActiveRoutinesByUserId(userId: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      order: number;
+      title: string;
+      is_active: number;
+      created_at: string;
+    }>("SELECT * FROM routines WHERE user_id = ? AND is_active = 1 ORDER BY \"order\" ASC", [userId]);
+    return result;
+  }
+
+  /**
+   * IDでルーティンを取得
+   */
+  public async getRoutineById(id: string) {
+    const result = await this.db.getAllAsync<{
+      id: string;
+      user_id: string;
+      order: number;
+      title: string;
+      is_active: number;
+      created_at: string;
+    }>("SELECT * FROM routines WHERE id = ?", [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * 新しいルーティンを作成
+   */
+  public async createRoutine(routineData: {
+    id: string;
+    userId: string;
+    order: number;
+    title: string;
+    isActive?: boolean;
+  }) {
+    await this.db.runAsync(
+      `INSERT INTO routines (id, user_id, "order", title, is_active) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        routineData.id,
+        routineData.userId,
+        routineData.order,
+        routineData.title,
+        routineData.isActive !== undefined ? (routineData.isActive ? 1 : 0) : 1
+      ]
+    );
+    return await this.getRoutineById(routineData.id);
+  }
+
+  /**
+   * ルーティン情報を更新
+   */
+  public async updateRoutine(
+    id: string,
+    routineData: {
+      order?: number;
+      title?: string;
+      isActive?: boolean;
+    }
+  ) {
+    const sets: string[] = [];
+    const values: any[] = [];
+
+    if (routineData.order !== undefined) {
+      sets.push("\"order\" = ?");
+      values.push(routineData.order);
+    }
+
+    if (routineData.title !== undefined) {
+      sets.push("title = ?");
+      values.push(routineData.title);
+    }
+
+    if (routineData.isActive !== undefined) {
+      sets.push("is_active = ?");
+      values.push(routineData.isActive ? 1 : 0);
+    }
+
+    if (sets.length === 0) {
+      return await this.getRoutineById(id);
+    }
+
+    values.push(id);
+    
+    await this.db.runAsync(
+      `UPDATE routines SET ${sets.join(", ")} WHERE id = ?`,
+      values
+    );
+    
+    return await this.getRoutineById(id);
+  }
+
+  /**
+   * ルーティンを削除
+   */
+  public async deleteRoutine(id: string) {
+    await this.db.runAsync("DELETE FROM routines WHERE id = ?", [id]);
+    return true;
+  }
+
+  /**
+   * ユーザーのルーティンの順序を一括更新
+   */
+  public async reorderRoutines(
+    userId: string,
+    routineOrders: { id: string; order: number }[]
+  ) {
+    // トランザクションを開始
+    await this.db.runAsync("BEGIN TRANSACTION");
+    
+    try {
+      for (const item of routineOrders) {
+        await this.db.runAsync(
+          "UPDATE routines SET \"order\" = ? WHERE id = ? AND user_id = ?",
+          [item.order, item.id, userId]
+        );
+      }
+      
+      // トランザクションをコミット
+      await this.db.runAsync("COMMIT");
+      return true;
+    } catch (error) {
+      // エラー時はロールバック
+      await this.db.runAsync("ROLLBACK");
+      console.error("Error reordering routines:", error);
+      return false;
+    }
   }
 }
 
