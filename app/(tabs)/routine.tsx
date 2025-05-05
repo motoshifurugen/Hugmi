@@ -438,11 +438,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: projectColors.red1,
+    backgroundColor: projectColors.white1,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: 'white',
+    color: projectColors.red1,
     fontWeight: 'bold',
   }
 }); 
