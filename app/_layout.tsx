@@ -77,6 +77,16 @@ export default function RootLayout() {
       await runAllSeeds();
       console.log('シードデータの投入が完了しました');
       
+      // ユーザーデータが正しく作成されたか確認
+      const { getAllUsers } = await import('@/db/utils/users');
+      const users = await getAllUsers();
+      console.log(`データベース内のユーザー数: ${users.length}`);
+      if (users.length > 0) {
+        console.log('最初のユーザー:', users[0].name);
+      } else {
+        console.warn('ユーザーデータが作成されていません');
+      }
+      
       // 初期ルートとして名言画面を設定
       setInitialRoute('daily-quote');
       // データベース初期化完了を記録

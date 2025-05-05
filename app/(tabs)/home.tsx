@@ -17,6 +17,7 @@ import {
   createNeomorphicButtonStyle,
   createNeomorphicButtonPressedStyle
 } from '@/constants/NeuomorphicStyles';
+import { getAllUsers } from '@/db/utils/users';
 
 // 仮のユーザーID（本番では認証から取得）
 const TEMP_USER_ID = '1';
@@ -78,30 +79,42 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState('');
   const [routineProgress, setRoutineProgress] = useState({ completed: 0, total: 0 });
   const [todayQuote, setTodayQuote] = useState({ textJa: '', authorJa: '' });
+  const [userId, setUserId] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // ユーザー情報を取得
-        const user = await getUserById(TEMP_USER_ID);
-        if (user) {
+        // データベースから最初のユーザーを取得
+        const users = await getAllUsers();
+        let user = null;
+        
+        if (users.length > 0) {
+          // 最初のユーザーを使用
+          user = users[0];
+          setUserId(user.id);
           setUserName(user.name);
+        } else {
+          console.error('ユーザーが見つかりません');
+          setUserName('ゲスト');
         }
         
-        // 今日のルーティン進捗を取得
-        const progress = await getTodayRoutineProgress(TEMP_USER_ID);
-        setRoutineProgress({
-          completed: progress.completed,
-          total: progress.total
-        });
-        
-        // 今日の名言を取得
-        const quote = await getUnviewedRandomQuote(TEMP_USER_ID);
-        if (quote) {
-          setTodayQuote({
-            textJa: quote.textJa,
-            authorJa: quote.authorJa
+        // ユーザーIDが取得できた場合はそのユーザーのデータを取得
+        if (user) {
+          // 今日のルーティン進捗を取得
+          const progress = await getTodayRoutineProgress(user.id);
+          setRoutineProgress({
+            completed: progress.completed,
+            total: progress.total
           });
+          
+          // 今日の名言を取得
+          const quote = await getUnviewedRandomQuote(user.id);
+          if (quote) {
+            setTodayQuote({
+              textJa: quote.textJa,
+              authorJa: quote.authorJa
+            });
+          }
         }
         
         setLoading(false);
@@ -130,10 +143,17 @@ export default function HomeScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* 1. あいさつと名前表示 */}
       <View style={styles.greetingContainer}>
-        <ThemedText style={styles.greeting}>
-          {greeting}、{userName}さん
-        </ThemedText>
-        <HelloWave />
+        <View style={styles.greetingTextContainer}>
+          <ThemedText style={styles.greeting}>
+            {greeting}、
+          </ThemedText>
+          <ThemedText style={styles.userName}>
+            {userName}さん
+          </ThemedText>
+        </View>
+        <View style={styles.waveContainer}>
+          <HelloWave />
+        </View>
       </View>
       
       {/* 2. 今日のルーティン進捗 */}
@@ -203,7 +223,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 24,
-    paddingTop: 80,
+    paddingTop: 64,
     paddingBottom: 120,
   },
   centerContainer: {
@@ -216,12 +236,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
+    width: '100%',
+  },
+  greetingTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginRight: 8,
+  },
+  waveContainer: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   greeting: {
     fontFamily: fonts.families.primary,
     fontSize: 24,
     fontWeight: '600',
-    marginRight: 8,
+    marginRight: 4,
+    paddingTop: 2,
+  },
+  userName: {
+    fontFamily: fonts.families.primary,
+    fontSize: 24,
+    fontWeight: '600',
     paddingTop: 2,
   },
   progressContainer: {
@@ -247,7 +286,7 @@ const styles = StyleSheet.create({
   quoteContainer: {
     padding: 24,
     borderRadius: 16,
-    marginBottom: 30,
+    marginBottom: 20,
     alignItems: 'flex-start',
     backgroundColor: projectColors.white1,
   },
