@@ -146,8 +146,8 @@ export default function RoutineStepScreen() {
         updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
         setRoutines(updatedRoutines);
         
-        // 完了画面へ遷移
-        router.push('/routine-flow/complete');
+        // 朝の完了画面へ遷移
+        router.push('/routine-flow/morning-complete');
       }
     });
   };
@@ -168,7 +168,8 @@ export default function RoutineStepScreen() {
       updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
       setRoutines(updatedRoutines);
       
-      router.push('/routine-flow/complete');
+      // 朝の完了画面へ遷移
+      router.push('/routine-flow/morning-complete');
     }
   };
 
