@@ -145,9 +145,9 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: projectColors.white1 }
             }}
           >
-            <Stack.Screen name="daily-quote" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
+            <Stack.Screen name="daily-quote" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
+            <Stack.Screen name="+not-found" options={{ contentStyle: { backgroundColor: projectColors.white1 } }} />
           </Stack>
           
           {/* スプラッシュ画面をオーバーレイとして表示 */}

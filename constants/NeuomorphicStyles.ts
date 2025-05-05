@@ -61,7 +61,7 @@ export const createNeomorphicButtonStyle = (
   borderRadius: number = 20
 ): ViewStyle => {
   return {
-    backgroundColor: projectColors.primary,
+    backgroundColor: projectColors.softOrange,
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius,
@@ -96,7 +96,7 @@ export const createNeomorphicButtonStyle = (
  */
 export const createNeomorphicButtonPressedStyle = (): ViewStyle => {
   return {
-    backgroundColor: projectColors.primary,
+    backgroundColor: projectColors.softOrange,
     opacity: 0.95,
     transform: [{ scale: 0.98 }],
     
@@ -135,5 +135,35 @@ export const createSmallNeomorphicStyle = (size: number = 12): ViewStyle => {
     borderLeftColor: projectColors.neuLight,
     borderBottomColor: 'transparent',
     borderRightColor: 'transparent',
+  };
+};
+
+/**
+ * 立体感のある円のスタイルを生成する関数
+ * ニューモーフィズムではなく、より濃い色と白系の縁を持つ3Dスタイル
+ * 
+ * @param size - 円の直径
+ * @param borderWidth - 白い縁取りの太さ
+ * @param elevation - 影の高さ（大きいほど浮き上がって見える）
+ * @returns ViewStyleオブジェクト
+ */
+export const create3DCircleStyle = (
+  size: number = 160,
+  borderWidth: number = 4,
+  elevation: number = 8
+): ViewStyle => {
+  return {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: projectColors.softOrange,
+    borderWidth,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    position: 'absolute',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: elevation * 0.75 },
+    shadowOpacity: 0.25,
+    shadowRadius: elevation * 0.8,
+    elevation,
   };
 }; 
