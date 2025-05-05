@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: projectColors.white1,
+    backgroundColor: projectColors.white1, // 背景色をwhite1に戻す
   },
   contentWrapper: {
     position: 'relative',
@@ -261,8 +261,25 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.secondary, // より薄い色に変更
     zIndex: 10, // テキストより小さなzIndexを設定
+    
+    // ニューモーフィズムスタイル：より自然な効果
+    shadowColor: projectColors.neuDark,
+    shadowOffset: { width: 6, height: 6 }, // 右下方向の影
+    shadowOpacity: 1,
+    shadowRadius: 10, // 自然な影の広がり
+    elevation: 5,
+    
+    // 左上のみに光の効果（より自然に）
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopColor: projectColors.neuLight,
+    borderLeftColor: projectColors.neuLight,
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
   },
   loadingContainer: {
     position: 'absolute',

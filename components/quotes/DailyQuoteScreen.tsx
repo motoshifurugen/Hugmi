@@ -408,18 +408,37 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    alignItems: 'center',
+    
+    // ニューモーフィズムスタイル：影と光の効果
+    shadowColor: projectColors.neuDark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 5,
+    
+    // 左上に光の効果
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopColor: projectColors.neuLight,
+    borderLeftColor: projectColors.neuLight,
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
+    
     width: '70%',
     alignSelf: 'center',
   },
   buttonPressed: {
     backgroundColor: projectColors.primary,
-    opacity: 0.8,
+    opacity: 0.95,
     transform: [{ scale: 0.98 }],
+    
+    // 押された時は影を小さく
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
   },
   buttonText: {
     fontSize: 18,
