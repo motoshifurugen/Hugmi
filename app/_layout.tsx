@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts as useCustomFonts, ZenMaruGothic_400Regular, ZenMaruGothic_500Medium, ZenMaruGothic_700Bold } from '@expo-google-fonts/zen-maru-gothic';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { db } from '@/db';
@@ -235,46 +236,48 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {initialRoute || forceNavigate ? (
-        <>
-          <Stack 
-            initialRouteName="daily-quote"
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
-              animationDuration: 450,
-              presentation: 'transparentModal',
-              contentStyle: { backgroundColor: projectColors.white1 }
-            }}
-          >
-            <Stack.Screen name="daily-quote" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
-            <Stack.Screen name="+not-found" options={{ contentStyle: { backgroundColor: projectColors.white1 } }} />
-          </Stack>
-          
-          {/* スプラッシュ画面をオーバーレイとして表示 */}
-          {showSplash && (
-            <View style={styles.splashOverlay}>
-              <CustomSplashScreen
-                onFinish={onSplashFinish}
-                extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
-                onAnimationComplete={onAnimationComplete}
-              />
-            </View>
-          )}
-        </>
-      ) : (
-        // 初期ルートが設定されるまではカスタムスプラッシュスクリーンのみ表示
-        <View style={styles.splashOverlay}>
-          <CustomSplashScreen
-            onFinish={onSplashFinish}
-            extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
-            onAnimationComplete={onAnimationComplete}
-          />
-        </View>
-      )}
-      
-      <StatusBar style="auto" />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {initialRoute || forceNavigate ? (
+          <>
+            <Stack 
+              initialRouteName="daily-quote"
+              screenOptions={{
+                headerShown: false,
+                animation: 'fade',
+                animationDuration: 450,
+                presentation: 'transparentModal',
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }}
+            >
+              <Stack.Screen name="daily-quote" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
+              <Stack.Screen name="+not-found" options={{ contentStyle: { backgroundColor: projectColors.white1 } }} />
+            </Stack>
+            
+            {/* スプラッシュ画面をオーバーレイとして表示 */}
+            {showSplash && (
+              <View style={styles.splashOverlay}>
+                <CustomSplashScreen
+                  onFinish={onSplashFinish}
+                  extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
+                  onAnimationComplete={onAnimationComplete}
+                />
+              </View>
+            )}
+          </>
+        ) : (
+          // 初期ルートが設定されるまではカスタムスプラッシュスクリーンのみ表示
+          <View style={styles.splashOverlay}>
+            <CustomSplashScreen
+              onFinish={onSplashFinish}
+              extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
+              onAnimationComplete={onAnimationComplete}
+            />
+          </View>
+        )}
+        
+        <StatusBar style="auto" />
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
 }
