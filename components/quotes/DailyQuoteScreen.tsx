@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import CornerDecoration from '@/components/common/ui/CornerDecoration';
 import { router } from 'expo-router';
 import { getUnviewedRandomQuote, recordViewedQuote } from '@/db/utils/viewed_quotes';
+import { createNeomorphicButtonStyle, createNeomorphicButtonPressedStyle } from '@/constants/NeuomorphicStyles';
 
 // 著者画像のマッピング
 const AUTHOR_IMAGES: Record<string, ImageSourcePropType> = {
@@ -404,22 +405,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startButton: {
-    backgroundColor: projectColors.primary,
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    width: '70%',
-    alignSelf: 'center',
+    ...createNeomorphicButtonStyle('70%', 20),
   },
   buttonPressed: {
-    backgroundColor: projectColors.primary,
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    ...createNeomorphicButtonPressedStyle(),
   },
   buttonText: {
     fontSize: 18,

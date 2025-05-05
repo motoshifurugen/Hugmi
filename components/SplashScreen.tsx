@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
 import { projectColors } from '@/constants/Colors';
+import { createNeomorphicStyle } from '@/constants/NeuomorphicStyles';
 
 // グローバル状態変数 - アプリケーション全体で1回だけアニメーションを実行するため
 // この変数はモジュールスコープなので、コンポーネントのレンダリングサイクルの影響を受けない
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: projectColors.white1,
+    backgroundColor: projectColors.white1, // 背景色をwhite1に戻す
   },
   contentWrapper: {
     position: 'relative',
@@ -258,11 +259,9 @@ const styles = StyleSheet.create({
   },
   lightEffect: {
     position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.secondary, // より薄い色に変更
     zIndex: 10, // テキストより小さなzIndexを設定
+    ...createNeomorphicStyle(160, 6, 5, 2, true),
   },
   loadingContainer: {
     position: 'absolute',

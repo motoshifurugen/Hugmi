@@ -11,6 +11,12 @@ import {
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { projectColors } from '@/constants/Colors';
+import { 
+  createNeomorphicStyle, 
+  createNeomorphicButtonStyle, 
+  createNeomorphicButtonPressedStyle, 
+  createSmallNeomorphicStyle 
+} from '@/constants/NeuomorphicStyles';
 
 // 仮のルーティンデータ（説明文を削除）
 const SAMPLE_ROUTINES = [
@@ -303,14 +309,8 @@ const styles = StyleSheet.create({
   },
   currentStepDot: {
     backgroundColor: projectColors.secondary,
-    width: 12, // 10から12に拡大
-    height: 12, // 10から12に拡大
-    borderRadius: 6, // 半径も調整
-    elevation: 2, // Androidでの影
-    shadowColor: '#000', // iOSでの影
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
+    ...createSmallNeomorphicStyle(12),
+    margin: 4,
   },
   completedStepDot: {
     backgroundColor: projectColors.primary,
@@ -333,12 +333,10 @@ const styles = StyleSheet.create({
     height: 200,
   },
   routineCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
     backgroundColor: projectColors.secondary,
     position: 'absolute',
     zIndex: 5,
+    ...createNeomorphicStyle(160, 8, 5, 2, true),
   },
   routineTitle: {
     fontSize: 26,
@@ -357,23 +355,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   completeButton: {
-    backgroundColor: projectColors.primary,
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    width: '70%',
-    alignSelf: 'center',
+    ...createNeomorphicButtonStyle('70%', 20),
   },
   buttonPressed: {
-    backgroundColor: projectColors.primary,
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    ...createNeomorphicButtonPressedStyle(),
   },
   buttonText: {
     fontSize: 18,
