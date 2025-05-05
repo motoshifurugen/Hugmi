@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, Pressable, View, Modal, TextInput } from 'react-native';
 import { Link } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -8,6 +8,12 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
+
+// 色の上書き（少し濃い緑に）
+const customColors = {
+  ...projectColors,
+  success: '#4CAF50' // 薄めの緑色に変更
+};
 
 // 仮のルーティンデータ
 const SAMPLE_ROUTINES = [
@@ -27,6 +33,35 @@ interface Routine {
 
 export default function RoutineScreen() {
   const [routines, setRoutines] = useState<Routine[]>(SAMPLE_ROUTINES);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [newRoutineTitle, setNewRoutineTitle] = useState<string>('');
+
+  // モーダルを開く
+  const openModal = () => {
+    setNewRoutineTitle(''); // 入力フィールドをリセット
+    setIsModalVisible(true);
+  };
+
+  // モーダルを閉じる
+  const closeModal = () => {
+    setIsModalVisible(false);
+  };
+
+  // 新しいルーティンを追加
+  const addNewRoutine = () => {
+    if (newRoutineTitle.trim() === '') return;
+
+    const newRoutine: Routine = {
+      id: Date.now().toString(), // 一意のID
+      title: newRoutineTitle.trim(),
+      completed: false,
+      order: routines.length + 1
+    };
+
+    setRoutines([...routines, newRoutine]);
+    setNewRoutineTitle('');
+    setIsModalVisible(false);
+  };
 
   // ドラッグ終了時のイベントハンドラ
   const onDragEnd = useCallback(({ data }: { data: Routine[] }) => {
@@ -56,11 +91,12 @@ export default function RoutineScreen() {
         
         {/* 新規追加アイコン */}
         <View style={styles.headerActions}>
-          <Link href="/routine-flow/edit" asChild>
-            <Pressable style={styles.addButton}>
-              <IconSymbol name="plus" size={22} color={projectColors.white1} />
-            </Pressable>
-          </Link>
+          <Pressable 
+            style={styles.addButton} 
+            onPress={openModal}
+          >
+            <IconSymbol name="plus" size={22} color={projectColors.white1} />
+          </Pressable>
         </View>
       </ThemedView>
       
@@ -111,6 +147,44 @@ export default function RoutineScreen() {
           </ThemedText>
         )}
       </ThemedView>
+
+      {/* 新規ルーティン追加モーダル */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>新しいルーティンを追加</ThemedText>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="ルーティンのタイトル"
+              value={newRoutineTitle}
+              onChangeText={setNewRoutineTitle}
+              autoFocus
+            />
+            
+            <View style={styles.modalButtons}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={closeModal}
+              >
+                <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
+              </Pressable>
+              
+              <Pressable 
+                style={[styles.modalButton, styles.addRoutineButton]} 
+                onPress={addNewRoutine}
+              >
+                <ThemedText style={styles.addButtonText}>追加</ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -127,13 +201,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 60,
     marginBottom: 20,
+    paddingTop: 10,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   addButton: {
-    backgroundColor: projectColors.success,
+    backgroundColor: customColors.success,  // より濃い緑色を使用
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -209,5 +284,66 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#888888',
     paddingTop: 12,
+  },
+  // モーダルスタイル
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start', // 上寄せに変更
+    alignItems: 'center',
+    paddingTop: 150, // 上からの余白を追加
+  },
+  modalContent: {
+    width: '90%', // 幅を広げる
+    backgroundColor: projectColors.white1,
+    borderRadius: 16,
+    padding: 20,
+    // ニューモーフィズム効果をモーダルにも
+    shadowColor: projectColors.black1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+    marginRight: 8,
+  },
+  addRoutineButton: {
+    backgroundColor: customColors.success,
+    marginLeft: 8,
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  addButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   }
 }); 
