@@ -10,7 +10,7 @@ import { fonts } from '@/constants/fonts';
 import { getTimeBasedGreeting } from '@/constants/utils';
 import { getUserById } from '@/db/utils/users';
 import { getTodayRoutineProgress } from '@/db/utils/routine_logs';
-import { getUnviewedRandomQuote } from '@/db/utils/viewed_quotes';
+import { getTodayViewedQuote, getUnviewedRandomQuote } from '@/db/utils/viewed_quotes';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { 
   createNeomorphicStyle, 
@@ -18,6 +18,7 @@ import {
   createNeomorphicButtonPressedStyle
 } from '@/constants/NeuomorphicStyles';
 import { getAllUsers } from '@/db/utils/users';
+import { ACTIVE_USER_ID } from '@/components/quotes/DailyQuoteScreen';
 
 // 仮のユーザーID（本番では認証から取得）
 const TEMP_USER_ID = '1';
@@ -107,13 +108,32 @@ export default function HomeScreen() {
             total: progress.total
           });
           
-          // 今日の名言を取得
-          const quote = await getUnviewedRandomQuote(user.id);
-          if (quote) {
+          // 今日の朝に表示した名言を取得
+          console.log('[DEBUG] ホーム画面: 今日の名言を取得開始');
+          const todayQuote = await getTodayViewedQuote(user.id);
+          
+          if (todayQuote) {
+            console.log('[DEBUG] ホーム画面: 今日の名言を取得成功');
             setTodayQuote({
-              textJa: quote.textJa,
-              authorJa: quote.authorJa
+              textJa: todayQuote.textJa,
+              authorJa: todayQuote.authorJa
             });
+          } else {
+            // 表示履歴がない場合は、ランダムな名言を表示
+            console.log('[DEBUG] ホーム画面: 表示履歴がないためランダムな名言を取得');
+            const randomQuote = await getUnviewedRandomQuote(user.id);
+            if (randomQuote) {
+              setTodayQuote({
+                textJa: randomQuote.textJa,
+                authorJa: randomQuote.authorJa
+              });
+            } else {
+              // 名言がない場合のデフォルト
+              setTodayQuote({
+                textJa: '今日も新しい一日の始まりです',
+                authorJa: 'Hugmi'
+              });
+            }
           }
         }
         
@@ -121,6 +141,11 @@ export default function HomeScreen() {
       } catch (error) {
         console.error('ホーム画面データの読み込みエラー:', error);
         setLoading(false);
+        // エラー時のデフォルト
+        setTodayQuote({
+          textJa: '今日も新しい一日の始まりです',
+          authorJa: 'Hugmi'
+        });
       }
     };
     
@@ -177,9 +202,9 @@ export default function HomeScreen() {
         </View>
       </View>
       
-      {/* 3. 今日の名言（再掲） */}
+      {/* 3. 今日の名言（朝に表示したもの） */}
       <View style={[styles.quoteContainer, cardNeomorphStyle]}>
-        <ThemedText style={styles.quoteLabel}>今日の名言：</ThemedText>
+        <ThemedText style={styles.quoteLabel}>今朝の名言：</ThemedText>
         <ThemedText style={styles.quoteText}>
           {todayQuote.textJa.replace(/\\n/g, '\n')}
         </ThemedText>

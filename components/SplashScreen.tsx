@@ -34,6 +34,10 @@ export default function CustomSplashScreen({
   // ローカル状態 - この状態変数はレンダリングごとにリセットされる可能性があるため、
   // グローバル変数と組み合わせて使用
   const [animationDone, setAnimationDone] = useState(GLOBAL_ANIMATION_STATE.isComplete);
+  const [localLoadingShown, setLocalLoadingShown] = useState(GLOBAL_ANIMATION_STATE.loadingTextShown);
+  
+  // デバッグ用
+  console.log(`[DEBUG] SplashScreen レンダリング - アニメーション完了: ${animationDone}, 延長モード: ${extendAnimation}, ローディング表示: ${localLoadingShown}`);
 
   // アニメーション値は、グローバル変数から取得
   const fadeAnim = globalAnimValues.fadeAnim;
@@ -55,7 +59,9 @@ export default function CustomSplashScreen({
       
       // 延長モードの場合、ローディングテキストも表示
       if (extendAnimation && !GLOBAL_ANIMATION_STATE.loadingTextShown) {
+        console.log('[DEBUG] アニメーション完了済み・延長モード - ローディングテキスト表示');
         GLOBAL_ANIMATION_STATE.loadingTextShown = true;
+        setLocalLoadingShown(true);
         showLoadingText();
       }
     }
@@ -65,16 +71,21 @@ export default function CustomSplashScreen({
 
   // extendAnimationプロパティの変更を監視
   useEffect(() => {
+    console.log(`[DEBUG] extendAnimation 変更検出: ${extendAnimation}, アニメーション完了: ${GLOBAL_ANIMATION_STATE.isComplete}`);
+    
     // アニメーションが完了している場合のみ処理
     if (GLOBAL_ANIMATION_STATE.isComplete) {
       if (extendAnimation) {
         // 延長モードになり、まだローディングテキストが表示されていない場合
         if (!GLOBAL_ANIMATION_STATE.loadingTextShown) {
+          console.log('[DEBUG] 延長モードに変更 - ローディングテキスト表示');
           GLOBAL_ANIMATION_STATE.loadingTextShown = true;
+          setLocalLoadingShown(true);
           showLoadingText();
         }
       } else {
         // 延長モードが解除された場合、完了通知
+        console.log('[DEBUG] 延長モード解除 - 完了通知');
         onFinish();
       }
     }
@@ -82,32 +93,48 @@ export default function CustomSplashScreen({
 
   // ローディングテキストを表示する関数
   const showLoadingText = () => {
+    console.log('[DEBUG] ローディングテキストのフェードインアニメーション開始');
+    // 初期値を設定してフェードイン効果を確実にする
+    loadingTextFadeAnim.setValue(0);
+    
     Animated.timing(loadingTextFadeAnim, {
       toValue: 1,
       duration: 400,
       useNativeDriver: true,
-    }).start();
+    }).start(({finished}) => {
+      if (finished) {
+        console.log('[DEBUG] ローディングテキストのフェードインアニメーション完了');
+      } else {
+        console.log('[DEBUG] ローディングテキストのアニメーションが中断されました');
+      }
+    });
   };
 
   // アニメーションを開始する関数
   const startAnimations = () => {
-    // アニメーションをシーケンスとして定義
-    Animated.sequence([
-      // 最初にロゴと背景を同時にアニメーション
-      Animated.parallel([
-        // ロゴのフェードイン（800ms）
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        // 背景の光アニメーション（1.2秒）
-        Animated.timing(lightAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-      ]),
+    console.log('[DEBUG] アニメーションシーケンスを設定します');
+    
+    // 各アニメーションを個別に定義して実行する方式に変更
+    // 最初にロゴと背景を同時にフェードイン
+    const step1 = Animated.parallel([
+      // ロゴのフェードイン（800ms）
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      // 背景の光アニメーション（1.2秒）
+      Animated.timing(lightAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+    ]);
+    
+    // ステップ1の完了後に実行するステップ2
+    const step2 = () => {
+      console.log('[DEBUG] アニメーションステップ1完了、ステップ2開始');
+      
       // サブタイトルのフェードインとロゴ位置の移動を同時に行う
       Animated.parallel([
         // サブタイトルをフェードイン（600ms）
@@ -122,35 +149,57 @@ export default function CustomSplashScreen({
           duration: 600,
           useNativeDriver: true,
         }),
-      ]),
-      // 完了後に少し待機（500ms）
-      Animated.delay(500),
-    ]).start(({ finished }) => {
-      // アニメーションが正常に完了した場合のみ処理を実行
-      if (finished) {
-        console.log('[DEBUG] スプラッシュアニメーション完了（1回のみ）');
-        
-        // グローバル状態を更新
-        GLOBAL_ANIMATION_STATE.isComplete = true;
-        
-        // ローカル状態も更新
-        setAnimationDone(true);
-        
-        // 延長モードの場合、「データを準備しています」をフェードイン
-        if (extendAnimation) {
-          GLOBAL_ANIMATION_STATE.loadingTextShown = true;
-          showLoadingText();
+      ]).start(({finished: step2Finished}) => {
+        if (step2Finished) {
+          console.log('[DEBUG] アニメーションステップ2完了、待機開始');
+          // 待機してからアニメーション完了を通知
+          setTimeout(onAnimationFinished, 500);
+        } else {
+          console.log('[DEBUG] アニメーションステップ2が中断されました');
+          // 安全策として待機後に完了通知
+          setTimeout(onAnimationFinished, 1000);
         }
-        
-        // アニメーション完了コールバックがあれば呼び出す
-        if (onAnimationComplete) {
-          onAnimationComplete();
-        }
-        
-        // 延長モードでない場合はすぐに完了通知
-        if (!extendAnimation) {
-          onFinish();
-        }
+      });
+    };
+    
+    // アニメーション完了時の処理をまとめた関数
+    const onAnimationFinished = () => {
+      console.log('[DEBUG] スプラッシュアニメーション完了（1回のみ）');
+      
+      // グローバル状態を更新
+      GLOBAL_ANIMATION_STATE.isComplete = true;
+      
+      // ローカル状態も更新
+      setAnimationDone(true);
+      
+      // 延長モードの場合、「データを準備しています」をフェードイン
+      if (extendAnimation) {
+        console.log('[DEBUG] アニメーション完了・延長モード - ローディングテキスト表示');
+        GLOBAL_ANIMATION_STATE.loadingTextShown = true;
+        setLocalLoadingShown(true);
+        showLoadingText();
+      }
+      
+      // アニメーション完了コールバックがあれば呼び出す
+      if (onAnimationComplete) {
+        onAnimationComplete();
+      }
+      
+      // 延長モードでない場合はすぐに完了通知
+      if (!extendAnimation) {
+        console.log('[DEBUG] 延長モードなし - すぐに完了通知');
+        onFinish();
+      }
+    };
+    
+    // ステップ1を開始
+    step1.start(({finished: step1Finished}) => {
+      if (step1Finished) {
+        step2();
+      } else {
+        console.log('[DEBUG] アニメーションステップ1が中断されました');
+        // 安全策として待機後に完了通知
+        setTimeout(onAnimationFinished, 1000);
       }
     });
   };
@@ -215,7 +264,7 @@ export default function CustomSplashScreen({
         </Animated.View>
       </View>
       
-      {/* ローディングインジケータを画面下部に表示（非表示のときはopacity:0） */}
+      {/* ローディングインジケータを画面下部に表示 */}
       <Animated.View style={[
         styles.loadingContainer,
         { opacity: loadingTextFadeAnim }

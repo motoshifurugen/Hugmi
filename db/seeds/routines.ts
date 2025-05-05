@@ -1,22 +1,32 @@
-import { createRoutine } from '@/db/utils/routines';
+import { createRoutine, getRoutinesByUserId } from '@/db/utils/routines';
 import { getAllUsers } from '@/db/utils/users';
 
 /**
- * サンプルのルーティンデータをデータベースに挿入する
- * 各ユーザーに対してサンプルのルーティンを作成
+ * デフォルトのルーティンデータをデータベースに挿入する
+ * アプリでは常にユーザーは1人のみという前提で、そのユーザーに5つの基本ルーティンを作成
  */
 export const seedRoutines = async () => {
-  console.log('Seeding routines...');
+  console.log('ルーティンデータの投入を開始します...');
   
-  // すべてのユーザーを取得
+  // 現在のユーザーを取得（常に1人のみ）
   const users = await getAllUsers();
   if (users.length === 0) {
-    console.log('No users found. Please run user seeds first.');
+    console.error('ユーザーが見つかりません。先にユーザーシードを実行してください。');
     return;
   }
   
-  // 各ユーザーに対するサンプルルーティン
-  const sampleRoutines = [
+  const user = users[0]; // 唯一のユーザーを使用
+  console.log(`ユーザー「${user.name}」のルーティンを作成します`);
+  
+  // 既存のルーティンを確認
+  const existingRoutines = await getRoutinesByUserId(user.id);
+  if (existingRoutines.length > 0) {
+    console.log(`ユーザーには既に${existingRoutines.length}件のルーティンがあります。清掃後に再作成します。`);
+    // 既存のルーティンは clearAllData() ですでに削除されているはず
+  }
+  
+  // デフォルトルーティン - 朝のシンプルな流れに合わせた基本的なもの
+  const defaultRoutines = [
     { title: '朝の瞑想', order: 1 },
     { title: 'ストレッチ', order: 2 },
     { title: '朝食', order: 3 },
@@ -26,17 +36,15 @@ export const seedRoutines = async () => {
   
   let count = 0;
   
-  // 各ユーザーにルーティンを追加
-  for (const user of users) {
-    for (const routine of sampleRoutines) {
-      await createRoutine({
-        userId: user.id,
-        title: routine.title,
-        order: routine.order
-      });
-      count++;
-    }
+  // ルーティンを作成
+  for (const routine of defaultRoutines) {
+    await createRoutine({
+      userId: user.id,
+      title: routine.title,
+      order: routine.order
+    });
+    count++;
   }
   
-  console.log(`${count} routines seeded successfully!`);
+  console.log(`${count}件のルーティンが正常に作成されました！`);
 }; 
