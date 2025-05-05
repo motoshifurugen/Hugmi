@@ -9,10 +9,10 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
 
-// 色の上書き（少し濃い緑に）
+// 色の上書き（より薄い緑に）
 const customColors = {
   ...projectColors,
-  success: '#4CAF50' // 薄めの緑色に変更
+  success: '#81C784'
 };
 
 // 仮のルーティンデータ
@@ -34,17 +34,31 @@ interface Routine {
 export default function RoutineScreen() {
   const [routines, setRoutines] = useState<Routine[]>(SAMPLE_ROUTINES);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
   const [newRoutineTitle, setNewRoutineTitle] = useState<string>('');
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
 
-  // モーダルを開く
+  // 新規追加モーダルを開く
   const openModal = () => {
     setNewRoutineTitle(''); // 入力フィールドをリセット
     setIsModalVisible(true);
   };
 
-  // モーダルを閉じる
+  // 新規追加モーダルを閉じる
   const closeModal = () => {
     setIsModalVisible(false);
+  };
+
+  // 編集モーダルを開く
+  const openEditModal = (routine: Routine) => {
+    setEditingRoutine(routine);
+    setIsEditModalVisible(true);
+  };
+
+  // 編集モーダルを閉じる
+  const closeEditModal = () => {
+    setIsEditModalVisible(false);
+    setEditingRoutine(null);
   };
 
   // 新しいルーティンを追加
@@ -63,6 +77,33 @@ export default function RoutineScreen() {
     setIsModalVisible(false);
   };
 
+  // ルーティンを更新
+  const updateRoutine = () => {
+    if (!editingRoutine || editingRoutine.title.trim() === '') return;
+
+    const updatedRoutines = routines.map(item => 
+      item.id === editingRoutine.id ? editingRoutine : item
+    );
+
+    setRoutines(updatedRoutines);
+    closeEditModal();
+  };
+
+  // ルーティンアイテムを削除する関数
+  const deleteRoutine = () => {
+    if (!editingRoutine) return;
+    
+    const updatedRoutines = routines
+      .filter(item => item.id !== editingRoutine.id)
+      .map((item, index) => ({
+        ...item,
+        order: index + 1
+      }));
+    
+    setRoutines(updatedRoutines);
+    closeEditModal();
+  };
+
   // ドラッグ終了時のイベントハンドラ
   const onDragEnd = useCallback(({ data }: { data: Routine[] }) => {
     // 新しい順序で更新されたデータを設定
@@ -72,17 +113,6 @@ export default function RoutineScreen() {
     }));
     setRoutines(updatedRoutines);
   }, []);
-
-  // ルーティンアイテムを削除する関数
-  const handleDeleteRoutine = (id: string) => {
-    const updatedRoutines = routines
-      .filter(item => item.id !== id)
-      .map((item, index) => ({
-        ...item,
-        order: index + 1
-      }));
-    setRoutines(updatedRoutines);
-  };
 
   return (
     <ThemedView style={styles.container}>
@@ -120,8 +150,13 @@ export default function RoutineScreen() {
                       <ThemedText style={styles.orderText}>{item.order}</ThemedText>
                     </View>
                     
-                    {/* タイトル */}
-                    <ThemedText style={styles.routineTitle}>{item.title}</ThemedText>
+                    {/* タイトル - タップで編集モーダルを表示 */}
+                    <Pressable 
+                      style={styles.titleContainer}
+                      onPress={() => openEditModal(item)}
+                    >
+                      <ThemedText style={styles.routineTitle}>{item.title}</ThemedText>
+                    </Pressable>
                     
                     {/* ドラッグハンドル - 触れた瞬間ドラッグ開始 */}
                     <Pressable 
@@ -185,6 +220,54 @@ export default function RoutineScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ルーティン編集モーダル */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isEditModalVisible}
+        onRequestClose={closeEditModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ThemedText style={styles.modalTitle}>ルーティンを編集</ThemedText>
+            
+            {editingRoutine && (
+              <TextInput
+                style={styles.input}
+                placeholder="ルーティンのタイトル"
+                value={editingRoutine.title}
+                onChangeText={(text) => setEditingRoutine({...editingRoutine, title: text})}
+                autoFocus
+              />
+            )}
+            
+            <View style={styles.modalButtons}>
+              <Pressable 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={closeEditModal}
+              >
+                <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
+              </Pressable>
+              
+              <Pressable 
+                style={[styles.modalButton, styles.addRoutineButton]} 
+                onPress={updateRoutine}
+              >
+                <ThemedText style={styles.addButtonText}>更新</ThemedText>
+              </Pressable>
+            </View>
+
+            {/* 削除ボタン */}
+            <Pressable 
+              style={styles.deleteButton} 
+              onPress={deleteRoutine}
+            >
+              <ThemedText style={styles.deleteButtonText}>このルーティンを削除</ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -201,14 +284,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 60,
     marginBottom: 20,
-    paddingTop: 10,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   addButton: {
-    backgroundColor: customColors.success,  // より濃い緑色を使用
+    backgroundColor: customColors.success,  // より薄い緑色を使用
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -228,9 +310,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   routineItem: {
-    padding: 14,
+    padding: 10, // 縦幅を縮める
     borderRadius: 12,
-    marginVertical: 8,
+    marginVertical: 6, // 縦マージンも縮める
     
     // ニューモーフィズム効果
     backgroundColor: projectColors.white1,
@@ -249,9 +331,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28, // サイズを少し小さく
+    height: 28, // サイズを少し小さく
+    borderRadius: 14,
     backgroundColor: projectColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -265,15 +347,18 @@ const styles = StyleSheet.create({
   },
   orderText: {
     color: projectColors.black1,
-    fontSize: 14,
+    fontSize: 13, // フォントサイズも少し小さく
     fontWeight: 'bold',
+  },
+  titleContainer: {
+    flex: 1,
+    paddingVertical: 5, // タップしやすい高さを確保
   },
   routineTitle: {
     fontSize: 16,
-    flex: 1,
   },
   iconButton: {
-    padding: 8,
+    padding: 6, // 少し小さく
     marginLeft: 5,
     borderRadius: 20,
   },
@@ -281,9 +366,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   dragHandle: {
-    fontSize: 30,
+    fontSize: 28, // 少し小さく
     color: '#888888',
-    paddingTop: 12,
+    paddingTop: 10, // 調整
   },
   // モーダルスタイル
   modalOverlay: {
@@ -291,11 +376,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-start', // 上寄せに変更
     alignItems: 'center',
-    paddingTop: 150, // 上からの余白を追加
+    paddingTop: 130, // 上からの余白を追加
   },
   modalContent: {
     width: '90%', // 幅を広げる
-    backgroundColor: projectColors.white1,
+    backgroundColor: projectColors.white1, // white1に変更
     borderRadius: 16,
     padding: 20,
     // ニューモーフィズム効果をモーダルにも
@@ -310,6 +395,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
+    color: projectColors.black1, // 黒色に戻す
   },
   input: {
     borderWidth: 1,
@@ -318,6 +404,8 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
+    backgroundColor: 'white',
+    color: projectColors.black1,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -339,10 +427,21 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   cancelButtonText: {
-    color: '#666',
+    color: '#666666',
     fontWeight: 'bold',
   },
   addButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    marginTop: 20,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: projectColors.red1,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
     color: 'white',
     fontWeight: 'bold',
   }
