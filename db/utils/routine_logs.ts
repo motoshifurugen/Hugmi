@@ -187,4 +187,46 @@ export const getRoutineCompletionRate = async (
       completionRate: 0
     };
   }
+};
+
+/**
+ * 今日のルーティン進捗状況を取得する
+ */
+export const getTodayRoutineProgress = async (userId: string) => {
+  try {
+    // 今日の日付を取得
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD形式
+    
+    // ユーザーの有効なルーティンを取得
+    const routines = await db.getActiveRoutinesByUserId(userId);
+    const totalRoutines = routines.length;
+    
+    if (totalRoutines === 0) {
+      return {
+        completed: 0,
+        total: 0,
+        progressRate: 0
+      };
+    }
+    
+    // 今日のルーティンログを取得
+    const logs = await db.getRoutineLogsByDate(userId, todayStr);
+    
+    // チェック済みのルーティン数を計算
+    const completedRoutines = logs.filter(log => log.status === 'checked').length;
+    
+    return {
+      completed: completedRoutines,
+      total: totalRoutines,
+      progressRate: totalRoutines > 0 ? (completedRoutines / totalRoutines) * 100 : 0
+    };
+  } catch (error) {
+    console.error('Error fetching today\'s routine progress:', error);
+    return {
+      completed: 0,
+      total: 0,
+      progressRate: 0
+    };
+  }
 }; 

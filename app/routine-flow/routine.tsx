@@ -15,7 +15,8 @@ import {
   createNeomorphicStyle, 
   createNeomorphicButtonStyle, 
   createNeomorphicButtonPressedStyle, 
-  createSmallNeomorphicStyle 
+  createSmallNeomorphicStyle,
+  create3DCircleStyle
 } from '@/constants/NeuomorphicStyles';
 
 // 仮のルーティンデータ（説明文を削除）
@@ -308,12 +309,12 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   currentStepDot: {
-    backgroundColor: projectColors.secondary,
+    backgroundColor: projectColors.softOrange,
     ...createSmallNeomorphicStyle(12),
     margin: 4,
   },
   completedStepDot: {
-    backgroundColor: projectColors.primary,
+    backgroundColor: projectColors.softOrange,
   },
   skippedStepDot: {
     backgroundColor: '#E0E0E0',
@@ -333,10 +334,7 @@ const styles = StyleSheet.create({
     height: 200,
   },
   routineCircle: {
-    backgroundColor: projectColors.secondary,
-    position: 'absolute',
-    zIndex: 5,
-    ...createNeomorphicStyle(160, 8, 5, 2, true),
+    ...create3DCircleStyle(160, 4, 8),
   },
   routineTitle: {
     fontSize: 26,

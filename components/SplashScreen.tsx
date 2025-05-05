@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
 import { projectColors } from '@/constants/Colors';
-import { createNeomorphicStyle } from '@/constants/NeuomorphicStyles';
+import { createNeomorphicStyle, create3DCircleStyle } from '@/constants/NeuomorphicStyles';
 
 // グローバル状態変数 - アプリケーション全体で1回だけアニメーションを実行するため
 // この変数はモジュールスコープなので、コンポーネントのレンダリングサイクルの影響を受けない
@@ -220,7 +220,7 @@ export default function CustomSplashScreen({
         styles.loadingContainer,
         { opacity: loadingTextFadeAnim }
       ]}>
-        <ActivityIndicator size="small" color={projectColors.primary} style={styles.loadingIndicator} />
+        <ActivityIndicator size="small" color={projectColors.softOrange} style={styles.loadingIndicator} />
         <Text style={styles.loadingText}>データを準備しています...</Text>
       </Animated.View>
     </View>
@@ -258,10 +258,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   lightEffect: {
-    position: 'absolute',
-    backgroundColor: projectColors.secondary, // より薄い色に変更
-    zIndex: 10, // テキストより小さなzIndexを設定
-    ...createNeomorphicStyle(160, 6, 5, 2, true),
+    ...create3DCircleStyle(220, 6, 12),
   },
   loadingContainer: {
     position: 'absolute',
