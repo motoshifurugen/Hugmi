@@ -11,6 +11,12 @@ import {
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { projectColors } from '@/constants/Colors';
+import { 
+  createNeomorphicStyle, 
+  createNeomorphicButtonStyle, 
+  createNeomorphicButtonPressedStyle, 
+  createSmallNeomorphicStyle 
+} from '@/constants/NeuomorphicStyles';
 
 // 仮のルーティンデータ（説明文を削除）
 const SAMPLE_ROUTINES = [
@@ -303,26 +309,8 @@ const styles = StyleSheet.create({
   },
   currentStepDot: {
     backgroundColor: projectColors.secondary,
-    width: 12, 
-    height: 12, 
-    borderRadius: 6,
-    
-    // ニューモーフィズム効果（より自然な光）
-    elevation: 2,
-    shadowColor: projectColors.neuDark,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
-    
-    // より自然な光の効果
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderTopColor: projectColors.neuLight,
-    borderLeftColor: projectColors.neuLight,
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
+    ...createSmallNeomorphicStyle(12),
+    margin: 4,
   },
   completedStepDot: {
     backgroundColor: projectColors.primary,
@@ -345,29 +333,10 @@ const styles = StyleSheet.create({
     height: 200,
   },
   routineCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
     backgroundColor: projectColors.secondary,
     position: 'absolute',
     zIndex: 5,
-    
-    // より自然な影効果
-    shadowColor: projectColors.neuDark,
-    shadowOffset: { width: 8, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 5,
-    
-    // より自然な光の効果
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderTopColor: projectColors.neuLight,
-    borderLeftColor: projectColors.neuLight,
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
+    ...createNeomorphicStyle(160, 8, 5, 2, true),
   },
   routineTitle: {
     fontSize: 26,
@@ -386,40 +355,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   completeButton: {
-    backgroundColor: projectColors.primary,
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    
-    // より自然な影効果
-    shadowColor: projectColors.neuDark,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 5,
-    
-    // より自然な光の効果
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderTopColor: projectColors.neuLight,
-    borderLeftColor: projectColors.neuLight,
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
-    
-    width: '70%',
-    alignSelf: 'center',
+    ...createNeomorphicButtonStyle('70%', 20),
   },
   buttonPressed: {
-    backgroundColor: projectColors.primary,
-    opacity: 0.95,
-    transform: [{ scale: 0.98 }],
-    
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
+    ...createNeomorphicButtonPressedStyle(),
   },
   buttonText: {
     fontSize: 18,

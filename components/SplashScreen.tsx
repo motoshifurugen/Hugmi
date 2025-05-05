@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
 import { projectColors } from '@/constants/Colors';
+import { createNeomorphicStyle } from '@/constants/NeuomorphicStyles';
 
 // グローバル状態変数 - アプリケーション全体で1回だけアニメーションを実行するため
 // この変数はモジュールスコープなので、コンポーネントのレンダリングサイクルの影響を受けない
@@ -258,28 +259,9 @@ const styles = StyleSheet.create({
   },
   lightEffect: {
     position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
     backgroundColor: projectColors.secondary, // より薄い色に変更
     zIndex: 10, // テキストより小さなzIndexを設定
-    
-    // ニューモーフィズムスタイル：より自然な効果
-    shadowColor: projectColors.neuDark,
-    shadowOffset: { width: 6, height: 6 }, // 右下方向の影
-    shadowOpacity: 1,
-    shadowRadius: 10, // 自然な影の広がり
-    elevation: 5,
-    
-    // 左上のみに光の効果（より自然に）
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderTopColor: projectColors.neuLight,
-    borderLeftColor: projectColors.neuLight,
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
+    ...createNeomorphicStyle(160, 6, 5, 2, true),
   },
   loadingContainer: {
     position: 'absolute',

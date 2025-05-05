@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import CornerDecoration from '@/components/common/ui/CornerDecoration';
 import { router } from 'expo-router';
 import { getUnviewedRandomQuote, recordViewedQuote } from '@/db/utils/viewed_quotes';
+import { createNeomorphicButtonStyle, createNeomorphicButtonPressedStyle } from '@/constants/NeuomorphicStyles';
 
 // 著者画像のマッピング
 const AUTHOR_IMAGES: Record<string, ImageSourcePropType> = {
@@ -404,41 +405,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startButton: {
-    backgroundColor: projectColors.primary,
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    
-    // ニューモーフィズムスタイル：影と光の効果
-    shadowColor: projectColors.neuDark,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 5,
-    
-    // 左上に光の効果
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderTopColor: projectColors.neuLight,
-    borderLeftColor: projectColors.neuLight,
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
-    
-    width: '70%',
-    alignSelf: 'center',
+    ...createNeomorphicButtonStyle('70%', 20),
   },
   buttonPressed: {
-    backgroundColor: projectColors.primary,
-    opacity: 0.95,
-    transform: [{ scale: 0.98 }],
-    
-    // 押された時は影を小さく
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
+    ...createNeomorphicButtonPressedStyle(),
   },
   buttonText: {
     fontSize: 18,
