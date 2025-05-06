@@ -47,6 +47,9 @@ export default function SettingsScreen() {
   // 開発環境かどうかの状態
   const [isDevEnv, setIsDevEnv] = useState(false);
   
+  // アプリのバージョン情報を取得
+  const appVersion = Constants.expoConfig?.version || '不明';
+  
   // コンポーネントマウント時に開発環境かどうかを判定
   useEffect(() => {
     setIsDevEnv(isDevelopment());
@@ -578,7 +581,7 @@ export default function SettingsScreen() {
           <Pressable>
             <ThemedView style={styles.linkItem}>
               <ThemedText style={styles.settingText}>アプリバージョン</ThemedText>
-              <ThemedText style={styles.versionText}>0.9.0</ThemedText>
+              <ThemedText style={styles.versionText}>{appVersion}</ThemedText>
             </ThemedView>
           </Pressable>
           
