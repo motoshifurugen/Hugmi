@@ -22,7 +22,7 @@ import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/Dai
 import TutorialController from '@/components/common/TutorialController';
 import FeedbackBanner from '@/components/common/FeedbackBanner';
 import { determineInitialRoute } from '@/constants/utils';
-import { useNotifications } from '@/hooks/useNotifications';
+import { scheduleRoutineNotification, setupNotifications } from '@/hooks/notificationService';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -34,52 +34,12 @@ const ANIMATION_EVENTS = {
   COMPLETE: false
 };
 
-// 通知の表示設定（共通設定）
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [dbInitialized, setDbInitialized] = useState(false); // データベース初期化状態を追跡
   const [forceNavigate, setForceNavigate] = useState(false); // 強制ナビゲーション用フラグ
-  
-  // 通知関連の関数
-  const setupNotifications = async (userId: string) => {
-    try {
-      // 通知の権限を確認
-      const { status } = await Notifications.getPermissionsAsync();
-      
-      if (status === 'granted') {
-        // ユーザー設定を取得
-        const { getUserById } = await import('@/db/utils/users');
-        const user = await getUserById(userId);
-        
-        if (user && user.routineStartTime) {
-          // ユーザーが設定したルーティン開始時間に通知をスケジュール
-          const { scheduleRoutineNotification } = await import('@/hooks/useNotifications').then(m => ({
-            scheduleRoutineNotification: m.useNotifications().scheduleRoutineNotification
-          }));
-          
-          await scheduleRoutineNotification(
-            user.routineStartTime,
-            'おはようございます',
-            '今日も素敵な一日を始めましょう。ルーティンの時間です。'
-          );
-          
-          console.log(`[DEBUG] ルーティン通知をスケジュールしました: ${user.routineStartTime}`);
-        }
-      }
-    } catch (error) {
-      console.error('通知の設定中にエラーが発生しました:', error);
-    }
-  };
   
   // システムフォントを読み込む
   const [systemFontsLoaded] = useFonts({
@@ -132,7 +92,7 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
-            // 通知を設定
+            // 通知を設定（アプリ起動時にテスト通知が発生しないようにfalseフラグを追加）
             await setupNotifications(userId);
             
             // SecureStoreにも保存する
@@ -165,7 +125,7 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
-            // 通知を設定
+            // 通知を設定（アプリ起動時にテスト通知が発生しないようにfalseフラグを追加）
             await setupNotifications(userId);
             
             // SecureStoreにも保存する
@@ -262,16 +222,14 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, initializeDatabase]);
 
-  // カスタムスプラッシュスクリーンの完了コールバック
-  const onSplashFinish = useCallback(() => {
-    console.log('[DEBUG] スプラッシュ完了コールバックが呼び出されました');
-    // 以下の条件で画面遷移する:
-    // 1. データベース初期化が完了している場合
-    if (dbInitialized) {
-      console.log('[DEBUG] データベース初期化済み - スプラッシュ画面を非表示にします');
+  // useEffectでデータベース初期化完了時とアニメーション完了時の両方をチェック
+  useEffect(() => {
+    // アニメーション完了かつデータベース初期化完了のときスプラッシュを非表示
+    if (ANIMATION_EVENTS.COMPLETE && dbInitialized) {
+      // フラグをリセット（不要だが念のため）
+      ANIMATION_EVENTS.COMPLETE = false;
+      console.log('[DEBUG] アニメーションとDB初期化の両方が完了しました。スプラッシュ非表示へ。');
       setShowSplash(false);
-    } else {
-      console.log('[DEBUG] データベースがまだ初期化中です - スプラッシュ画面を継続表示します');
     }
   }, [dbInitialized]);
 
@@ -292,9 +250,8 @@ export default function RootLayout() {
     // カスタムスプラッシュスクリーンを表示
     return (
       <CustomSplashScreen 
-        onFinish={onSplashFinish} 
+        onFinish={onAnimationComplete} 
         extendAnimation={!dbInitialized}
-        onAnimationComplete={onAnimationComplete}
       />
     );
   }
@@ -304,9 +261,8 @@ export default function RootLayout() {
     // カスタムスプラッシュスクリーンを表示
     return (
       <CustomSplashScreen 
-        onFinish={onSplashFinish} 
+        onFinish={onAnimationComplete} 
         extendAnimation={!dbInitialized}
-        onAnimationComplete={onAnimationComplete}
       />
     );
   }

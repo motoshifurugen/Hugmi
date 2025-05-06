@@ -143,12 +143,14 @@ export default function SettingsScreen() {
           await updateUser(userId, { routineStartTime: timeString });
           console.log('ルーティン開始時間を更新しました:', timeString);
           
-          // 通知が有効な場合は通知をスケジュール
+          // 通知が有効な場合は通知をスケジュール（設定時刻になったときのみ通知）
           if (morningNotificationsEnabled) {
             await scheduleRoutineNotification(
               timeString,
-              'おはようございます',
-              '今日も素敵な一日を始めましょう。ルーティンの時間です。'
+              'おはようございます。',
+              '今日も、Hugmiといっしょにルーティンを始めましょう✨',
+              false, // 即時実行しない（設定時刻になったときのみ通知）
+              true   // 設定画面からの変更は既存の通知を強制的に置き換える
             );
           }
         } catch (error) {
@@ -184,9 +186,10 @@ export default function SettingsScreen() {
           await updateUser(userId, { nightNotifyTime: timeString });
           console.log('夜の通知時間を更新しました:', timeString);
           
-          // TODO: 夜の通知をスケジュール
+          // TODO: 夜の通知をスケジュール（将来的な実装のためのプレースホルダー）
           if (nightNotificationsEnabled) {
-            // 夜の通知機能を実装
+            // 将来的に夜の通知スケジュール機能を実装する際も即時通知は避ける
+            // await scheduleNightNotification(timeString, タイトル, 本文, false);
           }
         } catch (error) {
           console.error('夜の通知時間の更新に失敗しました:', error);
@@ -210,11 +213,13 @@ export default function SettingsScreen() {
         setMorningNotificationsEnabled(true);
         setNightNotificationsEnabled(true);
         
-        // 朝の通知をスケジュール
+        // 朝の通知をスケジュール（指定時刻になったときのみ通知）
         await scheduleRoutineNotification(
           routineStartTime,
-          'おはようございます',
-          '今日も素敵な一日を始めましょう。ルーティンの時間です。'
+          'おはようございます。',
+          '今日も、Hugmiといっしょにルーティンを始めましょう✨',
+          false, // 即時実行しない（指定時刻になったときのみ通知）
+          true   // 設定画面からの変更は既存の通知を強制的に置き換える
         );
         
         // TODO: 夜の通知をスケジュール
@@ -246,11 +251,13 @@ export default function SettingsScreen() {
         setNotificationsEnabled(true);
         setMorningNotificationsEnabled(true);
         
-        // 朝の通知をスケジュール
+        // 朝の通知をスケジュール（設定時刻になったときのみ通知）
         await scheduleRoutineNotification(
           routineStartTime,
-          'おはようございます',
-          '今日も素敵な一日を始めましょう。ルーティンの時間です。'
+          'おはようございます。',
+          '今日も、Hugmiといっしょにルーティンを始めましょう✨',
+          false, // 即時実行しない（設定時刻になったときのみ通知）
+          true   // 設定画面からの変更は既存の通知を強制的に置き換える
         );
       } else {
         Alert.alert(
@@ -266,18 +273,17 @@ export default function SettingsScreen() {
       if (!value) {
         // 朝の通知をオフにしたらピッカーを閉じる
         setShowMorningTimePicker(false);
-      }
-      
-      if (value) {
-        // 朝の通知をスケジュール
-        await scheduleRoutineNotification(
-          routineStartTime,
-          'おはようございます',
-          '今日も素敵な一日を始めましょう。ルーティンの時間です。'
-        );
-      } else {
         // 朝の通知をキャンセル
         await cancelRoutineNotifications();
+      } else {
+        // 朝の通知をスケジュール（設定時刻になったときのみ通知）
+        await scheduleRoutineNotification(
+          routineStartTime,
+          'おはようございます。',
+          '今日も、Hugmiといっしょにルーティンを始めましょう✨',
+          false, // 即時実行しない（設定時刻になったときのみ通知）
+          true   // 設定画面からの変更は既存の通知を強制的に置き換える
+        );
       }
     }
   };
@@ -291,7 +297,8 @@ export default function SettingsScreen() {
         setNotificationsEnabled(true);
         setNightNotificationsEnabled(true);
         
-        // TODO: 夜の通知をスケジュール
+        // TODO: 夜の通知をスケジュール（将来的な実装のためのプレースホルダー）
+        // 将来的に夜の通知スケジュール機能を実装する際も即時通知は避ける
       } else {
         Alert.alert(
           '通知が許可されていません',
@@ -306,12 +313,10 @@ export default function SettingsScreen() {
       if (!value) {
         // 夜の通知をオフにしたらピッカーを閉じる
         setShowNightTimePicker(false);
-      }
-      
-      if (value) {
-        // TODO: 夜の通知をスケジュール
+        // TODO: 夜の通知をキャンセル（将来的な実装のためのプレースホルダー）
       } else {
-        // TODO: 夜の通知をキャンセル
+        // TODO: 夜の通知をスケジュール（将来的な実装のためのプレースホルダー）
+        // 将来的に夜の通知スケジュール機能を実装する際も即時通知は避ける
       }
     }
   };
