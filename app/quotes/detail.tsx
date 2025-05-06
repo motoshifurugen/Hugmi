@@ -74,10 +74,8 @@ export default function QuoteDetailScreen() {
   
   // カード幅の設定（画面幅の85%）
   const CARD_WIDTH = width * 0.85;
-  // カード間の余白
-  const CARD_MARGIN = width * 0.075;
-  // カード全体の幅（カード + 余白）- スクロール計算用
-  const ITEM_WIDTH = CARD_WIDTH + CARD_MARGIN;
+  // カード全体の幅（スクロール計算用）
+  const FULL_ITEM_WIDTH = width;
   // 画面の左右余白（画面中央に配置するため）
   const SCREEN_PADDING = (width - CARD_WIDTH) / 2;
   
@@ -150,6 +148,16 @@ export default function QuoteDetailScreen() {
           useNativeDriver: true,
         }).start();
         
+        // 初期位置を正確に設定
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToOffset({
+              offset: targetQuoteIndex * FULL_ITEM_WIDTH,
+              animated: false
+            });
+          }
+        }, 100);
+        
       } catch (err) {
         console.error('名言データの取得に失敗しました:', err);
         // エラー処理
@@ -207,7 +215,7 @@ export default function QuoteDetailScreen() {
         if (currentIndex > 0) {
           const newIndex = currentIndex - 1;
           flatListRef.current?.scrollToOffset({
-            offset: newIndex * ITEM_WIDTH,
+            offset: newIndex * FULL_ITEM_WIDTH,
             animated: true
           });
           setCurrentIndex(newIndex);
@@ -218,7 +226,7 @@ export default function QuoteDetailScreen() {
         if (currentIndex < quotes.length - 1) {
           const newIndex = currentIndex + 1;
           flatListRef.current?.scrollToOffset({
-            offset: newIndex * ITEM_WIDTH,
+            offset: newIndex * FULL_ITEM_WIDTH,
             animated: true
           });
           setCurrentIndex(newIndex);
@@ -257,112 +265,118 @@ export default function QuoteDetailScreen() {
   const renderQuoteCard = ({ item, index }: { item: Quote, index: number }) => {
     // フォントサイズを動的に計算（テキストの長さに応じて）
     const calculateFontSize = (text: string): number => {
-      const baseSize = 22;
+      const baseSize = 18; // ベースサイズを少し大きくする
       const length = text.length;
       
-      if (length > 100) return 16;
-      if (length > 80) return 18;
-      if (length > 60) return 20;
+      if (length > 100) return 15;
+      if (length > 80) return 16;
+      if (length > 60) return 17;
       return baseSize;
     };
     
     const jaFontSize = calculateFontSize(item.textJa);
     
     return (
-      <View style={{ width: CARD_WIDTH }}>
-        <Animated.View style={styles.cardContainer}>
-          <ThemedView style={styles.quoteCardContent}>
-            {/* 装飾の角飾り */}
-            <CornerDecoration 
-              position="topLeft" 
-              color={projectColors.primary} 
-              type="marker" 
-              size={24}
-            />
-            <CornerDecoration 
-              position="topRight" 
-              color={projectColors.primary} 
-              type="marker" 
-              size={24}
-            />
-            <CornerDecoration 
-              position="bottomLeft" 
-              color={projectColors.primary} 
-              type="marker" 
-              size={24}
-            />
-            <CornerDecoration 
-              position="bottomRight" 
-              color={projectColors.primary} 
-              type="marker" 
-              size={24}
-            />
-            
-            {/* 名言本文（スクロール可能なコンテナ） */}
-            <ScrollView 
-              style={styles.quoteScrollContainer}
-              contentContainerStyle={styles.quoteScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.quoteTextContainer}>
-                <ThemedText style={[styles.quoteTextJa, { fontSize: jaFontSize }]}>
-                  {item.textJa}
-                </ThemedText>
-                
-                {/* 英語の名言があれば表示 */}
-                {item.textEn && (
-                  <ThemedText style={styles.quoteTextEn}>
-                    {item.textEn}
-                  </ThemedText>
-                )}
+      <View style={{ 
+        width: width, 
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <View style={{ width: CARD_WIDTH }}>
+          <Animated.View style={styles.cardContainer}>
+            <ThemedView style={styles.quoteCardContent}>
+              {/* 装飾の角飾り - サイズと位置を調整 */}
+              <View style={styles.cornerDecorationWrapper}>
+                <CornerDecoration 
+                  position="topLeft" 
+                  color={projectColors.primary} 
+                  type="marker" 
+                  size={18}
+                />
+                <CornerDecoration 
+                  position="topRight" 
+                  color={projectColors.primary} 
+                  type="marker" 
+                  size={18}
+                />
+                <CornerDecoration 
+                  position="bottomLeft" 
+                  color={projectColors.primary} 
+                  type="marker" 
+                  size={18}
+                />
+                <CornerDecoration 
+                  position="bottomRight" 
+                  color={projectColors.primary} 
+                  type="marker" 
+                  size={18}
+                />
               </View>
-            </ScrollView>
-            
-            {/* 区切り線 */}
-            <View style={styles.separator} />
-            
-            {/* 著者情報 */}
-            <View style={styles.authorContainer}>
-              {/* 著者画像 */}
-              {item.imagePath && (
+              
+              {/* 名言本文（スクロール可能なコンテナ） */}
+              <ScrollView 
+                style={styles.quoteScrollContainer}
+                contentContainerStyle={styles.quoteScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.quoteTextContainer}>
+                  <ThemedText style={[styles.quoteTextJa, { fontSize: jaFontSize }]}>
+                    {item.textJa}
+                  </ThemedText>
+                  
+                  {/* 英語の名言があれば表示 */}
+                  {item.textEn && (
+                    <ThemedText style={styles.quoteTextEn}>
+                      {item.textEn}
+                    </ThemedText>
+                  )}
+                </View>
+              </ScrollView>
+              
+              {/* 区切り線 */}
+              <View style={styles.separator} />
+              
+              {/* 著者情報 */}
+              <View style={styles.authorContainer}>
+                {/* 著者画像 - 名言に対応した画像を表示 */}
                 <View style={styles.authorImageContainer}>
                   <Image
-                    source={getAuthorImage(item.imagePath)}
+                    source={getAuthorImage(item.imagePath || 'seneca.png')}
                     style={styles.authorImage}
                     contentFit="cover"
                   />
                 </View>
-              )}
-              
-              {/* 著者情報テキスト */}
-              <View style={styles.authorInfo}>
-                <ThemedText style={styles.authorName}>
-                  {item.authorJa || ''}
-                </ThemedText>
-                {item.era && (
-                  <ThemedText style={styles.authorEra}>
-                    {item.era}
+                
+                {/* 著者情報テキスト */}
+                <View style={styles.authorInfo}>
+                  <ThemedText style={styles.authorName}>
+                    {item.authorJa || ''}
                   </ThemedText>
-                )}
+                  {item.era && (
+                    <ThemedText style={styles.authorEra}>
+                      {item.era}
+                    </ThemedText>
+                  )}
+                </View>
               </View>
+            </ThemedView>
+          </Animated.View>
+          
+          {/* お気に入りボタン - カードの外側（下部）に配置 */}
+          <Pressable
+            style={styles.favoriteButtonOutside}
+            onPress={() => toggleFavorite(item.id)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <View style={styles.favoriteButtonContainer}>
+              <IconSymbol 
+                name={item.isFavorite ? "heart.fill" : "heart"} 
+                size={28} 
+                color={item.isFavorite ? projectColors.red1 : "#888888"} 
+              />
             </View>
-          </ThemedView>
-        </Animated.View>
-        
-        {/* お気に入りボタン - カードの外側（下部）に配置 */}
-        <Pressable
-          style={styles.favoriteButtonOutside}
-          onPress={() => toggleFavorite(item.id)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <View style={styles.favoriteButtonContainer}>
-            <IconSymbol 
-              name={item.isFavorite ? "heart.fill" : "heart"} 
-              size={28} 
-              color={item.isFavorite ? projectColors.red1 : "#888888"} 
-            />
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
       </View>
     );
   };
@@ -394,27 +408,42 @@ export default function QuoteDetailScreen() {
               renderItem={renderQuoteCard}
               keyExtractor={(item) => item.id}
               horizontal
-              pagingEnabled={false}
+              pagingEnabled={true}
               showsHorizontalScrollIndicator={false}
               initialScrollIndex={currentIndex}
+              windowSize={5}
+              maxToRenderPerBatch={quotes.length}
+              initialNumToRender={quotes.length > 3 ? 3 : quotes.length}
               getItemLayout={(data, index) => ({
-                length: ITEM_WIDTH,
-                offset: index * ITEM_WIDTH,
+                length: FULL_ITEM_WIDTH,
+                offset: index * FULL_ITEM_WIDTH,
                 index,
               })}
-              snapToInterval={ITEM_WIDTH}
-              snapToAlignment="center"
               decelerationRate="fast"
+              onScrollToIndexFailed={(info) => {
+                const wait = new Promise(resolve => setTimeout(resolve, 100));
+                wait.then(() => {
+                  flatListRef.current?.scrollToIndex({ 
+                    index: info.index, 
+                    animated: false 
+                  });
+                });
+              }}
               onMomentumScrollEnd={(e) => {
-                const newIndex = Math.round(e.nativeEvent.contentOffset.x / ITEM_WIDTH);
+                const offset = e.nativeEvent.contentOffset.x;
+                const newIndex = Math.round(offset / FULL_ITEM_WIDTH);
                 if (newIndex !== currentIndex && newIndex >= 0 && newIndex < quotes.length) {
+                  // 完全に中央に配置するために補正
+                  const expectedOffset = newIndex * FULL_ITEM_WIDTH;
+                  if (Math.abs(offset - expectedOffset) > 2) {
+                    flatListRef.current?.scrollToOffset({
+                      offset: expectedOffset,
+                      animated: true
+                    });
+                  }
                   setCurrentIndex(newIndex);
                 }
               }}
-              contentContainerStyle={{
-                paddingHorizontal: SCREEN_PADDING
-              }}
-              ItemSeparatorComponent={() => <View style={{ width: CARD_MARGIN }} />}
             />
           </Animated.View>
         </GestureDetector>
@@ -466,7 +495,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: 10, // 上部の余白を少し削減
   },
   swipeContainer: {
     flex: 1,
@@ -476,8 +505,8 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: '100%',
-    height: '80%',
-    maxHeight: 600,
+    height: '88%',
+    maxHeight: 700,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
@@ -492,38 +521,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    padding: 24,
+    padding: 20,
     position: 'relative',
     flexDirection: 'column',
   },
   quoteScrollContainer: {
     flex: 1,
     width: '100%',
+    zIndex: 2,
   },
   quoteScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
+    justifyContent: 'flex-start',
+    paddingVertical: 15,
+    paddingHorizontal: 5,
   },
   quoteTextContainer: {
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingRight: 10,
+    paddingVertical: 10,
   },
   quoteTextJa: {
-    lineHeight: 34,
+    lineHeight: 36,
     fontWeight: '500',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 24,
   },
   quoteTextEn: {
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
     fontStyle: 'italic',
-    textAlign: 'center',
+    textAlign: 'left',
     color: '#666666',
-    marginTop: 8,
+    marginTop: 12,
   },
   separator: {
     height: 1,
@@ -565,7 +597,7 @@ const styles = StyleSheet.create({
   },
   favoriteButtonOutside: {
     position: 'absolute',
-    bottom: 15,
+    bottom: -10, // ボタンをもう少し上に移動
     alignSelf: 'center',
     zIndex: 10,
   },
@@ -597,5 +629,14 @@ const styles = StyleSheet.create({
     color: '#888888',
     marginTop: 12,
     marginBottom: 24,
+  },
+  cornerDecorationWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
   },
 });
