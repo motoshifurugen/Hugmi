@@ -9,6 +9,7 @@ import * as FileSystem from 'expo-file-system';
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
+import { projectColors } from '@/constants/Colors';
 
 // 名言データベース関連のインポート
 import { getAllQuotes } from '@/db/utils/quotes';
@@ -246,12 +247,12 @@ export default function QuotesScreen() {
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 150,
+        duration: 180,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 150,
+        duration: 220,
         useNativeDriver: true,
       })
     ]).start();
@@ -267,7 +268,7 @@ export default function QuotesScreen() {
       <Link href={`/quotes/detail?id=${item.id}`} asChild>
         <Pressable>
           <ThemedView style={styles.quoteItem}>
-            <ThemedText style={styles.quoteText}>「{item.textJa}」</ThemedText>
+            <ThemedText style={styles.quoteText}>{item.textJa}</ThemedText>
             <ThemedView style={styles.quoteFooter}>
               <ThemedText style={styles.quoteAuthor}>- {item.authorJa}</ThemedText>
               <Pressable
@@ -279,7 +280,7 @@ export default function QuotesScreen() {
                 <IconSymbol 
                   name={item.isFavorite ? "heart.fill" : "heart"} 
                   size={20} 
-                  color={item.isFavorite ? "#E91E63" : "#888888"} 
+                  color={item.isFavorite ? projectColors.red1 : "#888888"} 
                 />
               </Pressable>
             </ThemedView>
@@ -308,8 +309,8 @@ export default function QuotesScreen() {
           >
             <IconSymbol
               name="lock.fill"
-              size={24}
-              color="rgba(150, 150, 150, 0.7)"
+              size={22}
+              color={projectColors.softOrange}
             />
           </ThemedView>
         </Pressable>
@@ -343,7 +344,7 @@ export default function QuotesScreen() {
               <IconSymbol 
                 name="heart.fill" 
                 size={12} 
-                color="#E91E63" 
+                color={projectColors.red1} 
                 style={styles.iconFavorite}
               />
             )}
@@ -389,7 +390,7 @@ export default function QuotesScreen() {
       // 祝福メッセージを表示
       Alert.alert(
         "新しい名言をアンロックしました！",
-        `「${quoteToUnlock.textJa}」\n- ${quoteToUnlock.authorJa || ''}`,
+        `${quoteToUnlock.textJa}\n- ${quoteToUnlock.authorJa || ''}`,
         [{ text: "OK" }]
       );
     }
@@ -430,7 +431,21 @@ export default function QuotesScreen() {
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">名言コレクション</ThemedText>
-        <ThemedText style={styles.progressText}>{unlockedCount} / {MAX_QUOTES}</ThemedText>
+        <ThemedView style={styles.progressContainer}>
+          <ThemedText style={styles.progressText}>
+            <ThemedText style={styles.progressNumber}>{unlockedCount}</ThemedText>
+            {" / "}
+            <ThemedText style={styles.progressTotal}>{MAX_QUOTES}</ThemedText>
+          </ThemedText>
+          <ThemedView style={styles.progressBarContainer}>
+            <ThemedView 
+              style={[
+                styles.progressBar, 
+                { width: `${(unlockedCount / MAX_QUOTES) * 100}%` }
+              ]}
+            />
+          </ThemedView>
+        </ThemedView>
       </ThemedView>
       
       <ThemedView style={styles.controlsContainer}>
@@ -443,10 +458,11 @@ export default function QuotesScreen() {
             ]}
             onPress={() => toggleDisplayMode('icon')}
           >
-            <IconSymbol name="person.fill" size={16} color={displayMode === 'icon' ? "#FFF" : "#4A90E2"} />
-            <ThemedText style={displayMode === 'icon' ? styles.toggleTextActive : styles.toggleText}>
-              アイコン表示
-            </ThemedText>
+            <IconSymbol 
+              name="person.fill" 
+              size={20} 
+              color={displayMode === 'icon' ? "#FFFFFF" : projectColors.softOrange} 
+            />
           </Pressable>
           
           <Pressable 
@@ -456,10 +472,11 @@ export default function QuotesScreen() {
             ]}
             onPress={() => toggleDisplayMode('card')}
           >
-            <IconSymbol name="text.bubble" size={16} color={displayMode === 'card' ? "#FFF" : "#4A90E2"} />
-            <ThemedText style={displayMode === 'card' ? styles.toggleTextActive : styles.toggleText}>
-              カード表示
-            </ThemedText>
+            <IconSymbol 
+              name="text.bubble" 
+              size={20} 
+              color={displayMode === 'card' ? "#FFFFFF" : projectColors.softOrange} 
+            />
           </Pressable>
         </ThemedView>
         
@@ -469,9 +486,11 @@ export default function QuotesScreen() {
             style={[styles.filterButton, filterFavorites && styles.filterButtonActive]}
             onPress={() => setFilterFavorites(!filterFavorites)}
           >
-            <ThemedText style={filterFavorites ? styles.filterTextActive : styles.filterText}>
-              お気に入りのみ
-            </ThemedText>
+            <IconSymbol 
+              name={filterFavorites ? "heart.fill" : "heart"} 
+              size={20} 
+              color={filterFavorites ? "#FFFFFF" : projectColors.red1} 
+            />
           </Pressable>
         )}
       </ThemedView>
@@ -602,14 +621,42 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 60,
-    marginBottom: 20,
+    marginTop: 40,
+    marginBottom: 24,
+  },
+  progressContainer: {
+    marginTop: 12,
+    width: '100%',
   },
   progressText: {
-    fontSize: 16,
-    marginTop: 8,
-    color: '#4A90E2',
-    fontWeight: '600',
+    fontSize: 20,
+    marginBottom: 8,
+    color: projectColors.neuDark,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  progressNumber: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: projectColors.softOrange,
+  },
+  progressTotal: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: projectColors.neuDark,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: projectColors.secondary,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 6,
+    backgroundColor: projectColors.softOrange,
   },
   controlsContainer: {
     flexDirection: 'row',
@@ -619,21 +666,26 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#4A90E2',
+    borderColor: projectColors.softOrange,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minWidth: 110,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    minWidth: 60,
     justifyContent: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: projectColors.softOrange,
   },
   toggleText: {
     color: '#4A90E2',
@@ -646,20 +698,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    padding: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#4A90E2',
+    borderColor: projectColors.red1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#4A90E2',
-  },
-  filterText: {
-    color: '#4A90E2',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
+    backgroundColor: projectColors.red1,
   },
   quoteListContainer: {
     flex: 1,
@@ -673,13 +727,30 @@ const styles = StyleSheet.create({
   iconRow: {
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingHorizontal: 2,
   },
   quoteItem: {
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: projectColors.white1,
+    
+    // ニューモーフィズム効果
+    shadowColor: projectColors.neuDark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 6,
+    
+    // 光の効果
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopColor: projectColors.neuLight,
+    borderLeftColor: projectColors.neuLight,
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
   },
   quoteText: {
     fontSize: 16,
@@ -698,41 +769,66 @@ const styles = StyleSheet.create({
   iconItem: {
     width: '19%',
     aspectRatio: 1,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   iconContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    borderRadius: 14,
+    backgroundColor: projectColors.white1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    
+    // ニューモーフィズム効果
+    shadowColor: projectColors.neuDark,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 5,
+    
+    // 光の効果
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopColor: projectColors.neuLight,
+    borderLeftColor: projectColors.neuLight,
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
   },
   lockedIconContainer: {
-    backgroundColor: 'rgba(240, 240, 240, 0.7)',
-    borderColor: '#DDDDDD',
+    backgroundColor: projectColors.white1,
+    borderRadius: 14,
+    
+    // ロックされたアイテム用の微妙に異なる効果
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 3,
   },
   iconText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: projectColors.neuDark,
   },
   iconFavorite: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 8,
+    padding: 3,
   },
   iconImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
+    borderRadius: 14,
   },
   fallbackContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    borderRadius: 14,
+    backgroundColor: projectColors.white1,
     justifyContent: 'center',
     alignItems: 'center',
   },
