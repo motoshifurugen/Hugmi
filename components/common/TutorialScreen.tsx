@@ -89,37 +89,117 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
   // チュートリアル完了時の処理
   const completeTutorial = async () => {
     try {
+      console.log('[DEBUG] チュートリアル完了処理を開始します');
+      
+      // 入力値の検証
+      const userName = name.trim() || 'ゲスト';
+      console.log(`[DEBUG] ユーザー名: ${userName}`);
+      
       // 新しいユーザーを作成
       const userId = generateUuid();
-      const userData = { id: userId, name: name || 'ゲスト' };
+      const userData = { id: userId, name: userName };
       
-      await db.createUser(userData);
+      console.log(`[DEBUG] ユーザーを作成します: ${JSON.stringify(userData)}`);
+      const createdUser = await db.createUser(userData);
+      console.log(`[DEBUG] ユーザー作成結果: ${createdUser ? '成功' : '失敗'}`);
+      
+      // ユーザー作成が失敗した場合は再試行
+      if (!createdUser) {
+        console.log('[DEBUG] ユーザー作成に失敗しました。再試行します。');
+        const retryResult = await db.createUser(userData);
+        if (!retryResult) {
+          throw new Error('ユーザー作成の再試行に失敗しました');
+        }
+        console.log('[DEBUG] ユーザー作成の再試行が成功しました');
+      }
       
       // ルーティンの保存
       if (selectedRoutines.length > 0) {
+        console.log(`[DEBUG] ${selectedRoutines.length}件のルーティンを保存します`);
         // ルーティンをデータベースに追加
         for (let i = 0; i < selectedRoutines.length; i++) {
-          await db.createRoutine({
-            id: generateUuid(),
+          const routineId = generateUuid();
+          const routineData = {
+            id: routineId,
             userId: userId,
             order: i,
             title: selectedRoutines[i],
             isActive: true
+          };
+          
+          console.log(`[DEBUG] ルーティンを作成: ${JSON.stringify(routineData)}`);
+          await db.createRoutine(routineData);
+        }
+        console.log('[DEBUG] すべてのルーティンを保存しました');
+      } else {
+        // デフォルトのルーティンを少なくとも1つは追加
+        console.log('[DEBUG] ルーティンが選択されていないため、デフォルトルーティンを追加します');
+        const defaultRoutines = ['深呼吸をする', '白湯を飲む', '顔を洗う'];
+        
+        for (let i = 0; i < defaultRoutines.length; i++) {
+          await db.createRoutine({
+            id: generateUuid(),
+            userId: userId,
+            order: i,
+            title: defaultRoutines[i],
+            isActive: true
           });
         }
+        console.log('[DEBUG] デフォルトルーティンを追加しました');
       }
       
       // ユーザーIDをグローバル状態とSecureStoreに保存
+      console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
       setActiveUserId(userId);
-      await SecureStore.setItemAsync('active_user_id', userId);
       
-      // チュートリアル完了フラグを保存
-      await SecureStore.setItemAsync('tutorial_completed', 'true');
+      try {
+        await SecureStore.setItemAsync('active_user_id', userId);
+        console.log(`[DEBUG] アクティブユーザーIDをSecureStoreに保存: ${userId}`);
+      } catch (secureStoreError) {
+        console.error('アクティブユーザーIDの保存に失敗しました:', secureStoreError);
+      }
+      
+      // ユーザー作成が完了したことを確認
+      const users = await db.getAllUsers();
+      console.log(`[DEBUG] チュートリアル完了後のユーザー数: ${users.length}`);
       
       // 完了コールバックを呼び出す
+      console.log('[DEBUG] チュートリアル完了処理が正常に終了しました');
       onComplete();
     } catch (error) {
       console.error('チュートリアル完了処理でエラーが発生しました:', error);
+      
+      // エラー回復を試みる - 強制的にユーザー作成を試みる
+      try {
+        console.log('[DEBUG] エラー回復処理を開始します');
+        const recoveryUserId = generateUuid();
+        const recoveryName = name.trim() || 'ゲスト（回復）';
+        
+        // ユーザーを作成
+        await db.createUser({ id: recoveryUserId, name: recoveryName });
+        console.log('[DEBUG] 回復用ユーザーを作成しました');
+        
+        // アクティブユーザーIDを設定
+        setActiveUserId(recoveryUserId);
+        await SecureStore.setItemAsync('active_user_id', recoveryUserId);
+        
+        // デフォルトルーティンを追加
+        const defaultRoutines = ['深呼吸をする', '白湯を飲む', '顔を洗う'];
+        for (let i = 0; i < defaultRoutines.length; i++) {
+          await db.createRoutine({
+            id: generateUuid(),
+            userId: recoveryUserId,
+            order: i,
+            title: defaultRoutines[i],
+            isActive: true
+          });
+        }
+        
+        console.log('[DEBUG] 回復処理が完了しました');
+      } catch (recoveryError) {
+        console.error('回復処理にも失敗しました:', recoveryError);
+      }
+      
       // エラー時も完了としてコールバックを呼び出す
       onComplete();
     }
@@ -460,10 +540,11 @@ const styles = StyleSheet.create({
   quoteText: {
     fontFamily: 'ZenMaruGothic_500Medium',
     fontSize: 22,
-    color: projectColors.softOrange,
+    color: projectColors.accent,
     marginBottom: 40,
     textAlign: 'center',
     lineHeight: 32,
+    fontWeight: 'bold',
   },
   stepDescription: {
     fontFamily: 'ZenMaruGothic_400Regular',
