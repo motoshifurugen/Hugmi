@@ -34,6 +34,16 @@ const ANIMATION_EVENTS = {
   COMPLETE: false
 };
 
+// ユーザーIDが設定されたときに通知を設定する共通関数
+const setupUserNotifications = async (userId: string) => {
+  try {
+    console.log(`[DEBUG] ユーザーID: ${userId} の通知を設定します`);
+    await setupNotifications(userId);
+  } catch (error) {
+    console.error('通知設定中にエラーが発生しました:', error);
+  }
+};
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
@@ -92,8 +102,8 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
-            // 通知を設定（アプリ起動時にテスト通知が発生しないようにfalseフラグを追加）
-            await setupNotifications(userId);
+            // 通知を設定
+            await setupUserNotifications(userId);
             
             // SecureStoreにも保存する
             try {
@@ -125,8 +135,8 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
-            // 通知を設定（アプリ起動時にテスト通知が発生しないようにfalseフラグを追加）
-            await setupNotifications(userId);
+            // 通知を設定
+            await setupUserNotifications(userId);
             
             // SecureStoreにも保存する
             try {
@@ -282,7 +292,7 @@ export default function RootLayout() {
           },
         }}
       >
-        <FeedbackBanner />
+        {/* <FeedbackBanner /> */}
         <TutorialController>
           <Stack 
             screenOptions={{ 
