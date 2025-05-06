@@ -41,6 +41,7 @@ export default function RoutineStepScreen() {
   const [slideAnim] = useState(new Animated.Value(0));
   const [loading, setLoading] = useState(true);
   const buttonScale = useRef(new Animated.Value(1)).current;
+  const skipButtonScale = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const dotScaleAnim = useRef(new Animated.Value(1)).current;
   
@@ -167,13 +168,34 @@ export default function RoutineStepScreen() {
   const animateCompleteButton = (onComplete?: () => void) => {
     Animated.sequence([
       Animated.timing(buttonScale, {
-        toValue: 1.1,
+        toValue: 1.05, // 1.1から1.05に縮小して控えめに
         duration: 150,
         useNativeDriver: true,
       }),
       Animated.timing(buttonScale, {
         toValue: 1,
         duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // アニメーション完了時にコールバックを実行
+      if (onComplete) {
+        onComplete();
+      }
+    });
+  };
+
+  // 「今日はスキップ」ボタンのアニメーション
+  const animateSkipButton = (onComplete?: () => void) => {
+    Animated.sequence([
+      Animated.timing(skipButtonScale, {
+        toValue: 0.95, // 少し縮小するアニメーション
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(skipButtonScale, {
+        toValue: 1,
+        duration: 120,
         useNativeDriver: true,
       })
     ]).start(() => {
@@ -236,48 +258,50 @@ export default function RoutineStepScreen() {
   const handleSkipStep = async () => {
     if (!currentRoutine) return;
     
-    // スキップボタンも同様にアニメーションの完了コールバックを使用
-    try {
-      // ルーティンログをデータベースに保存
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      // ユーザーを取得
-      const users = await getAllUsers();
-      if (users.length === 0) {
-        console.error('ユーザーが見つかりません');
-        return;
-      }
-      
-      const userId = users[0].id;
-      
-      // ルーティンログを作成
-      await createRoutineLog({
-        userId,
-        date: today,
-        routineId: currentRoutine.id,
-        status: 'skipped'
-      });
-      
-      if (currentStep < totalSteps - 1) {
-        // ルーティンをスキップとしてマーク
-        const updatedRoutines = [...routines];
-        updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
-        setRoutines(updatedRoutines);
+    // スキップボタンのアニメーションを実行
+    animateSkipButton(async () => {
+      try {
+        // ルーティンログをデータベースに保存
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         
-        // アニメーションを実行して次のステップへ
-        animateTransition(currentStep + 1);
-      } else {
-        // 最後のステップをスキップとしてマーク
-        const updatedRoutines = [...routines];
-        updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
-        setRoutines(updatedRoutines);
+        // ユーザーを取得
+        const users = await getAllUsers();
+        if (users.length === 0) {
+          console.error('ユーザーが見つかりません');
+          return;
+        }
         
-        // 朝の完了画面へ遷移
-        router.push('/routine-flow/morning-complete');
+        const userId = users[0].id;
+        
+        // ルーティンログを作成
+        await createRoutineLog({
+          userId,
+          date: today,
+          routineId: currentRoutine.id,
+          status: 'skipped'
+        });
+        
+        if (currentStep < totalSteps - 1) {
+          // ルーティンをスキップとしてマーク
+          const updatedRoutines = [...routines];
+          updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+          setRoutines(updatedRoutines);
+          
+          // アニメーションを実行して次のステップへ
+          animateTransition(currentStep + 1);
+        } else {
+          // 最後のステップをスキップとしてマーク
+          const updatedRoutines = [...routines];
+          updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+          setRoutines(updatedRoutines);
+          
+          // 朝の完了画面へ遷移
+          router.push('/routine-flow/morning-complete');
+        }
+      } catch (error) {
+        console.error('ルーティンの記録に失敗しました:', error);
       }
-    } catch (error) {
-      console.error('ルーティンの記録に失敗しました:', error);
-    }
+    });
   };
 
   // ステップインジケーターをレンダリング（点で表示）
@@ -369,17 +393,19 @@ export default function RoutineStepScreen() {
           </Pressable>
         </Animated.View>
         
-        <Pressable 
-          onPress={handleSkipStep}
-          style={({ pressed }) => [
-            styles.skipButtonContainer,
-            pressed && styles.skipButtonContainerPressed
-          ]}
-        >
-          <ThemedText style={styles.skipButtonText}>
-            今日はスキップ
-          </ThemedText>
-        </Pressable>
+        <Animated.View style={{ transform: [{ scale: skipButtonScale }] }}>
+          <Pressable 
+            onPress={handleSkipStep}
+            style={({ pressed }) => [
+              styles.skipButtonContainer,
+              pressed && styles.skipButtonContainerPressed
+            ]}
+          >
+            <ThemedText style={styles.skipButtonText}>
+              今日はスキップ
+            </ThemedText>
+          </Pressable>
+        </Animated.View>
       </View>
     </ThemedView>
   );
