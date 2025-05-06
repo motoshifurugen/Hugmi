@@ -169,7 +169,6 @@ export default function QuotesScreen() {
       return (
         <Pressable
           style={styles.iconItem}
-          onLongPress={() => handleIconLongPress(item)} // 開発用：長押しでアンロック
         >
           <ThemedView 
             style={[
@@ -248,13 +247,6 @@ export default function QuotesScreen() {
         `「${quoteToUnlock.textJa}」\n- ${quoteToUnlock.authorJa || ''}`,
         [{ text: "OK" }]
       );
-    }
-  };
-
-  // アイコン表示時に長押しでのアンロックのデモを追加（開発用）
-  const handleIconLongPress = (item: Quote) => {
-    if (!item.unlocked) {
-      unlockQuote(item.id);
     }
   };
 
@@ -361,7 +353,7 @@ export default function QuotesScreen() {
             data={displayedQuotes}
             renderItem={renderIconItem}
             keyExtractor={item => item.id}
-            numColumns={4}
+            numColumns={5}
             style={styles.iconList}
             columnWrapperStyle={styles.iconRow}
           />
@@ -555,7 +547,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   iconItem: {
-    width: '23%',
+    width: '19%',
     aspectRatio: 1,
     marginBottom: 10,
   },
