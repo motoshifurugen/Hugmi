@@ -283,12 +283,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: projectColors.white1, // 背景色をwhite1に戻す
+    backgroundColor: projectColors.white1, // 背景色を確実に設定
   },
   contentWrapper: {
-    position: 'relative',
+    flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: projectColors.white1, // 内側のラッパーにも背景色を設定
   },
   contentContainer: {
     alignItems: 'center',

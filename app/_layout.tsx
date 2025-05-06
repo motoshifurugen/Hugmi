@@ -265,17 +265,81 @@ export default function RootLayout() {
   // メインアプリを表示
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider 
+        value={{
+          // ベースのテーマを拡張して背景色を設定
+          ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+          colors: {
+            ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+            // 背景色を projectColors.white1 に設定
+            background: projectColors.white1,
+            card: projectColors.white1,
+          },
+        }}
+      >
         <TutorialController>
-          <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          <Stack 
+            screenOptions={{ 
+              headerShown: false, 
+              animation: 'slide_from_right',
+              // 画面背景色を統一
+              contentStyle: { backgroundColor: projectColors.white1 }
+            }}
+          >
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="daily-quote" options={{ headerShown: false, animation: 'fade' }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="quotes/daily" options={{ headerShown: false }} />
-            <Stack.Screen name="quotes/detail" options={{ title: '名言詳細', headerTintColor: projectColors.text }} />
-            <Stack.Screen name="routine-flow/routine" options={{ headerShown: false }} />
-            <Stack.Screen name="routine-flow/morning-complete" options={{ headerShown: false, animation: 'fade' }} />
-            <Stack.Screen name="settings/privacy-policy" options={{ title: 'プライバシーポリシー', headerTintColor: projectColors.text }} />
+            <Stack.Screen 
+              name="daily-quote" 
+              options={{ 
+                headerShown: false, 
+                animation: 'fade',
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="(tabs)" 
+              options={{ 
+                headerShown: false,
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="quotes/daily" 
+              options={{ 
+                headerShown: false,
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="quotes/detail" 
+              options={{ 
+                title: '名言詳細', 
+                headerTintColor: projectColors.text,
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="routine-flow/routine" 
+              options={{ 
+                headerShown: false,
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="routine-flow/morning-complete" 
+              options={{ 
+                headerShown: false, 
+                animation: 'fade',
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
+            <Stack.Screen 
+              name="settings/privacy-policy" 
+              options={{ 
+                title: 'プライバシーポリシー', 
+                headerTintColor: projectColors.text,
+                contentStyle: { backgroundColor: projectColors.white1 }
+              }} 
+            />
           </Stack>
         </TutorialController>
         {/* StatusBar設定 */}
