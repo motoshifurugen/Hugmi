@@ -9,12 +9,6 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
 
-// 色の上書き（より薄い緑に）
-const customColors = {
-  ...projectColors,
-  success: '#81C784'
-};
-
 // 仮のルーティンデータ
 const SAMPLE_ROUTINES = [
   { id: '1', title: '水を飲む', completed: false, order: 1 },
@@ -290,7 +284,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButton: {
-    backgroundColor: customColors.success,  // より薄い緑色を使用
+    backgroundColor: projectColors.success,  // より薄い緑色を使用
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -423,7 +417,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   addRoutineButton: {
-    backgroundColor: customColors.success,
+    backgroundColor: projectColors.success,
     marginLeft: 8,
   },
   cancelButtonText: {

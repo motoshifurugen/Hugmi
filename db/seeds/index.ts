@@ -91,17 +91,17 @@ export const runAllSeeds = async (development: boolean = false) => {
       await clearAllData();
     }
     
-    // 1. ユーザーデータのシード（最初に実行する必要がある）
-    const user = await seedUsers();
-    if (!user) {
-      throw new Error('ユーザーシードに失敗しました');
-    }
+    // // 1. ユーザーデータのシード（最初に実行する必要がある）
+    // const user = await seedUsers();
+    // if (!user) {
+    //   throw new Error('ユーザーシードに失敗しました');
+    // }
     
     // 2. 名言データのシード（ユーザーに依存しない）
     await seedQuotes();
     
-    // 3. ルーティンデータのシード（ユーザーに依存）
-    await seedRoutines();
+    // // 3. ルーティンデータのシード（ユーザーに依存）
+    // await seedRoutines();
     
     // // 4. ルーティンログデータのシード（ユーザーとルーティンに依存）
     // await seedRoutineLogs();

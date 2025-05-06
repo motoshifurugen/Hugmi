@@ -18,6 +18,7 @@ import { migrateToNewSchema } from '@/db/utils/migration';
 import CustomSplashScreen from '@/components/SplashScreen';
 import { projectColors } from '@/constants/Colors';
 import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/DailyQuoteScreen';
+import TutorialController from '@/components/common/TutorialController';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -61,6 +62,18 @@ export default function RootLayout() {
       await db.initialize();
       console.log('データベースの初期化が完了しました');
       
+      // 名言データが存在するか確認
+      const { getAllQuotes } = await import('@/db/utils/quotes');
+      const quotes = await getAllQuotes();
+      console.log(`データベース内の名言数: ${quotes.length}`);
+      
+      if (quotes.length === 0) {
+        // 名言データが存在しない場合は、シードデータだけを実行
+        const { seedQuotes } = await import('@/db/seeds/quotes');
+        await seedQuotes();
+        console.log('名言シードデータの投入が完了しました');
+      }
+      
       if (resetDb) {
         // 開発モードでシードを実行（データクリア付き）
         await runAllSeeds(true);
@@ -95,10 +108,8 @@ export default function RootLayout() {
           console.log(`データベース内のユーザー数: ${users.length}`);
           
           if (users.length === 0) {
-            // ユーザーが存在しない場合はシードを実行するが、削除はしない
-            console.log('ユーザーが見つからないため、シードデータを投入します（削除なし）');
-            await runAllSeeds(false);
-            console.log('シードデータの投入が完了しました');
+            // ユーザーが存在しない場合、チュートリアルで作成するのでシードは実行しない
+            console.log('ユーザーが見つかりません。チュートリアルで作成されるのを待ちます。');
           } else {
             console.log('最初のユーザー:', users[0].name);
             
@@ -127,19 +138,7 @@ export default function RootLayout() {
             console.log(`[DEBUG] アクティブユーザーとして設定: ${allUsers[0].id}`);
           }
         } catch (error) {
-          console.error('データ確認中にエラーが発生しました。必要最小限の初期化を実行します:', error);
-          try {
-            // エラーが発生した場合でも、基本的なユーザーデータは作成しておく
-            const { seedUsers } = await import('@/db/seeds/users');
-            const user = await seedUsers();
-            if (user) {
-              // 作成したユーザーIDをグローバル設定
-              setActiveUserId(user.id);
-              console.log(`[DEBUG] 緊急作成したユーザーをアクティブに設定: ${user.id}`);
-            }
-          } catch (seedError) {
-            console.error('緊急シード処理に失敗しました:', seedError);
-          }
+          console.error('データ確認中にエラーが発生しました:', error);
         }
       }
       
@@ -173,15 +172,10 @@ export default function RootLayout() {
           // データベース初期化を非同期で開始（待機あり）
           await initializeDatabase(false);
           
-          // // タイムアウト時間を延長（安全策）
-          // // データベース初期化後のアニメーション処理に十分な時間を与える
-          // setTimeout(() => {
-            if (showSplash) {
-              // console.log('[DEBUG] データベース初期化後5秒経過 - 画面遷移を強制します');
-              setShowSplash(false);
-              setForceNavigate(true);
-            }
-          // }, 5000);
+          if (showSplash) {
+            setShowSplash(false);
+            setForceNavigate(true);
+          }
         } catch (e) {
           console.warn('スプラッシュスクリーンの非表示に失敗:', e);
           // エラー時もデータベース初期化を実行（待機あり）
@@ -198,107 +192,68 @@ export default function RootLayout() {
     console.log('[DEBUG] スプラッシュ完了コールバックが呼び出されました');
     // 以下の条件で画面遷移する:
     // 1. データベース初期化が完了している場合
-    // 2. または強制ナビゲーションフラグがオンの場合
-    if (dbInitialized || forceNavigate) {
-      console.log('[DEBUG] 条件を満たしたのでスプラッシュ画面を非表示にします');
+    if (dbInitialized) {
+      console.log('[DEBUG] データベース初期化済み - スプラッシュ画面を非表示にします');
       setShowSplash(false);
     } else {
-      console.log('[DEBUG] データベース初期化待ちのため、まだスプラッシュ画面を表示します');
-    }
-  }, [dbInitialized, forceNavigate]);
-
-  // データベース初期化状態の変更を監視
-  useEffect(() => {
-    if (dbInitialized) {
-      console.log('[DEBUG] データベース初期化完了を検知しました');
-      
-      // アニメーションの完了状態を確認
-      if (ANIMATION_EVENTS.COMPLETE) {
-        console.log('[DEBUG] アニメーションも完了しているため、画面遷移を実行します');
-        setShowSplash(false);
-      } else {
-        console.log('[DEBUG] アニメーション完了待ちです');
-      }
+      console.log('[DEBUG] データベースがまだ初期化中です - スプラッシュ画面を継続表示します');
     }
   }, [dbInitialized]);
 
   // アニメーション完了時のコールバック
   const onAnimationComplete = useCallback(() => {
-    console.log('[DEBUG] スプラッシュアニメーション完了コールバックが呼び出されました');
-    console.log('[DEBUG] データベース初期化状態:', dbInitialized ? '完了' : '進行中');
-    
-    // アニメーション完了フラグを設定
+    console.log('[DEBUG] スプラッシュアニメーション完了イベントを発行します');
+    // イベント発行
     ANIMATION_EVENTS.COMPLETE = true;
-    
-    // データベース初期化が完了している場合は、スプラッシュ画面を非表示にする準備を整える
-    if (dbInitialized) {
-      console.log('[DEBUG] アニメーション完了時点でデータベース初期化済み - すぐに遷移します');
-      // 少し遅延を入れてUIの更新に時間を与える
-      setTimeout(() => {
-        setShowSplash(false);
-      }, 100);
-    } else {
-      console.log('[DEBUG] アニメーション完了だがデータベース初期化待ち - ローディング表示に移行');
-    }
-  }, [dbInitialized]);
+  }, []);
 
-  // フォントがロードされていない場合、何も表示しない
-  // (Expoのデフォルトスプラッシュスクリーンが表示されたまま)
+  // まだフォントがロードされていない場合
   if (!fontsLoaded) {
     return null;
   }
 
-  // 状態をチェックして強制的に画面遷移
-  if (forceNavigate && showSplash) {
-    console.log('強制ナビゲーションによりスプラッシュ画面を非表示にします');
-    setShowSplash(false);
+  // 初期ルートがまだ設定されていない場合（データベース初期化中）
+  if (!initialRoute) {
+    // カスタムスプラッシュスクリーンを表示
+    return (
+      <CustomSplashScreen 
+        onFinish={onSplashFinish} 
+        extendAnimation={!dbInitialized}
+        onAnimationComplete={onAnimationComplete}
+      />
+    );
   }
 
-  // 初期ルートを設定してアプリを表示
+  // スプラッシュ画面表示中
+  if (showSplash) {
+    // カスタムスプラッシュスクリーンを表示
+    return (
+      <CustomSplashScreen 
+        onFinish={onSplashFinish} 
+        extendAnimation={!dbInitialized}
+        onAnimationComplete={onAnimationComplete}
+      />
+    );
+  }
+
+  // メインアプリを表示
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {initialRoute || forceNavigate ? (
-          <>
-            <Stack 
-              initialRouteName="daily-quote"
-              screenOptions={{
-                headerShown: false,
-                animation: 'fade',
-                animationDuration: 450,
-                presentation: 'transparentModal',
-                contentStyle: { backgroundColor: projectColors.white1 }
-              }}
-            >
-              <Stack.Screen name="daily-quote" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
-              <Stack.Screen name="settings/privacy-policy" options={{ headerShown: true }} />
-              <Stack.Screen name="+not-found" options={{ contentStyle: { backgroundColor: projectColors.white1 } }} />
-            </Stack>
-            
-            {/* スプラッシュ画面をオーバーレイとして表示 */}
-            {showSplash && (
-              <View style={styles.splashOverlay}>
-                <CustomSplashScreen
-                  onFinish={onSplashFinish}
-                  extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
-                  onAnimationComplete={onAnimationComplete}
-                />
-              </View>
-            )}
-          </>
-        ) : (
-          // 初期ルートが設定されるまではカスタムスプラッシュスクリーンのみ表示
-          <View style={styles.splashOverlay}>
-            <CustomSplashScreen
-              onFinish={onSplashFinish}
-              extendAnimation={!dbInitialized && !forceNavigate} // データベース初期化が完了していない場合は延長モード
-              onAnimationComplete={onAnimationComplete}
-            />
-          </View>
-        )}
-        
-        <StatusBar style="auto" />
+        <TutorialController>
+          <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="daily-quote" options={{ headerShown: false, animation: 'fade' }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/index" options={{ title: '設定', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="quotes/favorites" options={{ title: 'お気に入り', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="quotes/today" options={{ title: '今日の名言', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="quotes/[id]" options={{ title: '名言詳細', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="routine-flow/[id]" options={{ title: 'ルーティン詳細', headerTintColor: projectColors.text }} />
+          </Stack>
+        </TutorialController>
+        {/* StatusBar設定 */}
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

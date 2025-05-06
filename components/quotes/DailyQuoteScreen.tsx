@@ -136,7 +136,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   // データベース初期化状態が変更された場合に保留中の記録を処理
   useEffect(() => {
     const processPendingRecords = async () => {
-      if (DB_INITIALIZED && pendingRecordQueue.length > 0) {
+      if (DB_INITIALIZED && pendingRecordQueue.length > 0 && ACTIVE_USER_ID !== 'user1') {
         console.log(`[DEBUG] データベース初期化完了を検知。保留中の記録を処理: ${pendingRecordQueue.length}件`);
         
         // 保留中のすべての名言記録を処理
@@ -155,7 +155,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
     };
     
     processPendingRecords();
-  }, [pendingRecordQueue]);
+  }, [pendingRecordQueue, ACTIVE_USER_ID]);
 
   // データロード完了後にアニメーション準備完了フラグをセット
   useEffect(() => {
@@ -183,7 +183,9 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
     try {
       console.log('[DEBUG] 名言取得プロセスを開始');
       // ユーザーがまだ表示していない名言をランダムに取得
-      const quote = await getUnviewedRandomQuote(ACTIVE_USER_ID);
+      // ユーザーがまだ存在しない場合はnullユーザーIDを使用（すべての名言から選択）
+      const quoteUserId = ACTIVE_USER_ID === 'user1' ? null : ACTIVE_USER_ID;
+      const quote = await getUnviewedRandomQuote(quoteUserId || '');
       console.log('[DEBUG] 処理済み名言データ:', quote);
       
       if (quote) {
@@ -197,11 +199,17 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           imagePath: quote.imagePath || 'seneca.png'
         });
         
-        // 表示した名言を記録（データベース初期化完了後）
+        // 表示した名言を記録（データベース初期化完了後かつアクティブユーザーIDが有効な場合のみ）
         if (quote.id && quote.id !== 'temp-id' && quote.id !== 'error-id' && quote.id !== 'fallback-id') {
           // 非同期で記録を行い、UIスレッドをブロックしない
           setTimeout(() => {
             try {
+              // ユーザーIDが初期値のままの場合（チュートリアル前）は記録をスキップ
+              if (ACTIVE_USER_ID === 'user1') {
+                console.log('[DEBUG] ユーザーがまだ作成されていません。表示記録をスキップします。');
+                return;
+              }
+              
               if (DB_INITIALIZED) {
                 // データベースが初期化済みの場合は直接記録
                 console.log('[DEBUG] 名言の表示を記録（DB初期化済み）:', quote.id);
