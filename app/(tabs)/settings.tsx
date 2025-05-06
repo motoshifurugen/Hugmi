@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Switch, Pressable, Alert, ScrollView, View, Platform, Linking, Clipboard } from 'react-native';
 import Constants from 'expo-constants';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, Link } from 'expo-router';
 import * as MailComposer from 'expo-mail-composer';
 
@@ -50,44 +49,9 @@ export default function SettingsScreen() {
     setIsDevEnv(isDevelopment());
   }, []);
   
-  // 設定の状態管理
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [morningNotification, setMorningNotification] = useState(true);
-  const [eveningNotification, setEveningNotification] = useState(true);
-  const [morningTime, setMorningTime] = useState(new Date(new Date().setHours(7, 0, 0, 0)));
-  const [eveningTime, setEveningTime] = useState(new Date(new Date().setHours(23, 0, 0, 0)));
+  // その他の設定の状態管理
   const [darkMode, setDarkMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  
-  // 時間ピッカーの状態
-  const [showMorningPicker, setShowMorningPicker] = useState(false);
-  const [showEveningPicker, setShowEveningPicker] = useState(false);
-
-  // 時間フォーマット
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  // 時間変更ハンドラー
-  const onMorningTimeChange = (event: any, selectedDate?: Date) => {
-    // Androidの場合は選択後にピッカーを閉じる
-    if (Platform.OS === 'android') {
-      setShowMorningPicker(false);
-    }
-    if (selectedDate) {
-      setMorningTime(selectedDate);
-    }
-  };
-
-  const onEveningTimeChange = (event: any, selectedDate?: Date) => {
-    // Androidの場合は選択後にピッカーを閉じる
-    if (Platform.OS === 'android') {
-      setShowEveningPicker(false);
-    }
-    if (selectedDate) {
-      setEveningTime(selectedDate);
-    }
-  };
 
   // データベースをクリアする関数
   const clearDatabase = async () => {
@@ -185,137 +149,13 @@ export default function SettingsScreen() {
         <ThemedView style={styles.sectionContainer}>
           <ThemedText style={styles.sectionTitle}>通知設定</ThemedText>
           
-          <ThemedView style={styles.settingItem}>
-            <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>通知</ThemedText>
-              <ThemedText style={styles.settingDescription}>
-                アプリからの通知を受け取ります
-              </ThemedText>
-            </ThemedView>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
-              thumbColor={notificationsEnabled ? projectColors.softOrange : '#f4f3f4'}
-            />
+          <ThemedView style={styles.comingSoonContainer}>
+            <ThemedText style={styles.comingSoonText}>Coming Soon</ThemedText>
+            <ThemedText style={styles.comingSoonDescription}>
+              通知機能は現在開発中です。もうしばらくお待ちください。
+            </ThemedText>
           </ThemedView>
-          
-          <ThemedView style={styles.settingItem}>
-            <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>朝の通知</ThemedText>
-              <ThemedText style={styles.settingDescription}>
-                朝のルーティン開始時間に通知します
-              </ThemedText>
-            </ThemedView>
-            <Switch
-              value={morningNotification}
-              onValueChange={setMorningNotification}
-              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
-              thumbColor={morningNotification ? projectColors.softOrange : '#f4f3f4'}
-              disabled={!notificationsEnabled}
-            />
-          </ThemedView>
-          
-          {morningNotification && notificationsEnabled && (
-            <>
-              <Pressable 
-                onPress={() => setShowMorningPicker(!showMorningPicker)}
-                style={[styles.timeSelector, showMorningPicker ? styles.timeSelectorActive : null]}
-              >
-                <ThemedText style={styles.timeText}>通知時刻: {formatTime(morningTime)}</ThemedText>
-                <IconSymbol name={showMorningPicker ? "chevron.up" : "chevron.down"} size={16} color="#888888" />
-              </Pressable>
-              
-              {showMorningPicker && (
-                <ThemedView style={styles.inlinePicker}>
-                  <DateTimePicker
-                    value={morningTime}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? "spinner" : "default"}
-                    onChange={onMorningTimeChange}
-                    locale="ja-JP"
-                    style={styles.picker}
-                  />
-                </ThemedView>
-              )}
-            </>
-          )}
-          
-          <ThemedView style={styles.settingItem}>
-            <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>夜の通知</ThemedText>
-              <ThemedText style={styles.settingDescription}>
-                おやすみ前に明日のルーティンを通知します
-              </ThemedText>
-            </ThemedView>
-            <Switch
-              value={eveningNotification}
-              onValueChange={setEveningNotification}
-              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
-              thumbColor={eveningNotification ? projectColors.softOrange : '#f4f3f4'}
-              disabled={!notificationsEnabled}
-            />
-          </ThemedView>
-          
-          {eveningNotification && notificationsEnabled && (
-            <>
-              <Pressable 
-                onPress={() => setShowEveningPicker(!showEveningPicker)}
-                style={[styles.timeSelector, showEveningPicker ? styles.timeSelectorActive : null]}
-              >
-                <ThemedText style={styles.timeText}>通知時刻: {formatTime(eveningTime)}</ThemedText>
-                <IconSymbol name={showEveningPicker ? "chevron.up" : "chevron.down"} size={16} color="#888888" />
-              </Pressable>
-              
-              {showEveningPicker && (
-                <ThemedView style={styles.inlinePicker}>
-                  <DateTimePicker
-                    value={eveningTime}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? "spinner" : "default"}
-                    onChange={onEveningTimeChange}
-                    locale="ja-JP"
-                    style={styles.picker}
-                  />
-                </ThemedView>
-              )}
-            </>
-          )}
         </ThemedView>
-        
-        {/* <ThemedView style={styles.sectionContainer}>
-          <ThemedText style={styles.sectionTitle}>アプリ設定</ThemedText>
-          
-          <ThemedView style={styles.settingItem}>
-            <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>ダークモード</ThemedText>
-              <ThemedText style={styles.settingDescription}>
-                アプリの表示をダークモードに切り替えます
-              </ThemedText>
-            </ThemedView>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
-              thumbColor={darkMode ? projectColors.softOrange : '#f4f3f4'}
-            />
-          </ThemedView>
-          
-          <ThemedView style={styles.settingItem}>
-            <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>サウンド</ThemedText>
-              <ThemedText style={styles.settingDescription}>
-                アプリ内の効果音を有効にします
-              </ThemedText>
-            </ThemedView>
-            <Switch
-              value={soundEnabled}
-              onValueChange={setSoundEnabled}
-              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
-              thumbColor={soundEnabled ? projectColors.softOrange : '#f4f3f4'}
-            />
-          </ThemedView>
-        </ThemedView> */}
         
         <ThemedView style={styles.sectionContainer}>
           <ThemedText style={styles.sectionTitle}>アプリについて</ThemedText>
@@ -346,7 +186,7 @@ export default function SettingsScreen() {
           <Pressable>
             <ThemedView style={styles.linkItem}>
               <ThemedText style={styles.settingText}>アプリバージョン</ThemedText>
-              <ThemedText style={styles.versionText}>1.0.0</ThemedText>
+              <ThemedText style={styles.versionText}>0.9.0</ThemedText>
             </ThemedView>
           </Pressable>
           
@@ -361,27 +201,6 @@ export default function SettingsScreen() {
           )}
         </ThemedView>
       </ScrollView>
-
-      {/* Android のピッカー（Androidの場合だけ必要） */}
-      {Platform.OS === 'android' && showMorningPicker && (
-        <DateTimePicker
-          value={morningTime}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={onMorningTimeChange}
-        />
-      )}
-
-      {Platform.OS === 'android' && showEveningPicker && (
-        <DateTimePicker
-          value={eveningTime}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={onEveningTimeChange}
-        />
-      )}
     </ThemedView>
   );
 }
@@ -445,6 +264,28 @@ const styles = StyleSheet.create({
   dangerText: {
     fontSize: 16,
     color: projectColors.red1,
+  },
+  comingSoonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  comingSoonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#888888',
+    marginBottom: 8,
+  },
+  comingSoonDescription: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   timeSelector: {
     flexDirection: 'row',

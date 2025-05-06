@@ -159,9 +159,17 @@ export default function TutorialController({ children }: TutorialControllerProps
               // チュートリアル表示フラグをオフに
               setShowTutorial(false);
               console.log('[DEBUG] チュートリアル表示をオフにしました');
+              
+              // 時間帯に関わらず、常に名言画面に遷移する
+              console.log('[DEBUG] 名言画面に遷移します');
+              router.replace('/daily-quote');
             } catch (error) {
               console.error('チュートリアル完了フラグの保存に失敗:', error);
               setShowTutorial(false);
+              
+              // エラー時も名言画面に遷移を行う
+              console.log('[DEBUG] エラー発生後も名言画面に遷移します');
+              router.replace('/daily-quote');
             }
           }}
         />

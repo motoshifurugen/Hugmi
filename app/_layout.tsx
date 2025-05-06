@@ -140,9 +140,25 @@ export default function RootLayout() {
             console.log(`[DEBUG] アクティブユーザーとして設定: ${userId}`);
             
             // 朝の時間帯とルーティン状況に基づいて初期ルートを決定
-            const route = await determineInitialRoute(userId);
-            setInitialRoute(route);
-            console.log(`[DEBUG] 初期ルートを決定しました: ${route}`);
+            // ここで初回ログインかどうかを判定して渡す
+            const tutorialCompleted = await SecureStore.getItemAsync('tutorial_completed');
+            const isFirstLogin = tutorialCompleted === 'true' && await SecureStore.getItemAsync('first_route_after_tutorial') !== 'done';
+            
+            if (isFirstLogin) {
+              // 初回ログイン後は名言画面に遷移するようフラグを渡す
+              console.log('[DEBUG] チュートリアル完了後の初回ルート決定');
+              const route = await determineInitialRoute(userId, true);
+              setInitialRoute(route);
+              
+              // 初回ルート設定後にフラグを立てる
+              await SecureStore.setItemAsync('first_route_after_tutorial', 'done');
+            } else {
+              // 通常のルート決定
+              const route = await determineInitialRoute(userId);
+              setInitialRoute(route);
+            }
+            
+            console.log(`[DEBUG] 初期ルートを決定しました: ${initialRoute}`);
           } else {
             // ユーザーが存在しない場合はデフォルトでホーム画面へ（具体的なパスを指定）
             setInitialRoute('(tabs)/home');

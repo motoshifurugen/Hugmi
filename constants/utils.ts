@@ -31,8 +31,14 @@ export function isMorningTime(): boolean {
 }
 
 // ユーティリティ関数：アプリの初期ルートを決定
-export async function determineInitialRoute(userId: string) {
+export async function determineInitialRoute(userId: string, isFirstLogin: boolean = false) {
   try {
+    // 初回ログイン時は時間帯に関わらず名言画面に遷移
+    if (isFirstLogin) {
+      console.log('[DEBUG] 初回ログイン：時間帯に関わらず名言画面へ遷移します');
+      return 'daily-quote';
+    }
+
     // 必要な関数をインポート
     const { isTodayRoutineCompleted, isTodayRoutineStarted } = await import('@/db/utils/routine_logs');
     
