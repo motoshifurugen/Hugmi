@@ -11,6 +11,7 @@ import {
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { projectColors } from '@/constants/Colors';
+import { fonts } from '@/constants/fonts';
 import { 
   createNeomorphicStyle, 
   createNeomorphicButtonStyle, 
@@ -425,9 +426,10 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 18, // 16から18に拡大
-    color: '#5A5050', // 濃い目のグレーに変更
+    color: projectColors.black1,
     marginBottom: 12,
-    fontFamily: 'ZenMaruGothic_700Bold', // Medium から Bold に変更
+    fontFamily: fonts.families.primary,
+    fontWeight: 'bold',
   },
   stepIndicatorContainer: {
     flexDirection: 'row',
@@ -474,7 +476,8 @@ const styles = StyleSheet.create({
     fontSize: 26,
     textAlign: 'center',
     color: projectColors.black1,
-    fontFamily: 'ZenMaruGothic_700Bold',
+    fontFamily: fonts.families.primary,
+    fontWeight: 'bold',
     zIndex: 10,
     paddingHorizontal: 0,
     maxWidth: 250,
@@ -494,14 +497,16 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 18,
-    fontFamily: 'ZenMaruGothic_700Bold',
+    fontFamily: fonts.families.primary,
+    fontWeight: 'bold',
     color: projectColors.black1,
     textAlign: 'center',
   },
   skipButtonText: {
     fontSize: 16,
     color: projectColors.black2,
-    fontFamily: 'ZenMaruGothic_400Regular',
+    fontFamily: fonts.families.primary,
+    fontWeight: 'bold',
   },
   skipButtonContainer: {
     paddingVertical: 10,

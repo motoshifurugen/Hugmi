@@ -91,18 +91,21 @@ export const createNeomorphicButtonStyle = (
 /**
  * ニューモーフィズムボタンの押下時スタイルを生成する関数
  * 
+ * @param baseColor - 押下前の背景色（ボタン生成時に使われた色）
  * @returns ViewStyleオブジェクト
  */
-export const createNeomorphicButtonPressedStyle = (): ViewStyle => {
+export const createNeomorphicButtonPressedStyle = (
+  baseColor: string = projectColors.softOrange
+): ViewStyle => {
   return {
-    backgroundColor: projectColors.softOrange,
+    backgroundColor: baseColor,
     opacity: 0.95,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.99 }],
     
-    // 押された時は影を小さく
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.6,
+    shadowRadius: 2,
+    elevation: 1,
   };
 };
 
