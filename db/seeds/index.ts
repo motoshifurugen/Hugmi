@@ -103,14 +103,14 @@ export const runAllSeeds = async (development: boolean = false) => {
     // 3. ルーティンデータのシード（ユーザーに依存）
     await seedRoutines();
     
-    // 4. ルーティンログデータのシード（ユーザーとルーティンに依存）
-    await seedRoutineLogs();
+    // // 4. ルーティンログデータのシード（ユーザーとルーティンに依存）
+    // await seedRoutineLogs();
     
-    // 5. 気分ログデータのシード（ユーザーと名言に依存）
-    await seedMoodLogs();
+    // // 5. 気分ログデータのシード（ユーザーと名言に依存）
+    // await seedMoodLogs();
     
-    // 6. お気に入り名言データのシード（ユーザーと名言に依存）
-    await seedFavoriteQuotes();
+    // // 6. お気に入り名言データのシード（ユーザーと名言に依存）
+    // await seedFavoriteQuotes();
     
     console.log('すべてのシードデータが正常に投入されました！');
   } catch (error) {
