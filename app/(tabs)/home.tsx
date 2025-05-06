@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: fonts.sizes['2xl'],
     fontWeight: fonts.weights.bold,
     marginRight: 4,
-    paddingTop: 2,
+    paddingTop: 6,
   } as TextStyle,
   waveContainer: {
     width: 40,
