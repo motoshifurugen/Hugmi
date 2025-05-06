@@ -19,6 +19,7 @@ import CustomSplashScreen from '@/components/SplashScreen';
 import { projectColors } from '@/constants/Colors';
 import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/DailyQuoteScreen';
 import TutorialController from '@/components/common/TutorialController';
+import { determineInitialRoute } from '@/constants/utils';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -134,16 +135,25 @@ export default function RootLayout() {
           // もう一度ユーザーデータを確認し、確実にアクティブユーザーIDを設定
           const allUsers = await getAllUsers();
           if (allUsers.length > 0) {
-            setActiveUserId(allUsers[0].id);
-            console.log(`[DEBUG] アクティブユーザーとして設定: ${allUsers[0].id}`);
+            const userId = allUsers[0].id;
+            setActiveUserId(userId);
+            console.log(`[DEBUG] アクティブユーザーとして設定: ${userId}`);
+            
+            // 朝の時間帯とルーティン状況に基づいて初期ルートを決定
+            const route = await determineInitialRoute(userId);
+            setInitialRoute(route);
+            console.log(`[DEBUG] 初期ルートを決定しました: ${route}`);
+          } else {
+            // ユーザーが存在しない場合はデフォルトでホーム画面へ（具体的なパスを指定）
+            setInitialRoute('(tabs)/home');
           }
         } catch (error) {
           console.error('データ確認中にエラーが発生しました:', error);
+          // エラーが発生した場合はデフォルトでホーム画面へ
+          setInitialRoute('(tabs)/home');
         }
       }
       
-      // 初期ルートとして名言画面を設定
-      setInitialRoute('daily-quote');
       // データベース初期化完了を記録
       setDbInitialized(true);
       // DailyQuoteScreenコンポーネント用にグローバル状態を更新
@@ -152,7 +162,7 @@ export default function RootLayout() {
     } catch (error) {
       console.error('データベースの初期化中にエラーが発生しました:', error);
       // エラー時もルートを設定して進める
-      setInitialRoute('daily-quote');
+      setInitialRoute('(tabs)/home'); // エラー時はホーム画面へ
       setDbInitialized(true); // エラー時も初期化完了とみなす
       setDbInitializedGlobal(true); // DailyQuoteScreen用の状態も更新
       console.log('[DEBUG] エラーが発生しましたが、データベース初期化完了フラグを設定しました');
@@ -245,11 +255,11 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="daily-quote" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="settings/index" options={{ title: '設定', headerTintColor: projectColors.text }} />
-            <Stack.Screen name="quotes/favorites" options={{ title: 'お気に入り', headerTintColor: projectColors.text }} />
-            <Stack.Screen name="quotes/today" options={{ title: '今日の名言', headerTintColor: projectColors.text }} />
-            <Stack.Screen name="quotes/[id]" options={{ title: '名言詳細', headerTintColor: projectColors.text }} />
-            <Stack.Screen name="routine-flow/[id]" options={{ title: 'ルーティン詳細', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="quotes/daily" options={{ headerShown: false }} />
+            <Stack.Screen name="quotes/detail" options={{ title: '名言詳細', headerTintColor: projectColors.text }} />
+            <Stack.Screen name="routine-flow/routine" options={{ headerShown: false }} />
+            <Stack.Screen name="routine-flow/morning-complete" options={{ headerShown: false, animation: 'fade' }} />
+            <Stack.Screen name="settings/privacy-policy" options={{ title: 'プライバシーポリシー', headerTintColor: projectColors.text }} />
           </Stack>
         </TutorialController>
         {/* StatusBar設定 */}

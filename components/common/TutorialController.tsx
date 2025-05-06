@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { View, Text } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { db } from '@/db';
+import { db } from '@/db/index';
 import TutorialScreen from './TutorialScreen';
 import { seedQuotes } from '@/db/seeds/quotes';
 import { router } from 'expo-router';
+import { generateUuid } from '@/db/utils/uuid';
 
 interface TutorialControllerProps {
   children: React.ReactNode;
@@ -12,6 +14,7 @@ interface TutorialControllerProps {
 export default function TutorialController({ children }: TutorialControllerProps) {
   const [showTutorial, setShowTutorial] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
 
   // デバッグ用：強制的にチュートリアル完了フラグをリセット
   const resetTutorialFlag = async () => {
@@ -53,29 +56,30 @@ export default function TutorialController({ children }: TutorialControllerProps
         console.log(`[DEBUG] ユーザー数: ${users.length}`);
         
         if (users.length === 0) {
-          // ユーザーがいない場合は初回ユーザーとみなす
-          console.log('[DEBUG] 初回ユーザーと判断、チュートリアルを表示します');
+          // ユーザーがいない場合は初回ユーザーとみなし、必ずチュートリアルを表示
+          console.log('[DEBUG] ユーザーが存在しません。チュートリアルを表示します');
+          
           // 古いフラグが残っていればリセット
           if (tutorialCompleted === 'true') {
             await SecureStore.deleteItemAsync('tutorial_completed');
             console.log('[DEBUG] 不整合のためチュートリアルフラグをリセットしました');
           }
+          
+          // チュートリアル表示を設定
           setShowTutorial(true);
         } else if (tutorialCompleted === 'true') {
           // チュートリアルが完了している場合
           console.log('[DEBUG] チュートリアルはすでに完了しています');
           setShowTutorial(false);
         } else {
-          // ユーザーが存在するがフラグがない場合はチュートリアル完了とみなす
-          console.log('[DEBUG] ユーザーデータが存在します、チュートリアルをスキップします');
-          // チュートリアル完了フラグを設定（念のため）
-          await SecureStore.setItemAsync('tutorial_completed', 'true');
-          setShowTutorial(false);
+          // ユーザーが存在するがフラグがない場合は新規にチュートリアルを表示
+          console.log('[DEBUG] ユーザーは存在するがチュートリアルフラグがありません。チュートリアルを表示します');
+          setShowTutorial(true);
         }
       } catch (error) {
         console.error('チュートリアル表示判定中にエラーが発生しました:', error);
-        // エラー時はチュートリアルをスキップ
-        setShowTutorial(false);
+        // エラー時はデフォルトでチュートリアルを表示
+        setShowTutorial(true);
       } finally {
         setLoading(false);
       }
@@ -85,8 +89,26 @@ export default function TutorialController({ children }: TutorialControllerProps
   }, []);
 
   // チュートリアル完了時の処理
-  const handleTutorialComplete = () => {
+  const handleTutorialComplete = async () => {
     console.log('[DEBUG] チュートリアルが完了しました');
+    
+    try {
+      // チュートリアル完了フラグを保存
+      await SecureStore.setItemAsync('tutorial_completed', 'true');
+      console.log('[DEBUG] チュートリアル完了フラグを保存しました');
+      
+      // ユーザーデータを確認（確実にユーザーが作成されているか確認）
+      const users = await db.getAllUsers();
+      if (users.length === 0) {
+        console.error('[ERROR] チュートリアル完了後もユーザーが存在しません。データに問題がある可能性があります。');
+      } else {
+        console.log(`[DEBUG] チュートリアル完了後のユーザー: ${users[0].name}`);
+      }
+    } catch (error) {
+      console.error('チュートリアル完了処理中にエラーが発生しました:', error);
+    }
+    
+    // チュートリアル表示を終了
     setShowTutorial(false);
     
     // 名言画面に遷移（通常のログインフロー同様）
@@ -101,13 +123,51 @@ export default function TutorialController({ children }: TutorialControllerProps
 
   return (
     <>
-      {showTutorial && (
+      {showTutorial ? (
         <TutorialScreen
-          visible={showTutorial}
-          onComplete={handleTutorialComplete}
+          visible={true}
+          onComplete={async () => {
+            try {
+              console.log('[DEBUG] チュートリアル完了コールバックが呼び出されました');
+              
+              // チュートリアル完了フラグをSecureStoreに保存
+              await SecureStore.setItemAsync('tutorial_completed', 'true');
+              console.log('[DEBUG] チュートリアル完了フラグをSecureStoreに保存しました');
+              
+              // 再度ユーザーが存在するか確認
+              const users = await db.getAllUsers();
+              const userCount = users.length;
+              console.log(`[DEBUG] チュートリアル完了後の実際のユーザー数: ${userCount}`);
+              
+              if (userCount === 0) {
+                console.error('チュートリアル後もユーザーが存在しません。緊急回復を試みます。');
+                try {
+                  // 緊急ユーザー作成
+                  const emergencyUserId = generateUuid();
+                  await db.createUser({
+                    id: emergencyUserId,
+                    name: 'ゲスト（緊急）'
+                  });
+                  setActiveUserId(emergencyUserId);
+                  await SecureStore.setItemAsync('active_user_id', emergencyUserId);
+                  console.log('[DEBUG] 緊急ユーザーを作成しました');
+                } catch (emergencyError) {
+                  console.error('緊急ユーザー作成にも失敗:', emergencyError);
+                }
+              }
+              
+              // チュートリアル表示フラグをオフに
+              setShowTutorial(false);
+              console.log('[DEBUG] チュートリアル表示をオフにしました');
+            } catch (error) {
+              console.error('チュートリアル完了フラグの保存に失敗:', error);
+              setShowTutorial(false);
+            }
+          }}
         />
+      ) : (
+        children
       )}
-      {children}
     </>
   );
 } 

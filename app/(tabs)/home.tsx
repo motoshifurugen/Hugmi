@@ -9,7 +9,7 @@ import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
 import { getTimeBasedGreeting } from '@/constants/utils';
 import { getUserById } from '@/db/utils/users';
-import { getTodayRoutineProgress } from '@/db/utils/routine_logs';
+import { getTodayRoutineProgress, isTodayRoutineStarted, isTodayRoutineCompleted } from '@/db/utils/routine_logs';
 import { getTodayViewedQuote, getUnviewedRandomQuote } from '@/db/utils/viewed_quotes';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { 
@@ -76,10 +76,13 @@ export default function HomeScreen() {
   const [routineProgress, setRoutineProgress] = useState({ completed: 0, total: 0 });
   const [todayQuote, setTodayQuote] = useState({ textJa: '', authorJa: '' });
   const [userId, setUserId] = useState('');
+  const [routineStarted, setRoutineStarted] = useState(false);
+  const [routineCompleted, setRoutineCompleted] = useState(false);
   
   // ボタンアニメーション用のAnimated Valueを追加
   const routineButtonScale = useRef(new Animated.Value(1)).current;
   const quotesButtonScale = useRef(new Animated.Value(1)).current;
+  const resumeButtonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loadData = async () => {
@@ -93,46 +96,85 @@ export default function HomeScreen() {
           user = users[0];
           setUserId(user.id);
           setUserName(user.name);
+          console.log(`[DEBUG] ホーム画面: ユーザー「${user.name}」を読み込みました`);
         } else {
-          console.error('ユーザーが見つかりません');
+          console.log('[DEBUG] ホーム画面: ユーザーが見つかりません、ゲストとして表示します');
           setUserName('ゲスト');
+          
+          // 最初のアクセス時にユーザーがいない場合は、一時的なルーティンデータを表示
+          setRoutineProgress({
+            completed: 0,
+            total: 3 // 仮のルーティン数
+          });
+          
+          setTodayQuote({
+            textJa: '今日も新しい一日の始まりです',
+            authorJa: 'Hugmi'
+          });
+          
+          setLoading(false);
+          return; // 以降の処理はスキップ
         }
         
         // ユーザーIDが取得できた場合はそのユーザーのデータを取得
         if (user) {
-          // 今日のルーティン進捗を取得
-          const progress = await getTodayRoutineProgress(user.id);
-          setRoutineProgress({
-            completed: progress.completed,
-            total: progress.total
-          });
-          
-          // 今日の朝に表示した名言を取得
-          console.log('[DEBUG] ホーム画面: 今日の名言を取得開始');
-          const todayQuote = await getTodayViewedQuote(user.id);
-          
-          if (todayQuote) {
-            console.log('[DEBUG] ホーム画面: 今日の名言を取得成功');
-            setTodayQuote({
-              textJa: todayQuote.textJa,
-              authorJa: todayQuote.authorJa
+          try {
+            // 今日のルーティン進捗を取得
+            const progress = await getTodayRoutineProgress(user.id);
+            setRoutineProgress({
+              completed: progress.completed,
+              total: progress.total
             });
-          } else {
-            // 表示履歴がない場合は、ランダムな名言を表示
-            console.log('[DEBUG] ホーム画面: 表示履歴がないためランダムな名言を取得');
-            const randomQuote = await getUnviewedRandomQuote(user.id);
-            if (randomQuote) {
+            console.log(`[DEBUG] ホーム画面: ルーティン進捗を取得 (${progress.completed}/${progress.total})`);
+            
+            // ルーティンの状態を取得
+            const started = await isTodayRoutineStarted(user.id);
+            const completed = await isTodayRoutineCompleted(user.id);
+            setRoutineStarted(started);
+            setRoutineCompleted(completed);
+          } catch (error) {
+            console.error('ルーティンデータの取得に失敗しました:', error);
+            // エラー時のデフォルト値
+            setRoutineProgress({ completed: 0, total: 0 });
+            setRoutineStarted(false);
+            setRoutineCompleted(false);
+          }
+          
+          try {
+            // 今日の朝に表示した名言を取得
+            console.log('[DEBUG] ホーム画面: 今日の名言を取得開始');
+            const todayQuote = await getTodayViewedQuote(user.id);
+            
+            if (todayQuote) {
+              console.log('[DEBUG] ホーム画面: 今日の名言を取得成功');
               setTodayQuote({
-                textJa: randomQuote.textJa,
-                authorJa: randomQuote.authorJa
+                textJa: todayQuote.textJa,
+                authorJa: todayQuote.authorJa
               });
             } else {
-              // 名言がない場合のデフォルト
-              setTodayQuote({
-                textJa: '今日も新しい一日の始まりです',
-                authorJa: 'Hugmi'
-              });
+              // 表示履歴がない場合は、ランダムな名言を表示
+              console.log('[DEBUG] ホーム画面: 表示履歴がないためランダムな名言を取得');
+              const randomQuote = await getUnviewedRandomQuote(user.id);
+              if (randomQuote) {
+                setTodayQuote({
+                  textJa: randomQuote.textJa,
+                  authorJa: randomQuote.authorJa
+                });
+              } else {
+                // 名言がない場合のデフォルト
+                setTodayQuote({
+                  textJa: '今日も新しい一日の始まりです',
+                  authorJa: 'Hugmi'
+                });
+              }
             }
+          } catch (error) {
+            console.error('名言データの取得に失敗しました:', error);
+            // エラー時のデフォルト
+            setTodayQuote({
+              textJa: '今日も新しい一日の始まりです',
+              authorJa: 'Hugmi'
+            });
           }
         }
         
@@ -141,6 +183,8 @@ export default function HomeScreen() {
         console.error('ホーム画面データの読み込みエラー:', error);
         setLoading(false);
         // エラー時のデフォルト
+        setUserName('ゲスト');
+        setRoutineProgress({ completed: 0, total: 0 });
         setTodayQuote({
           textJa: '今日も新しい一日の始まりです',
           authorJa: 'Hugmi'
@@ -185,6 +229,13 @@ export default function HomeScreen() {
     });
   };
   
+  // ルーティン再開ボタンのハンドラ
+  const handleResumeRoutinePress = () => {
+    animateButton(resumeButtonScale, () => {
+      router.push('/routine-flow/routine');
+    });
+  };
+  
   // 時間帯に応じた挨拶を取得
   const greeting = getTimeBasedGreeting();
   
@@ -196,6 +247,9 @@ export default function HomeScreen() {
       </ThemedView>
     );
   }
+
+  // ルーティンが開始されているが完了していない場合に「再開する」ボタンを表示
+  const showResumeButton = routineStarted && !routineCompleted;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -216,9 +270,26 @@ export default function HomeScreen() {
       
       {/* 2. 今日のルーティン進捗 */}
       <View style={styles.progressContainer}>
-        <ThemedText style={styles.progressText}>
-          今日のルーティン達成度： {routineProgress.completed} / {routineProgress.total} ステップ
-        </ThemedText>
+        <View style={styles.progressHeaderContainer}>
+          <ThemedText style={styles.progressText}>
+            今日のルーティン達成度： {routineProgress.completed} / {routineProgress.total} 
+          </ThemedText>
+          
+          {/* ルーティンが開始されているが完了していない場合 */}
+          {showResumeButton && (
+            <Animated.View style={{ transform: [{ scale: resumeButtonScale }] }}>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.resumeButton,
+                  pressed && styles.resumeButtonPressed
+                ]}
+                onPress={handleResumeRoutinePress}
+              >
+                <ThemedText style={styles.resumeButtonText}>再開</ThemedText>
+              </Pressable>
+            </Animated.View>
+          )}
+        </View>
         
         {/* シンプルな進捗バー */}
         <View style={styles.progressBarContainer}>
@@ -237,7 +308,7 @@ export default function HomeScreen() {
       
       {/* 3. 今日の名言（朝に表示したもの） */}
       <View style={[styles.quoteContainer, cardNeomorphStyle]}>
-        <ThemedText style={styles.quoteLabel}>今朝の名言：</ThemedText>
+        <ThemedText style={styles.quoteLabel}>今日の名言：</ThemedText>
         <ThemedText style={styles.quoteText}>
           {todayQuote.textJa.replace(/\\n/g, '\n')}
         </ThemedText>
@@ -328,11 +399,17 @@ const styles = StyleSheet.create({
   progressContainer: {
     marginBottom: 34,
   },
+  progressHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   progressText: {
     fontFamily: fonts.families.primary,
     fontSize: 16,
-    marginBottom: 8,
     color: projectColors.black1,
+    flex: 1,
   },
   progressBarContainer: {
     height: 4,
@@ -399,5 +476,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  resumeButton: {
+    backgroundColor: projectColors.softOrange,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  resumeButtonPressed: {
+    opacity: 0.8,
+  },
+  resumeButtonText: {
+    fontFamily: fonts.families.primary,
+    fontSize: 12,
+    fontWeight: '600',
+    color: projectColors.white1,
   },
 }); 
