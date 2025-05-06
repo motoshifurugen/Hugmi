@@ -19,6 +19,7 @@ import CustomSplashScreen from '@/components/SplashScreen';
 import { projectColors } from '@/constants/Colors';
 import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/DailyQuoteScreen';
 import TutorialController from '@/components/common/TutorialController';
+import FeedbackBanner from '@/components/common/FeedbackBanner';
 import { determineInitialRoute } from '@/constants/utils';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
@@ -277,6 +278,7 @@ export default function RootLayout() {
           },
         }}
       >
+        <FeedbackBanner />
         <TutorialController>
           <Stack 
             screenOptions={{ 
