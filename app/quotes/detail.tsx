@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType } from 'react-native';
+import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { GestureHandlerRootView, Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
@@ -100,6 +100,8 @@ export default function QuoteDetailScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [initialScrollComplete, setInitialScrollComplete] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false); // お気に入り操作中のローディング状態
+  const [favoriteError, setFavoriteError] = useState<string | null>(null); // お気に入り操作のエラー状態
   
   // アニメーション用の参照
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -220,6 +222,10 @@ export default function QuoteDetailScreen() {
   // お気に入り状態の切り替え
   const toggleFavorite = async (id: string) => {
     try {
+      // お気に入り処理中のローディング状態をセット
+      setFavoriteLoading(true);
+      setFavoriteError(null);
+
       // 現在の名言を取得
       const currentQuote = quotes[currentIndex];
       if (!currentQuote) return;
@@ -227,12 +233,23 @@ export default function QuoteDetailScreen() {
       // お気に入り状態を反転
       const newFavoriteStatus = !currentQuote.isFavorite;
       
+      console.log(`名言ID ${id} をお気に入り${newFavoriteStatus ? '登録' : '解除'}中...`);
+      
       // データベースを更新
+      let success = false;
       if (newFavoriteStatus) {
-        await addFavoriteQuote(activeUserId, id);
+        success = await addFavoriteQuote(activeUserId, id);
       } else {
-        await removeFavoriteQuote(activeUserId, id);
+        success = await removeFavoriteQuote(activeUserId, id);
       }
+      
+      if (!success) {
+        console.error(`お気に入り${newFavoriteStatus ? '登録' : '解除'}に失敗しました`);
+        setFavoriteError(`お気に入り${newFavoriteStatus ? '登録' : '解除'}に失敗しました`);
+        return;
+      }
+      
+      console.log(`名言ID ${id} のお気に入り${newFavoriteStatus ? '登録' : '解除'}が完了しました`);
       
       // ローカルの状態を更新
       const newQuotes = [...quotes];
@@ -243,6 +260,9 @@ export default function QuoteDetailScreen() {
       setQuotes(newQuotes);
     } catch (err) {
       console.error('お気に入り状態の更新に失敗しました:', err);
+      setFavoriteError('お気に入り操作に失敗しました');
+    } finally {
+      setFavoriteLoading(false);
     }
   };
   
@@ -426,6 +446,13 @@ export default function QuoteDetailScreen() {
                   )}
                 </View>
               </View>
+
+              {/* お気に入り操作エラーメッセージ */}
+              {favoriteError && currentIndex === index && (
+                <View style={styles.errorMessage}>
+                  <ThemedText style={styles.errorText}>{favoriteError}</ThemedText>
+                </View>
+              )}
             </ThemedView>
           </Animated.View>
           
@@ -433,14 +460,20 @@ export default function QuoteDetailScreen() {
           <Pressable
             style={styles.favoriteButtonOutside}
             onPress={() => toggleFavorite(item.id)}
+            disabled={favoriteLoading} // 処理中はボタンを無効化
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.favoriteButtonContainer}>
-              <IconSymbol 
-                name={item.isFavorite ? "heart.fill" : "heart"} 
-                size={28} 
-                color={item.isFavorite ? projectColors.red1 : "#888888"} 
-              />
+              {favoriteLoading && currentIndex === index ? (
+                // ローディング中はインジケーターを表示
+                <ActivityIndicator size="small" color={projectColors.red1} />
+              ) : (
+                <IconSymbol 
+                  name={item.isFavorite ? "heart.fill" : "heart"} 
+                  size={28} 
+                  color={item.isFavorite ? projectColors.red1 : "#888888"} 
+                />
+              )}
             </View>
           </Pressable>
         </View>
@@ -721,5 +754,22 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1,
     pointerEvents: 'none',
+  },
+  errorMessage: {
+    position: 'absolute',
+    bottom: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    padding: 5,
+    borderRadius: 4,
+    marginHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: projectColors.red1,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });
