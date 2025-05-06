@@ -38,23 +38,27 @@ export function ThemedText({
 const styles = StyleSheet.create({
   default: {
     fontFamily: fonts.families.primary,
+    color: projectColors.black1,
     fontSize: 16,
     lineHeight: 24,
   },
   defaultSemiBold: {
     fontFamily: fonts.families.primary,
+    color: projectColors.black1,
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '600',
   },
   title: {
     fontFamily: fonts.families.primary,
+    color: projectColors.black1,
     fontSize: 32,
     fontWeight: 'bold',
     lineHeight: 36,
   },
   subtitle: {
     fontFamily: fonts.families.primary,
+    color: projectColors.black1,
     fontSize: 20,
     fontWeight: 'bold',
   },

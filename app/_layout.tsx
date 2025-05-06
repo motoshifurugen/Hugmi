@@ -283,7 +283,8 @@ export default function RootLayout() {
           <Stack 
             screenOptions={{ 
               headerShown: false, 
-              animation: 'slide_from_right',
+              animation: 'fade',
+              animationDuration: 300,
               // 画面背景色を統一
               contentStyle: { backgroundColor: projectColors.white1 }
             }}
@@ -301,6 +302,7 @@ export default function RootLayout() {
               name="(tabs)" 
               options={{ 
                 headerShown: false,
+                animation: 'fade_from_bottom',
                 contentStyle: { backgroundColor: projectColors.white1 }
               }} 
             />
@@ -308,6 +310,7 @@ export default function RootLayout() {
               name="quotes/daily" 
               options={{ 
                 headerShown: false,
+                animation: 'fade',
                 contentStyle: { backgroundColor: projectColors.white1 }
               }} 
             />
@@ -316,6 +319,7 @@ export default function RootLayout() {
               options={{ 
                 title: '名言詳細', 
                 headerTintColor: projectColors.text,
+                animation: 'fade',
                 contentStyle: { backgroundColor: projectColors.white1 }
               }} 
             />
@@ -323,6 +327,7 @@ export default function RootLayout() {
               name="routine-flow/routine" 
               options={{ 
                 headerShown: false,
+                animation: 'fade',
                 contentStyle: { backgroundColor: projectColors.white1 }
               }} 
             />
@@ -339,6 +344,7 @@ export default function RootLayout() {
               options={{ 
                 title: 'プライバシーポリシー', 
                 headerTintColor: projectColors.text,
+                animation: 'fade',
                 contentStyle: { backgroundColor: projectColors.white1 }
               }} 
             />
