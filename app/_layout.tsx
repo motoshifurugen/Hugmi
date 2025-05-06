@@ -10,6 +10,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts as useCustomFonts, ZenMaruGothic_400Regular, ZenMaruGothic_500Medium, ZenMaruGothic_700Bold } from '@expo-google-fonts/zen-maru-gothic';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { db } from '@/db';
@@ -21,6 +22,7 @@ import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/Dai
 import TutorialController from '@/components/common/TutorialController';
 import FeedbackBanner from '@/components/common/FeedbackBanner';
 import { determineInitialRoute } from '@/constants/utils';
+import { useNotifications } from '@/hooks/useNotifications';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -32,12 +34,52 @@ const ANIMATION_EVENTS = {
   COMPLETE: false
 };
 
+// 通知の表示設定（共通設定）
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [dbInitialized, setDbInitialized] = useState(false); // データベース初期化状態を追跡
   const [forceNavigate, setForceNavigate] = useState(false); // 強制ナビゲーション用フラグ
+  
+  // 通知関連の関数
+  const setupNotifications = async (userId: string) => {
+    try {
+      // 通知の権限を確認
+      const { status } = await Notifications.getPermissionsAsync();
+      
+      if (status === 'granted') {
+        // ユーザー設定を取得
+        const { getUserById } = await import('@/db/utils/users');
+        const user = await getUserById(userId);
+        
+        if (user && user.routineStartTime) {
+          // ユーザーが設定したルーティン開始時間に通知をスケジュール
+          const { scheduleRoutineNotification } = await import('@/hooks/useNotifications').then(m => ({
+            scheduleRoutineNotification: m.useNotifications().scheduleRoutineNotification
+          }));
+          
+          await scheduleRoutineNotification(
+            user.routineStartTime,
+            'おはようございます',
+            '今日も素敵な一日を始めましょう。ルーティンの時間です。'
+          );
+          
+          console.log(`[DEBUG] ルーティン通知をスケジュールしました: ${user.routineStartTime}`);
+        }
+      }
+    } catch (error) {
+      console.error('通知の設定中にエラーが発生しました:', error);
+    }
+  };
   
   // システムフォントを読み込む
   const [systemFontsLoaded] = useFonts({
@@ -90,6 +132,9 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
+            // 通知を設定
+            await setupNotifications(userId);
+            
             // SecureStoreにも保存する
             try {
               await SecureStore.setItemAsync('active_user_id', userId);
@@ -119,6 +164,9 @@ export default function RootLayout() {
             const userId = users[0].id;
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
+            
+            // 通知を設定
+            await setupNotifications(userId);
             
             // SecureStoreにも保存する
             try {
