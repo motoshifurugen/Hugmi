@@ -53,7 +53,7 @@ const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
               onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="close" size={18} color={projectColors.black1} />
+              <Ionicons name="close" size={18} color={projectColors.black2} />
             </TouchableOpacity>
           )}
         </View>
@@ -64,9 +64,9 @@ const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
 
 const styles = StyleSheet.create({
   safeContainer: {
-    backgroundColor: projectColors.white1, // projectColors.primaryを透明度を上げて薄く
+    backgroundColor: projectColors.white1,
     width: '100%',
-    alignItems: 'center', // 中央寄せ
+    alignItems: 'center',
   },
   container: {
     flexDirection: 'row',
@@ -75,16 +75,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 4,
     height: 34,
-    backgroundColor: 'rgba(255, 224, 178, 0.5)', // projectColors.primaryを透明度を上げて薄く
-    width: '93%', // 全体幅の90%に縮小
-    borderRadius: 10, // 角を丸くして優しい印象に
+    backgroundColor: 'rgba(255, 224, 178, 0.2)', // 透明度を大幅に上げて非常に薄く
+    width: '93%',
+    borderRadius: 10,
     marginTop: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 183, 77, 0.2)', // アクセントカラーを薄くした境界線
   },
   text: {
     flex: 1,
-    fontSize: 14,
-    color: projectColors.text,
-    fontWeight: '500',
+    fontSize: 13,
+    color: projectColors.black1, // より薄いテキスト色
+    fontWeight: '400',
     paddingLeft: 2,
   },
   buttonContainer: {
@@ -92,21 +94,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   button: {
-    backgroundColor: projectColors.accent,
+    backgroundColor: 'rgba(255, 183, 77, 0.5)', // アクセントカラーを半透明に
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 10,
-    // marginRightをここでは指定せず、動的に適用
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05, // 影も薄く
     shadowRadius: 1,
-    elevation: 1,
+    elevation: 0, // Androidの影を無くす
   },
   buttonText: {
-    color: projectColors.white1,
+    color: projectColors.black1,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   closeButton: {
     padding: 4,
