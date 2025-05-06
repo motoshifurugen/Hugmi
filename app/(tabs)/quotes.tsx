@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, FlatList, Pressable, ScrollView, Animated, Alert, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
+import { Image } from 'expo-image';
+import Constants from 'expo-constants';
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
@@ -12,6 +16,94 @@ import { getViewedQuotesByUserId } from '@/db/utils/viewed_quotes';
 
 // グローバル状態管理
 import { useActiveUserIdSimple } from '@/hooks/useActiveUser';
+
+// 画像のベースディレクトリ
+const IMAGES_DIR = 'great_person';
+
+// ローカル画像ソースを取得するヘルパー関数
+const getLocalImageSource = (fileName: string) => {
+  if (!fileName) return null;
+  
+  try {
+    // 画像名に基づいて条件分岐
+    switch (fileName) {
+      case 'confucius.png':
+        return require('../../assets/images/great_person/confucius.png');
+      case 'socrates.png':
+        return require('../../assets/images/great_person/socrates.png');
+      case 'plato.png':
+        return require('../../assets/images/great_person/plato.png');
+      case 'aristotle.png':
+        return require('../../assets/images/great_person/aristotle.png');
+      case 'mencius.png':
+        return require('../../assets/images/great_person/mencius.png');
+      case 'seneca.png':
+        return require('../../assets/images/great_person/seneca.png');
+      case 'marcus_aurelius.png':
+        return require('../../assets/images/great_person/marcus_aurelius.png');
+      case 'augustine.png':
+        return require('../../assets/images/great_person/augustine.png');
+      case 'thomas_aquinas.png':
+        return require('../../assets/images/great_person/thomas_aquinas.png');
+      case 'george_herbert.png':
+        return require('../../assets/images/great_person/george_herbert.png');
+      case 'rene_descartes.png':
+        return require('../../assets/images/great_person/rene_descartes.png');
+      case 'john_milton.png':
+        return require('../../assets/images/great_person/john_milton.png');
+      case 'baruch_spinoza.png':
+        return require('../../assets/images/great_person/baruch_spinoza.png');
+      case 'voltaire.png':
+        return require('../../assets/images/great_person/voltaire.png');
+      case 'benjamin_franklin.png':
+        return require('../../assets/images/great_person/benjamin_franklin.png');
+      case 'samuel_johnson.png':
+        return require('../../assets/images/great_person/samuel_johnson.png');
+      case 'oliver_goldsmith.png':
+        return require('../../assets/images/great_person/oliver_goldsmith.png');
+      case 'johann_wolfgang_von_goethe.png':
+        return require('../../assets/images/great_person/johann_wolfgang_von_goethe.png');
+      case 'jane_austen.png':
+        return require('../../assets/images/great_person/jane_austen.png');
+      case 'charles_lamb.png':
+        return require('../../assets/images/great_person/charles_lamb.png');
+      case 'arthur_schopenhauer.png':
+        return require('../../assets/images/great_person/arthur_schopenhauer.png');
+      case 'ralph_waldo_emerson.png':
+        return require('../../assets/images/great_person/ralph_waldo_emerson.png');
+      case 'hans_christian_andersen.png':
+        return require('../../assets/images/great_person/hans_christian_andersen.png');
+      case 'charles_dickens.png':
+        return require('../../assets/images/great_person/charles_dickens.png');
+      case 'samuel_smiles.png':
+        return require('../../assets/images/great_person/samuel_smiles.png');
+      case 'frederick_douglass.png':
+        return require('../../assets/images/great_person/frederick_douglass.png');
+      case 'george_eliot.png':
+        return require('../../assets/images/great_person/george_eliot.png');
+      case 'john_ruskin.png':
+        return require('../../assets/images/great_person/john_ruskin.png');
+      case 'mark_twain.png':
+        return require('../../assets/images/great_person/mark_twain.png');
+      case 'william_james.png':
+        return require('../../assets/images/great_person/william_james.png');
+      case 'thomas_edison.png':
+        return require('../../assets/images/great_person/thomas_edison.png');
+      case 'robert_louis_stevenson.png':
+        return require('../../assets/images/great_person/robert_louis_stevenson.png');
+      case 'soseki_natsume.png':
+        return require('../../assets/images/great_person/soseki_natsume.png');
+      case 'marcel_proust.png':
+        return require('../../assets/images/great_person/marcel_proust.png');
+      default:
+        console.log(`[警告] 未対応の画像ファイル: ${fileName}`);
+        return null;
+    }
+  } catch (error) {
+    console.log(`[エラー] 画像の読み込みに失敗: ${fileName}`, error);
+    return null;
+  }
+};
 
 // 名言データの型定義
 interface Quote {
@@ -36,6 +128,7 @@ export default function QuotesScreen() {
   const fadeAnim = useState(new Animated.Value(1))[0];
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
   
   // グローバルに保存されているアクティブユーザーIDを取得
   const activeUserId = useActiveUserIdSimple();
@@ -55,17 +148,38 @@ export default function QuotesScreen() {
       console.log(`[DEBUG] 名言データ取得: ${allQuotes.length}件, 表示済み: ${viewedQuoteIds.size}件, ユーザーID: ${activeUserId}`);
       
       // 名言データを画面用の形式に変換
-      const formattedQuotes: Quote[] = allQuotes.map(quote => ({
-        id: quote.id,
-        textJa: quote.textJa,
-        textEn: quote.textEn,
-        authorJa: quote.authorJa,
-        authorEn: quote.authorEn,
-        era: quote.era,
-        isFavorite: false, // お気に入り状態は別のテーブルから取得する必要があるが、今回は簡略化
-        unlocked: viewedQuoteIds.has(quote.id), // 表示済みのみアンロック
-        imagePath: quote.imagePath
-      }));
+      const formattedQuotes: Quote[] = allQuotes.map(quote => {
+        // 画像URIのチェック（デバッグ用）
+        if (quote.imagePath) {
+          // ローカル画像ファイルが存在するかテスト
+          const imageSource = getLocalImageSource(quote.imagePath);
+          if (!imageSource) {
+            console.log(`[警告] 画像の読み込みに失敗: ${quote.id} - ${quote.imagePath}`);
+          } else {
+            console.log(`[成功] 画像の読み込み成功: ${quote.id} - ${quote.imagePath}`);
+          }
+        }
+        
+        return {
+          id: quote.id,
+          textJa: quote.textJa,
+          textEn: quote.textEn,
+          authorJa: quote.authorJa,
+          authorEn: quote.authorEn,
+          era: quote.era,
+          isFavorite: false, // お気に入り状態は別のテーブルから取得する必要があるが、今回は簡略化
+          unlocked: viewedQuoteIds.has(quote.id), // 表示済みのみアンロック
+          imagePath: quote.imagePath
+        };
+      });
+      
+      // 開発モードなら最初の数件の画像URIをログ出力
+      if (Constants.expoConfig?.extra?.env === 'development') {
+        console.log('[DEBUG] 画像URLサンプル:');
+        formattedQuotes.slice(0, 3).forEach(quote => {
+          console.log(`ID: ${quote.id}, 画像パス: ${quote.imagePath || 'なし'}`);
+        });
+      }
       
       setQuotes(formattedQuotes);
       setError(null);
@@ -83,6 +197,11 @@ export default function QuotesScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  
+  // 表示モードが変更されたときに画像読み込みエラーの状態をリセット
+  useEffect(() => {
+    setImageLoadErrors({});
+  }, [displayMode]);
   
   // お気に入り状態の更新
   const updateFavorite = async (id: string, isFavorite: boolean) => {
@@ -116,6 +235,14 @@ export default function QuotesScreen() {
 
   // 表示モード切替時のアニメーション
   const toggleDisplayMode = (mode: 'card' | 'icon') => {
+    // アイコンモードに切り替える前に画像パスをログ出力
+    if (mode === 'icon') {
+      console.log('[DEBUG] アイコンモードに切り替え - 画像パス確認:');
+      quotes.slice(0, 3).forEach(quote => {
+        console.log(`ID: ${quote.id}, 画像パス: ${quote.imagePath || 'なし'}`);
+      });
+    }
+    
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -164,6 +291,9 @@ export default function QuotesScreen() {
 
   // アイコン表示用アイテム
   const renderIconItem = ({ item }: { item: Quote }) => {
+    // 画像ソースを取得
+    const imageSource = item.imagePath ? getLocalImageSource(item.imagePath) : null;
+    
     // 名言がロックされていたらLinkを使わない
     if (!item.unlocked) {
       return (
@@ -178,7 +308,7 @@ export default function QuotesScreen() {
           >
             <IconSymbol
               name="lock.fill"
-              size={20}
+              size={24}
               color="rgba(150, 150, 150, 0.7)"
             />
           </ThemedView>
@@ -193,7 +323,22 @@ export default function QuotesScreen() {
           style={styles.iconItem}
         >
           <ThemedView style={styles.iconContainer}>
-            <ThemedText style={styles.iconText}>{getIconText(item)}</ThemedText>
+            {imageSource && !imageLoadErrors[item.id] ? (
+              <Image 
+                source={imageSource}
+                style={styles.iconImage}
+                contentFit="cover"
+                transition={300}
+                onError={() => {
+                  console.log(`画像の読み込みに失敗: ${item.id}, 画像: ${item.imagePath}`);
+                  setImageLoadErrors(prev => ({ ...prev, [item.id]: true }));
+                }}
+              />
+            ) : (
+              <ThemedView style={styles.fallbackContainer}>
+                <ThemedText style={styles.iconText}>{getIconText(item)}</ThemedText>
+              </ThemedView>
+            )}
             {item.isFavorite && (
               <IconSymbol 
                 name="heart.fill" 
@@ -356,6 +501,10 @@ export default function QuotesScreen() {
             numColumns={5}
             style={styles.iconList}
             columnWrapperStyle={styles.iconRow}
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={3}
+            removeClippedSubviews={true}
           />
         )}
       </Animated.View>
@@ -573,5 +722,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 5,
     right: 5,
+  },
+  iconImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  fallbackContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 
