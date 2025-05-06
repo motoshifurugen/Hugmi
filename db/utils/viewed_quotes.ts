@@ -16,10 +16,19 @@ function generateId(): string {
 
 /**
  * ユーザーがまだ表示していない名言をランダムに取得
+ * ユーザーIDがない場合はnullを返す
  */
 export const getUnviewedRandomQuote = async (userId: string) => {
   try {
     console.log('[DEBUG] DBから未表示名言を取得開始...');
+    
+    // ユーザーIDがnullまたは空の場合（チュートリアル前など）はnullを返す
+    if (!userId || userId === 'user1') {
+      console.log('[DEBUG] 有効なユーザーIDがないため、名言を表示しません');
+      return null;
+    }
+    
+    // 通常のユーザー指定の場合（未表示の名言を取得）
     const quote = await db.getUnviewedRandomQuote(userId);
     
     if (!quote) {

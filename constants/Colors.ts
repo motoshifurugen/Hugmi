@@ -14,7 +14,7 @@ export const projectColors = {
   accent: '#FFB74D', // アクセントカラー（濃いめのオレンジ）
   softOrange: '#FFCC80', // 中間的な優しいオレンジ（円のデザイン用）
   info: '#B7C5D3', // 青グレー
-  success: '#D7E8BA', // 薄緑
+  success: '#81C784', // 薄緑
   black1: '#4B4453', // ダークグレー
   black2: '#8C7E8C', // ミディアムグレー
   white1: '#FDF6F0', // 肌色に近い色白（背景色）
@@ -22,6 +22,11 @@ export const projectColors = {
   // ニューモフィズム用のシャドウカラー（より明確な凹凸感）
   neuLight: 'rgba(255, 255, 255, 0.9)', // 明るい影用（左上方向）
   neuDark: 'rgba(0, 0, 0, 0.1)', // 暗い影用（右下方向）
+  // チュートリアル用に追加するカラー
+  text: '#4B4453', // テキスト色（黒1と同じ）
+  secondaryText: '#8C7E8C', // 補助テキスト（黒2と同じ）
+  background: '#FDF6F0', // 背景色（white1と同じ）
+  border: '#E5E5E5', // ボーダー色
 };
 
 export const colors = {
