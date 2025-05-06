@@ -254,6 +254,7 @@ export default function RootLayout() {
     setShowSplash(false);
   }
 
+  // 初期ルートを設定してアプリを表示
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -271,6 +272,7 @@ export default function RootLayout() {
             >
               <Stack.Screen name="daily-quote" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: projectColors.white1 } }} />
+              <Stack.Screen name="settings/privacy-policy" options={{ headerShown: true }} />
               <Stack.Screen name="+not-found" options={{ contentStyle: { backgroundColor: projectColors.white1 } }} />
             </Stack>
             

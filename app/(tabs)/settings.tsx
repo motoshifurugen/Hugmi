@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Switch, Pressable, Alert, ScrollView } from 'react-native';
+import { StyleSheet, Switch, Pressable, Alert, ScrollView, View, Platform, Linking, Clipboard } from 'react-native';
 import Constants from 'expo-constants';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter, Link } from 'expo-router';
+import * as MailComposer from 'expo-mail-composer';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
@@ -37,6 +40,8 @@ const isDevelopment = () => {
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  
   // 開発環境かどうかの状態
   const [isDevEnv, setIsDevEnv] = useState(false);
   
@@ -47,9 +52,42 @@ export default function SettingsScreen() {
   
   // 設定の状態管理
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [dailyReminder, setDailyReminder] = useState(true);
+  const [morningNotification, setMorningNotification] = useState(true);
+  const [eveningNotification, setEveningNotification] = useState(true);
+  const [morningTime, setMorningTime] = useState(new Date(new Date().setHours(7, 0, 0, 0)));
+  const [eveningTime, setEveningTime] = useState(new Date(new Date().setHours(23, 0, 0, 0)));
   const [darkMode, setDarkMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // 時間ピッカーの状態
+  const [showMorningPicker, setShowMorningPicker] = useState(false);
+  const [showEveningPicker, setShowEveningPicker] = useState(false);
+
+  // 時間フォーマット
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // 時間変更ハンドラー
+  const onMorningTimeChange = (event: any, selectedDate?: Date) => {
+    // Androidの場合は選択後にピッカーを閉じる
+    if (Platform.OS === 'android') {
+      setShowMorningPicker(false);
+    }
+    if (selectedDate) {
+      setMorningTime(selectedDate);
+    }
+  };
+
+  const onEveningTimeChange = (event: any, selectedDate?: Date) => {
+    // Androidの場合は選択後にピッカーを閉じる
+    if (Platform.OS === 'android') {
+      setShowEveningPicker(false);
+    }
+    if (selectedDate) {
+      setEveningTime(selectedDate);
+    }
+  };
 
   // データベースをクリアする関数
   const clearDatabase = async () => {
@@ -95,6 +133,48 @@ export default function SettingsScreen() {
     );
   };
 
+  // 各種画面への遷移
+  const navigateToPrivacyPolicy = () => {
+    router.push('/settings/privacy-policy');
+  };
+
+  // お問い合わせ処理
+  const handleContact = async () => {
+    const contactEmail = 'furugenmotoshig@gmail.com';
+    try {
+      const isAvailable = await MailComposer.isAvailableAsync();
+      if (isAvailable) {
+        await MailComposer.composeAsync({
+          recipients: [contactEmail],
+          subject: '【Hugmi】お問い合わせ',
+          body: '',
+        });
+      } else {
+        // メールアプリが利用できない場合は代替手段を提供
+        Alert.alert(
+          'メールアプリが見つかりません',
+          `メールアプリが設定されていないか、利用できません。以下のアドレスに直接お問い合わせください:\n${contactEmail}`,
+          [
+            { 
+              text: 'メールアドレスをコピー', 
+              onPress: () => {
+                Clipboard.setString(contactEmail);
+                Alert.alert('コピーしました', 'メールアドレスをクリップボードにコピーしました。');
+              }
+            },
+            { text: 'キャンセル', style: 'cancel' }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('メール送信エラー:', error);
+      Alert.alert(
+        'エラー',
+        `メールの送信準備中にエラーが発生しました。直接 ${contactEmail} にお問い合わせください。`
+      );
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -115,25 +195,95 @@ export default function SettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
+              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
+              thumbColor={notificationsEnabled ? projectColors.softOrange : '#f4f3f4'}
             />
           </ThemedView>
           
           <ThemedView style={styles.settingItem}>
             <ThemedView style={styles.settingTextContainer}>
-              <ThemedText style={styles.settingText}>毎日のリマインダー</ThemedText>
+              <ThemedText style={styles.settingText}>朝の通知</ThemedText>
               <ThemedText style={styles.settingDescription}>
                 朝のルーティン開始時間に通知します
               </ThemedText>
             </ThemedView>
             <Switch
-              value={dailyReminder}
-              onValueChange={setDailyReminder}
+              value={morningNotification}
+              onValueChange={setMorningNotification}
+              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
+              thumbColor={morningNotification ? projectColors.softOrange : '#f4f3f4'}
               disabled={!notificationsEnabled}
             />
           </ThemedView>
+          
+          {morningNotification && notificationsEnabled && (
+            <>
+              <Pressable 
+                onPress={() => setShowMorningPicker(!showMorningPicker)}
+                style={[styles.timeSelector, showMorningPicker ? styles.timeSelectorActive : null]}
+              >
+                <ThemedText style={styles.timeText}>通知時刻: {formatTime(morningTime)}</ThemedText>
+                <IconSymbol name={showMorningPicker ? "chevron.up" : "chevron.down"} size={16} color="#888888" />
+              </Pressable>
+              
+              {showMorningPicker && (
+                <ThemedView style={styles.inlinePicker}>
+                  <DateTimePicker
+                    value={morningTime}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? "spinner" : "default"}
+                    onChange={onMorningTimeChange}
+                    locale="ja-JP"
+                    style={styles.picker}
+                  />
+                </ThemedView>
+              )}
+            </>
+          )}
+          
+          <ThemedView style={styles.settingItem}>
+            <ThemedView style={styles.settingTextContainer}>
+              <ThemedText style={styles.settingText}>夜の通知</ThemedText>
+              <ThemedText style={styles.settingDescription}>
+                おやすみ前に明日のルーティンを通知します
+              </ThemedText>
+            </ThemedView>
+            <Switch
+              value={eveningNotification}
+              onValueChange={setEveningNotification}
+              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
+              thumbColor={eveningNotification ? projectColors.softOrange : '#f4f3f4'}
+              disabled={!notificationsEnabled}
+            />
+          </ThemedView>
+          
+          {eveningNotification && notificationsEnabled && (
+            <>
+              <Pressable 
+                onPress={() => setShowEveningPicker(!showEveningPicker)}
+                style={[styles.timeSelector, showEveningPicker ? styles.timeSelectorActive : null]}
+              >
+                <ThemedText style={styles.timeText}>通知時刻: {formatTime(eveningTime)}</ThemedText>
+                <IconSymbol name={showEveningPicker ? "chevron.up" : "chevron.down"} size={16} color="#888888" />
+              </Pressable>
+              
+              {showEveningPicker && (
+                <ThemedView style={styles.inlinePicker}>
+                  <DateTimePicker
+                    value={eveningTime}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? "spinner" : "default"}
+                    onChange={onEveningTimeChange}
+                    locale="ja-JP"
+                    style={styles.picker}
+                  />
+                </ThemedView>
+              )}
+            </>
+          )}
         </ThemedView>
         
-        <ThemedView style={styles.sectionContainer}>
+        {/* <ThemedView style={styles.sectionContainer}>
           <ThemedText style={styles.sectionTitle}>アプリ設定</ThemedText>
           
           <ThemedView style={styles.settingItem}>
@@ -146,6 +296,8 @@ export default function SettingsScreen() {
             <Switch
               value={darkMode}
               onValueChange={setDarkMode}
+              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
+              thumbColor={darkMode ? projectColors.softOrange : '#f4f3f4'}
             />
           </ThemedView>
           
@@ -159,23 +311,34 @@ export default function SettingsScreen() {
             <Switch
               value={soundEnabled}
               onValueChange={setSoundEnabled}
+              trackColor={{ false: '#e0e0e0', true: projectColors.secondary }}
+              thumbColor={soundEnabled ? projectColors.softOrange : '#f4f3f4'}
             />
           </ThemedView>
-        </ThemedView>
+        </ThemedView> */}
         
         <ThemedView style={styles.sectionContainer}>
           <ThemedText style={styles.sectionTitle}>アプリについて</ThemedText>
           
-          <Pressable>
-            <ThemedView style={styles.linkItem}>
-              <ThemedText style={styles.settingText}>プライバシーポリシー</ThemedText>
-              <IconSymbol name="chevron.right" size={16} color="#888888" />
-            </ThemedView>
-          </Pressable>
+          <Link href="/settings/privacy-policy" asChild>
+            <Pressable>
+              <ThemedView style={styles.linkItem}>
+                <ThemedText style={styles.settingText}>プライバシーポリシー</ThemedText>
+                <IconSymbol name="chevron.right" size={16} color="#888888" />
+              </ThemedView>
+            </Pressable>
+          </Link>
           
-          <Pressable>
+          {/* <Pressable>
             <ThemedView style={styles.linkItem}>
               <ThemedText style={styles.settingText}>利用規約</ThemedText>
+              <IconSymbol name="chevron.right" size={16} color="#888888" />
+            </ThemedView>
+          </Pressable> */}
+          
+          <Pressable onPress={handleContact}>
+            <ThemedView style={styles.linkItem}>
+              <ThemedText style={styles.settingText}>お問い合わせ</ThemedText>
               <IconSymbol name="chevron.right" size={16} color="#888888" />
             </ThemedView>
           </Pressable>
@@ -198,6 +361,27 @@ export default function SettingsScreen() {
           )}
         </ThemedView>
       </ScrollView>
+
+      {/* Android のピッカー（Androidの場合だけ必要） */}
+      {Platform.OS === 'android' && showMorningPicker && (
+        <DateTimePicker
+          value={morningTime}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onMorningTimeChange}
+        />
+      )}
+
+      {Platform.OS === 'android' && showEveningPicker && (
+        <DateTimePicker
+          value={eveningTime}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onEveningTimeChange}
+        />
+      )}
     </ThemedView>
   );
 }
@@ -261,5 +445,40 @@ const styles = StyleSheet.create({
   dangerText: {
     fontSize: 16,
     color: projectColors.red1,
+  },
+  timeSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: projectColors.secondary,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  timeSelectorActive: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginBottom: 0,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#555555',
+  },
+  inlinePicker: {
+    backgroundColor: 'white',
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    borderColor: projectColors.secondary,
+    borderWidth: 1,
+    borderTopWidth: 0,
+  },
+  picker: {
+    width: '100%',
+    ...(Platform.OS === 'ios' ? { height: 120 } : {}),
   },
 }); 
