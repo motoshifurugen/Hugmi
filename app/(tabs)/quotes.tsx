@@ -333,7 +333,7 @@ export default function QuotesScreen() {
             <IconSymbol
               name="lock.fill"
               size={22}
-              color={projectColors.softOrange}
+              color={projectColors.black2}
             />
           </ThemedView>
         </Pressable>
@@ -459,15 +459,11 @@ export default function QuotesScreen() {
             <ThemedText style={styles.progressNumber}>{unlockedCount}</ThemedText>
             {" / "}
             <ThemedText style={styles.progressTotal}>{MAX_QUOTES}</ThemedText>
+            {"\n"}
+            {"コンプリートまであと "}
+            <ThemedText style={styles.progressNumber}>{MAX_QUOTES - unlockedCount}</ThemedText>
+            {" 個"}
           </ThemedText>
-          <ThemedView style={styles.progressBarContainer}>
-            <ThemedView 
-              style={[
-                styles.progressBar, 
-                { width: `${(unlockedCount / MAX_QUOTES) * 100}%` }
-              ]}
-            />
-          </ThemedView>
         </ThemedView>
       </ThemedView>
       
@@ -486,6 +482,9 @@ export default function QuotesScreen() {
               size={20} 
               color={displayMode === 'icon' ? "#FFFFFF" : projectColors.softOrange} 
             />
+            <ThemedText style={[styles.toggleText, displayMode === 'icon' && styles.toggleTextActive]}>
+              アイコン表示
+            </ThemedText>
           </Pressable>
           
           <Pressable 
@@ -500,6 +499,9 @@ export default function QuotesScreen() {
               size={20} 
               color={displayMode === 'card' ? "#FFFFFF" : projectColors.softOrange} 
             />
+            <ThemedText style={[styles.toggleText, displayMode === 'card' && styles.toggleTextActive]}>
+              カード表示
+            </ThemedText>
           </Pressable>
         </ThemedView>
         
@@ -653,8 +655,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 20,
-    marginBottom: 8,
-    color: projectColors.neuDark,
+    color: projectColors.black2,
     fontWeight: '700',
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -662,12 +663,12 @@ const styles = StyleSheet.create({
   progressNumber: {
     fontSize: 24,
     fontWeight: '800',
-    color: projectColors.softOrange,
+    color: projectColors.accent,
   },
   progressTotal: {
     fontSize: 20,
     fontWeight: '700',
-    color: projectColors.neuDark,
+    color: projectColors.black2,
   },
   progressBarContainer: {
     width: '100%',
@@ -711,9 +712,10 @@ const styles = StyleSheet.create({
     backgroundColor: projectColors.softOrange,
   },
   toggleText: {
-    color: '#4A90E2',
+    color: projectColors.softOrange,
     marginLeft: 4,
     fontSize: 12,
+    fontWeight: '700',
   },
   toggleTextActive: {
     color: '#FFFFFF',
@@ -749,7 +751,7 @@ const styles = StyleSheet.create({
   },
   iconRow: {
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 2,
   },
   quoteItem: {
@@ -777,7 +779,7 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     fontSize: 16,
-    fontStyle: 'italic',
+    fontWeight: '500',
     marginBottom: 8,
   },
   quoteFooter: {
