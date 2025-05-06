@@ -1,6 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, Pressable, View, Modal, TextInput } from 'react-native';
-import { Link } from 'expo-router';
+import React, { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, Pressable, View, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
@@ -8,29 +7,74 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
-
-// 仮のルーティンデータ
-const SAMPLE_ROUTINES = [
-  { id: '1', title: '水を飲む', completed: false, order: 1 },
-  { id: '2', title: '深呼吸', completed: false, order: 2 },
-  { id: '3', title: 'ストレッチ', completed: false, order: 3 },
-  { id: '4', title: '今日の目標を書く', completed: false, order: 4 },
-  { id: '5', title: '朝食を食べる', completed: false, order: 5 },
-];
+import { getAllUsers } from '@/db/utils/users';
+import { 
+  getRoutinesByUserId, 
+  createRoutine, 
+  updateRoutine as updateRoutineDB, 
+  deleteRoutine as deleteRoutineDB,
+  reorderRoutines 
+} from '@/db/utils/routines';
 
 interface Routine {
   id: string;
+  userId: string;
   title: string;
-  completed: boolean;
   order: number;
+  isActive: boolean | number;
+  createdAt: string;
+  completed?: boolean;
 }
 
 export default function RoutineScreen() {
-  const [routines, setRoutines] = useState<Routine[]>(SAMPLE_ROUTINES);
+  const [routines, setRoutines] = useState<Routine[]>([]);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState<boolean>(false);
   const [newRoutineTitle, setNewRoutineTitle] = useState<string>('');
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userId, setUserId] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+
+  // データベースからルーティンを取得
+  useEffect(() => {
+    const fetchRoutines = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // ユーザーを取得（アプリでは1人のみという前提）
+        const users = await getAllUsers();
+        if (users.length === 0) {
+          setError('ユーザーが見つかりません');
+          setLoading(false);
+          return;
+        }
+        
+        const currentUserId = users[0].id;
+        setUserId(currentUserId);
+        
+        // ルーティンを取得
+        const userRoutines = await getRoutinesByUserId(currentUserId);
+        
+        // ルーティンを順番でソート
+        const sortedRoutines = userRoutines.sort((a, b) => a.order - b.order).map(routine => ({
+          ...routine,
+          // isActiveがnumberの場合はbooleanに変換
+          isActive: routine.isActive === 1 ? true : Boolean(routine.isActive)
+        }));
+        
+        setRoutines(sortedRoutines);
+      } catch (error) {
+        console.error('ルーティンの取得に失敗しました:', error);
+        setError('ルーティンの取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRoutines();
+  }, []);
 
   // 新規追加モーダルを開く
   const openModal = () => {
@@ -56,57 +100,166 @@ export default function RoutineScreen() {
   };
 
   // 新しいルーティンを追加
-  const addNewRoutine = () => {
-    if (newRoutineTitle.trim() === '') return;
-
-    const newRoutine: Routine = {
-      id: Date.now().toString(), // 一意のID
-      title: newRoutineTitle.trim(),
-      completed: false,
-      order: routines.length + 1
-    };
-
-    setRoutines([...routines, newRoutine]);
-    setNewRoutineTitle('');
-    setIsModalVisible(false);
+  const addNewRoutine = async () => {
+    if (newRoutineTitle.trim() === '' || !userId) return;
+    
+    try {
+      setLoading(true);
+      
+      // 新しいルーティンの順番を設定（既存のルーティンの最大order + 1）
+      const newOrder = routines.length > 0 
+        ? Math.max(...routines.map(r => r.order)) + 1 
+        : 1;
+      
+      // データベースに新しいルーティンを追加
+      const newRoutine = await createRoutine({
+        userId: userId,
+        order: newOrder,
+        title: newRoutineTitle.trim(),
+        isActive: true
+      });
+      
+      if (newRoutine) {
+        // 成功したら状態を更新
+        setRoutines([...routines, newRoutine]);
+      }
+      
+      setNewRoutineTitle('');
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error('ルーティンの追加に失敗しました:', error);
+      setError('ルーティンの追加に失敗しました');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ルーティンを更新
-  const updateRoutine = () => {
+  const updateRoutine = async () => {
     if (!editingRoutine || editingRoutine.title.trim() === '') return;
-
-    const updatedRoutines = routines.map(item => 
-      item.id === editingRoutine.id ? editingRoutine : item
-    );
-
-    setRoutines(updatedRoutines);
-    closeEditModal();
+    
+    try {
+      setLoading(true);
+      
+      // データベース上のルーティンを更新
+      const updated = await updateRoutineDB(editingRoutine.id, {
+        title: editingRoutine.title.trim(),
+        // isActiveがnumberの場合はbooleanに変換して送信
+        isActive: typeof editingRoutine.isActive === 'number' 
+          ? Boolean(editingRoutine.isActive) 
+          : editingRoutine.isActive
+      });
+      
+      if (updated) {
+        // 成功したら状態を更新
+        const updatedRoutines = routines.map(item => 
+          item.id === editingRoutine.id ? {
+            ...updated,
+            // isActiveを適切な型に変換
+            isActive: updated.isActive === 1 ? true : Boolean(updated.isActive)
+          } : item
+        );
+        setRoutines(updatedRoutines);
+      }
+      
+      closeEditModal();
+    } catch (error) {
+      console.error('ルーティンの更新に失敗しました:', error);
+      setError('ルーティンの更新に失敗しました');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ルーティンアイテムを削除する関数
-  const deleteRoutine = () => {
+  const deleteRoutine = async () => {
     if (!editingRoutine) return;
     
-    const updatedRoutines = routines
-      .filter(item => item.id !== editingRoutine.id)
-      .map((item, index) => ({
-        ...item,
-        order: index + 1
-      }));
-    
-    setRoutines(updatedRoutines);
-    closeEditModal();
+    try {
+      setLoading(true);
+      
+      // データベースからルーティンを削除
+      const success = await deleteRoutineDB(editingRoutine.id);
+      
+      if (success) {
+        // 成功したら状態を更新
+        const updatedRoutines = routines.filter(item => item.id !== editingRoutine.id);
+        setRoutines(updatedRoutines);
+      }
+      
+      closeEditModal();
+    } catch (error) {
+      console.error('ルーティンの削除に失敗しました:', error);
+      setError('ルーティンの削除に失敗しました');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ドラッグ終了時のイベントハンドラ
-  const onDragEnd = useCallback(({ data }: { data: Routine[] }) => {
-    // 新しい順序で更新されたデータを設定
-    const updatedRoutines = data.map((item, index) => ({
-      ...item,
-      order: index + 1
-    }));
-    setRoutines(updatedRoutines);
-  }, []);
+  const onDragEnd = useCallback(async ({ data }: { data: Routine[] }) => {
+    try {
+      // 並び替え後のルーティンを一時的に更新（UIの即時反映のため）
+      setRoutines(data);
+      
+      // データベースに並び替え情報を送信
+      const reorderData = data.map((item, index) => ({
+        id: item.id,
+        order: index + 1
+      }));
+      
+      await reorderRoutines(userId, reorderData);
+      
+      // 並び替え後の最新のルーティンを反映
+      const updatedRoutines = data.map((item, index) => ({
+        ...item,
+        order: index + 1
+      }));
+      
+      setRoutines(updatedRoutines);
+    } catch (error) {
+      console.error('ルーティンの並び替えに失敗しました:', error);
+      setError('ルーティンの並び替えに失敗しました');
+      
+      // エラー時は元の状態に戻す
+      const fetchRoutines = async () => {
+        try {
+          const userRoutines = await getRoutinesByUserId(userId);
+          const sortedRoutines = userRoutines.sort((a, b) => a.order - b.order).map(routine => ({
+            ...routine,
+            // isActiveがnumberの場合はbooleanに変換
+            isActive: routine.isActive === 1 ? true : Boolean(routine.isActive)
+          }));
+          setRoutines(sortedRoutines);
+        } catch (fetchError) {
+          console.error('ルーティンの再取得に失敗しました:', fetchError);
+        }
+      };
+      
+      fetchRoutines();
+    }
+  }, [userId]);
+
+  if (loading && routines.length === 0) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={projectColors.primary} />
+          <ThemedText style={styles.loadingText}>読み込み中...</ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (error && routines.length === 0) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -118,11 +271,18 @@ export default function RoutineScreen() {
           <Pressable 
             style={styles.addButton} 
             onPress={openModal}
+            disabled={loading}
           >
             <IconSymbol name="plus" size={22} color={projectColors.white1} />
           </Pressable>
         </View>
       </ThemedView>
+      
+      {loading && routines.length > 0 && (
+        <View style={styles.overlayLoading}>
+          <ActivityIndicator size="large" color={projectColors.primary} />
+        </View>
+      )}
       
       <ThemedView style={styles.routineListContainer}>
         {routines.length > 0 ? (
@@ -148,6 +308,7 @@ export default function RoutineScreen() {
                     <Pressable 
                       style={styles.titleContainer}
                       onPress={() => openEditModal(item)}
+                      disabled={loading}
                     >
                       <ThemedText style={styles.routineTitle}>{item.title}</ThemedText>
                     </Pressable>
@@ -161,6 +322,7 @@ export default function RoutineScreen() {
                         styles.iconButton,
                         pressed && styles.iconButtonPressed
                       ]}
+                      disabled={loading}
                     >
                       <ThemedText style={styles.dragHandle}>≡</ThemedText>
                     </Pressable>
@@ -200,6 +362,7 @@ export default function RoutineScreen() {
               <Pressable 
                 style={[styles.modalButton, styles.cancelButton]} 
                 onPress={closeModal}
+                disabled={loading}
               >
                 <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
               </Pressable>
@@ -207,6 +370,7 @@ export default function RoutineScreen() {
               <Pressable 
                 style={[styles.modalButton, styles.addRoutineButton]} 
                 onPress={addNewRoutine}
+                disabled={loading}
               >
                 <ThemedText style={styles.addButtonText}>追加</ThemedText>
               </Pressable>
@@ -240,6 +404,7 @@ export default function RoutineScreen() {
               <Pressable 
                 style={[styles.modalButton, styles.cancelButton]} 
                 onPress={closeEditModal}
+                disabled={loading}
               >
                 <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
               </Pressable>
@@ -247,6 +412,7 @@ export default function RoutineScreen() {
               <Pressable 
                 style={[styles.modalButton, styles.addRoutineButton]} 
                 onPress={updateRoutine}
+                disabled={loading}
               >
                 <ThemedText style={styles.addButtonText}>更新</ThemedText>
               </Pressable>
@@ -256,6 +422,7 @@ export default function RoutineScreen() {
             <Pressable 
               style={styles.deleteButton} 
               onPress={deleteRoutine}
+              disabled={loading}
             >
               <ThemedText style={styles.deleteButtonText}>このルーティンを削除</ThemedText>
             </Pressable>
@@ -438,5 +605,36 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: projectColors.red1,
     fontWeight: 'bold',
-  }
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: projectColors.black1,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: projectColors.red1,
+    textAlign: 'center',
+  },
+  overlayLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
 }); 
