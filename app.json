@@ -8,16 +8,39 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FDF6F0"
+    },
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#FF9956",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Hugmi"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cocoa-hearts.Hugmi"
+      "bundleIdentifier": "com.cocoa-hearts.Hugmi",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cocoa_hearts.Hugmi"
+      "package": "com.cocoa_hearts.Hugmi",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +58,8 @@
           "backgroundColor": "#FDF6F0"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

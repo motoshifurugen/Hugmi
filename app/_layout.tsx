@@ -10,6 +10,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts as useCustomFonts, ZenMaruGothic_400Regular, ZenMaruGothic_500Medium, ZenMaruGothic_700Bold } from '@expo-google-fonts/zen-maru-gothic';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { db } from '@/db';
@@ -21,6 +22,7 @@ import { setDbInitializedGlobal, setActiveUserId } from '@/components/quotes/Dai
 import TutorialController from '@/components/common/TutorialController';
 import FeedbackBanner from '@/components/common/FeedbackBanner';
 import { determineInitialRoute } from '@/constants/utils';
+import { scheduleRoutineNotification, setupNotifications } from '@/hooks/notificationService';
 
 // スプラッシュスクリーンを手動で制御するために自動非表示を防ぐ
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -30,6 +32,16 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 // アニメーション状態の更新を監視するイベント
 const ANIMATION_EVENTS = {
   COMPLETE: false
+};
+
+// ユーザーIDが設定されたときに通知を設定する共通関数
+const setupUserNotifications = async (userId: string) => {
+  try {
+    console.log(`[DEBUG] ユーザーID: ${userId} の通知を設定します`);
+    await setupNotifications(userId);
+  } catch (error) {
+    console.error('通知設定中にエラーが発生しました:', error);
+  }
 };
 
 export default function RootLayout() {
@@ -90,6 +102,9 @@ export default function RootLayout() {
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
+            // 通知を設定
+            await setupUserNotifications(userId);
+            
             // SecureStoreにも保存する
             try {
               await SecureStore.setItemAsync('active_user_id', userId);
@@ -119,6 +134,9 @@ export default function RootLayout() {
             const userId = users[0].id;
             setActiveUserId(userId);
             console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
+            
+            // 通知を設定
+            await setupUserNotifications(userId);
             
             // SecureStoreにも保存する
             try {
@@ -214,16 +232,14 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, initializeDatabase]);
 
-  // カスタムスプラッシュスクリーンの完了コールバック
-  const onSplashFinish = useCallback(() => {
-    console.log('[DEBUG] スプラッシュ完了コールバックが呼び出されました');
-    // 以下の条件で画面遷移する:
-    // 1. データベース初期化が完了している場合
-    if (dbInitialized) {
-      console.log('[DEBUG] データベース初期化済み - スプラッシュ画面を非表示にします');
+  // useEffectでデータベース初期化完了時とアニメーション完了時の両方をチェック
+  useEffect(() => {
+    // アニメーション完了かつデータベース初期化完了のときスプラッシュを非表示
+    if (ANIMATION_EVENTS.COMPLETE && dbInitialized) {
+      // フラグをリセット（不要だが念のため）
+      ANIMATION_EVENTS.COMPLETE = false;
+      console.log('[DEBUG] アニメーションとDB初期化の両方が完了しました。スプラッシュ非表示へ。');
       setShowSplash(false);
-    } else {
-      console.log('[DEBUG] データベースがまだ初期化中です - スプラッシュ画面を継続表示します');
     }
   }, [dbInitialized]);
 
@@ -244,9 +260,8 @@ export default function RootLayout() {
     // カスタムスプラッシュスクリーンを表示
     return (
       <CustomSplashScreen 
-        onFinish={onSplashFinish} 
+        onFinish={onAnimationComplete} 
         extendAnimation={!dbInitialized}
-        onAnimationComplete={onAnimationComplete}
       />
     );
   }
@@ -256,9 +271,8 @@ export default function RootLayout() {
     // カスタムスプラッシュスクリーンを表示
     return (
       <CustomSplashScreen 
-        onFinish={onSplashFinish} 
+        onFinish={onAnimationComplete} 
         extendAnimation={!dbInitialized}
-        onAnimationComplete={onAnimationComplete}
       />
     );
   }
@@ -278,7 +292,7 @@ export default function RootLayout() {
           },
         }}
       >
-        <FeedbackBanner />
+        {/* <FeedbackBanner /> */}
         <TutorialController>
           <Stack 
             screenOptions={{ 
