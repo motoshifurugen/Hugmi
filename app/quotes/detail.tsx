@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType, ScrollView } from 'react-native';
+import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/common/ThemedText';
@@ -31,16 +31,54 @@ const AUTHOR_IMAGES: Record<string, ImageSourcePropType> = {
   'thomas_aquinas.png': require('@/assets/images/great_person/thomas_aquinas.png'),
   'george_herbert.png': require('@/assets/images/great_person/george_herbert.png'),
   'oliver_goldsmith.png': require('@/assets/images/great_person/oliver_goldsmith.png'),
-  // 他の著者画像
+  // 追加の著者画像
+  'rene_descartes.png': require('@/assets/images/great_person/rene_descartes.png'),
+  'john_milton.png': require('@/assets/images/great_person/john_milton.png'),
+  'baruch_spinoza.png': require('@/assets/images/great_person/baruch_spinoza.png'),
+  'voltaire.png': require('@/assets/images/great_person/voltaire.png'),
+  'benjamin_franklin.png': require('@/assets/images/great_person/benjamin_franklin.png'),
+  'samuel_johnson.png': require('@/assets/images/great_person/samuel_johnson.png'),
+  'johann_wolfgang_von_goethe.png': require('@/assets/images/great_person/johann_wolfgang_von_goethe.png'),
+  'jane_austen.png': require('@/assets/images/great_person/jane_austen.png'),
+  'charles_lamb.png': require('@/assets/images/great_person/charles_lamb.png'),
+  'arthur_schopenhauer.png': require('@/assets/images/great_person/arthur_schopenhauer.png'),
+  'ralph_waldo_emerson.png': require('@/assets/images/great_person/ralph_waldo_emerson.png'),
+  'hans_christian_andersen.png': require('@/assets/images/great_person/hans_christian_andersen.png'),
+  'charles_dickens.png': require('@/assets/images/great_person/charles_dickens.png'),
+  'samuel_smiles.png': require('@/assets/images/great_person/samuel_smiles.png'),
+  'frederick_douglass.png': require('@/assets/images/great_person/frederick_douglass.png'),
+  'george_eliot.png': require('@/assets/images/great_person/george_eliot.png'),
+  'john_ruskin.png': require('@/assets/images/great_person/john_ruskin.png'),
+  'mark_twain.png': require('@/assets/images/great_person/mark_twain.png'),
+  'william_james.png': require('@/assets/images/great_person/william_james.png'),
+  'thomas_edison.png': require('@/assets/images/great_person/thomas_edison.png'),
+  'robert_louis_stevenson.png': require('@/assets/images/great_person/robert_louis_stevenson.png'),
+  'soseki_natsume.png': require('@/assets/images/great_person/soseki_natsume.png'),
+  'marcel_proust.png': require('@/assets/images/great_person/marcel_proust.png'),
 };
 
 // 著者画像を取得する関数
 const getAuthorImage = (fileName: string): ImageSourcePropType => {
-  // デフォルト画像
-  const defaultImage = AUTHOR_IMAGES['seneca.png'];
+  // デバッグログを追加
+  console.log(`著者画像を取得中: ${fileName}`);
+  
+  // ファイル名が空の場合はデフォルト画像を返す
+  if (!fileName || fileName.trim() === '') {
+    console.log('ファイル名が空のため、デフォルト画像を使用します');
+    return AUTHOR_IMAGES['seneca.png'];
+  }
   
   // マッピングから画像を取得
-  return AUTHOR_IMAGES[fileName] || defaultImage;
+  const image = AUTHOR_IMAGES[fileName];
+  
+  // 見つからない場合はデフォルト画像を返す
+  if (!image) {
+    console.log(`${fileName}に対応する画像が見つかりません。デフォルト画像を使用します`);
+    return AUTHOR_IMAGES['seneca.png'];
+  }
+  
+  console.log(`${fileName}の画像を正常に取得しました`);
+  return image;
 };
 
 // 名言データの型定義
@@ -61,11 +99,13 @@ export default function QuoteDetailScreen() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [initialScrollComplete, setInitialScrollComplete] = useState(false);
   
   // アニメーション用の参照
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef(null); // ScrollView用の参照を追加
   
   // グローバルに保存されているアクティブユーザーIDを取得
   const activeUserId = useActiveUserIdSimple();
@@ -84,6 +124,7 @@ export default function QuoteDetailScreen() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setInitialScrollComplete(false);
         
         // すべての名言を取得
         const allQuotes = await getAllQuotes();
@@ -113,8 +154,16 @@ export default function QuoteDetailScreen() {
               targetQuoteIndex = index;
             }
             
+            // imagePathを確認し、未設定の場合はデフォルト値を設定
+            let imagePath = quote.imagePath;
+            if (!imagePath || imagePath.trim() === '') {
+              imagePath = 'seneca.png'; // デフォルト画像を設定
+            }
+            console.log(`名言ID ${quote.id}: imagePathを設定: ${imagePath}`);
+            
             return {
               ...quote,
+              imagePath: imagePath, // 確実にimagePathが設定されていることを保証
               isFavorite: isFav,
               unlocked: true
             };
@@ -132,13 +181,18 @@ export default function QuoteDetailScreen() {
             authorEn: 'Unknown',
             era: '',
             isFavorite: false,
-            unlocked: true
+            unlocked: true,
+            imagePath: 'seneca.png' // デフォルト画像を明示的に設定
           };
           setQuotes([defaultQuote]);
           setCurrentIndex(0);
         } else {
-          setQuotes(formattedQuotes);
+          // 先にインデックスを設定してから、データを設定
           setCurrentIndex(targetQuoteIndex);
+          // 少し遅延させてデータを設定（順序を保証するため）
+          setTimeout(() => {
+            setQuotes(formattedQuotes);
+          }, 0);
         }
         
         // フェードインアニメーション
@@ -148,20 +202,14 @@ export default function QuoteDetailScreen() {
           useNativeDriver: true,
         }).start();
         
-        // 初期位置を正確に設定
+        // ローディング状態を解除
         setTimeout(() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToOffset({
-              offset: targetQuoteIndex * FULL_ITEM_WIDTH,
-              animated: false
-            });
-          }
+          setLoading(false);
         }, 100);
         
       } catch (err) {
         console.error('名言データの取得に失敗しました:', err);
         // エラー処理
-      } finally {
         setLoading(false);
       }
     };
@@ -201,7 +249,7 @@ export default function QuoteDetailScreen() {
   // スワイプジェスチャーの処理
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      // 移動距離を少し抑制して滑らかな動きにする
+      // 横方向の移動のみを処理（Y軸は無視）
       translateX.setValue(e.translationX * 0.8);
     })
     .onEnd((e) => {
@@ -240,7 +288,11 @@ export default function QuoteDetailScreen() {
         friction: 8,  // 摩擦を増やして滑らかに
         tension: 60   // 張力を少し減らす
       }).start();
-    });
+    })
+    // 横方向のみにジェスチャーを制限
+    .activeOffsetX([-20, 20]) // 小さな横移動は無視
+    .shouldCancelWhenOutside(true) // ジェスチャー領域外に出た場合はキャンセル
+    .enabled(true); // 明示的に有効化
   
   // ローディング中の表示
   if (loading) {
@@ -251,6 +303,9 @@ export default function QuoteDetailScreen() {
     );
   }
   
+  // 正しいカードのみを表示するためのデータ
+  const visibleQuotes = initialScrollComplete ? quotes : (quotes.length > 0 ? [quotes[currentIndex]] : []);
+
   if (quotes.length === 0) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -276,12 +331,19 @@ export default function QuoteDetailScreen() {
     
     const jaFontSize = calculateFontSize(item.textJa);
     
+    // 著者画像のパスを取得（デバッグログを追加）
+    const authorImagePath = item.imagePath || 'seneca.png';
+    console.log(`カード ${index} (ID: ${item.id}) の著者画像パス: ${authorImagePath}`);
+    
     return (
-      <View style={{ 
-        width: width, 
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+      <View 
+        key={`quote-card-${item.id}`} 
+        style={{ 
+          width: width, 
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <View style={{ width: CARD_WIDTH }}>
           <Animated.View style={styles.cardContainer}>
             <ThemedView style={styles.quoteCardContent}>
@@ -315,9 +377,12 @@ export default function QuoteDetailScreen() {
               
               {/* 名言本文（スクロール可能なコンテナ） */}
               <ScrollView 
+                ref={scrollViewRef}
                 style={styles.quoteScrollContainer}
                 contentContainerStyle={styles.quoteScrollContent}
                 showsVerticalScrollIndicator={false}
+                // 縦スクロールとスワイプの競合を防ぐための設定
+                nestedScrollEnabled={true}
               >
                 <View style={styles.quoteTextContainer}>
                   <ThemedText style={[styles.quoteTextJa, { fontSize: jaFontSize }]}>
@@ -341,9 +406,11 @@ export default function QuoteDetailScreen() {
                 {/* 著者画像 - 名言に対応した画像を表示 */}
                 <View style={styles.authorImageContainer}>
                   <Image
-                    source={getAuthorImage(item.imagePath || 'seneca.png')}
+                    key={`author-image-${item.id}`}
+                    source={getAuthorImage(authorImagePath)}
                     style={styles.authorImage}
                     contentFit="cover"
+                    cachePolicy="none" // キャッシュを無効化
                   />
                 </View>
                 
@@ -404,16 +471,16 @@ export default function QuoteDetailScreen() {
           >
             <FlatList
               ref={flatListRef}
-              data={quotes}
+              data={visibleQuotes}
               renderItem={renderQuoteCard}
               keyExtractor={(item) => item.id}
               horizontal
               pagingEnabled={true}
               showsHorizontalScrollIndicator={false}
-              initialScrollIndex={currentIndex}
+              initialScrollIndex={0}
               windowSize={5}
               maxToRenderPerBatch={quotes.length}
-              initialNumToRender={quotes.length > 3 ? 3 : quotes.length}
+              initialNumToRender={1}
               getItemLayout={(data, index) => ({
                 length: FULL_ITEM_WIDTH,
                 offset: index * FULL_ITEM_WIDTH,
@@ -430,6 +497,12 @@ export default function QuoteDetailScreen() {
                 });
               }}
               onMomentumScrollEnd={(e) => {
+                if (!initialScrollComplete) {
+                  // 初期スクロールが完了したらすべての名言を表示
+                  setInitialScrollComplete(true);
+                  return;
+                }
+                
                 const offset = e.nativeEvent.contentOffset.x;
                 const newIndex = Math.round(offset / FULL_ITEM_WIDTH);
                 if (newIndex !== currentIndex && newIndex >= 0 && newIndex < quotes.length) {
@@ -442,6 +515,26 @@ export default function QuoteDetailScreen() {
                     });
                   }
                   setCurrentIndex(newIndex);
+                }
+              }}
+              // 縦方向のスクロールを防止する追加設定
+              scrollEventThrottle={16}
+              directionalLockEnabled={true}
+              disableIntervalMomentum={true}
+              removeClippedSubviews={false} // クリッピングによる問題を回避
+              extraData={[currentIndex, initialScrollComplete]} // 現在のインデックスとスクロール完了状態が変わったときに再レンダリングを強制
+              // メモリ内のビューを再利用しないように設定
+              disableVirtualization={true}
+              onScroll={(e) => {
+                // スクロールイベントを抑制し、予期しない動作を防止
+                e.persist();
+              }}
+              onLayout={() => {
+                // レイアウト完了時に一度だけ全データを表示するように切り替え
+                if (!initialScrollComplete && visibleQuotes.length === 1) {
+                  setTimeout(() => {
+                    setInitialScrollComplete(true);
+                  }, 300);
                 }
               }}
             />
@@ -460,11 +553,6 @@ export default function QuoteDetailScreen() {
             />
           ))}
         </View>
-        
-        {/* スワイプヒント */}
-        <ThemedText style={styles.swipeHint}>
-          ← スワイプで別の名言へ →
-        </ThemedText>
       </ThemedView>
     </GestureHandlerRootView>
   );
@@ -473,13 +561,13 @@ export default function QuoteDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DBF0FF', // 薄い青色の背景
+    backgroundColor: projectColors.white1, // 背景色を白に変更
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#DBF0FF',
+    backgroundColor: projectColors.white1, // 背景色を白に変更
   },
   header: {
     flexDirection: 'row',
@@ -505,7 +593,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: '100%',
-    height: '88%',
+    height: '85%',
     maxHeight: 700,
     justifyContent: 'center',
     alignItems: 'center',
@@ -623,12 +711,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
-  },
-  swipeHint: {
-    fontSize: 12,
-    color: '#888888',
-    marginTop: 12,
-    marginBottom: 24,
+    marginBottom: 24
   },
   cornerDecorationWrapper: {
     position: 'absolute',
