@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { StyleSheet, Pressable, Animated, TouchableOpacity, Dimensions, View, Image, SafeAreaView } from 'react-native';
+import { StyleSheet, Pressable, Animated, TouchableOpacity, Dimensions, View, Image, SafeAreaView, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,19 +9,8 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { fonts } from '@/constants/fonts';
 import { projectColors } from '@/constants/Colors';
 import { getAllUsers } from '@/db/utils/users';
-
-// 日替わりメッセージの配列
-const encouragingMessages = [
-  'やさしい1日になりますように。',
-  'ここまでできたあなた、すてきです！',
-  '今日も1日、ゆっくり深呼吸して。',
-  '小さな一歩が、大きな変化を生みます。',
-  '今日の自分をほめてあげましょう。',
-  'あなたのペースで進んでいきましょう。',
-  '新しい1日の始まり、おめでとう！',
-  '自分を信じる力が、あなたを支えています。',
-  '今日のあなたが、明日の自分につながります。'
-];
+import { getRoutineLogsByDate } from '@/db/utils/routine_logs';
+import { getRoutineById, getActiveRoutinesByUserId } from '@/db/utils/routines';
 
 // シンプルなパーティクルの種類
 enum ParticleType {
@@ -43,14 +32,22 @@ interface Particle {
   duration: number;
 }
 
+// ルーティンアイテムの型定義
+interface RoutineItem {
+  id: string;
+  title: string;
+  status: 'checked' | 'skipped' | 'unchecked';
+  dotAnim: Animated.Value;
+}
+
 export default function MorningCompleteScreen() {
   // アニメーション値の初期化をメモ化
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const celebrationAnim = useRef(new Animated.Value(1)).current; // 最初から表示するため1に設定
   const tapTextAnim = useRef(new Animated.Value(0)).current;
+  const routineListAnim = useRef(new Animated.Value(0)).current; // ルーティンリストのアニメーション
   
   const [username, setUsername] = useState('');
-  const [message, setMessage] = useState('');
+  const [routines, setRoutines] = useState<RoutineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const particles = useRef<Particle[]>([]);
   const animationsRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -59,14 +56,16 @@ export default function MorningCompleteScreen() {
   // 画面の寸法を取得
   const { width, height } = Dimensions.get('window');
 
-  // ユーザー名を取得
+  // ユーザー名とルーティンデータを取得
   useEffect(() => {
-    const fetchUsername = async () => {
+    const fetchUserData = async () => {
       try {
         // ユーザーを取得（アプリでは1人のみという前提）
         const users = await getAllUsers();
         if (users.length > 0) {
           setUsername(users[0].name);
+          // ユーザーのルーティンログを取得
+          await fetchRoutineData(users[0].id);
         } else {
           console.error('ユーザーが見つかりません');
           setUsername('ゲスト');
@@ -79,8 +78,50 @@ export default function MorningCompleteScreen() {
       }
     };
     
-    fetchUsername();
+    fetchUserData();
   }, []);
+  
+  // ユーザーの全ルーティンとその状態を取得
+  const fetchRoutineData = async (userId: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+      
+      // すべてのアクティブなルーティンを取得
+      const allRoutines = await getActiveRoutinesByUserId(userId);
+      // 今日のルーティンログを取得
+      const todayLogs = await getRoutineLogsByDate(userId, today);
+      
+      // ルーティンアイテムを作成
+      const routineItems: RoutineItem[] = [];
+      
+      // 各ルーティンの状態を確認
+      for (const routine of allRoutines) {
+        // 対応するログを検索
+        const log = todayLogs.find(log => log.routineId === routine.id);
+        
+        // ルーティンのステータスを決定
+        const status = log ? log.status : 'unchecked';
+        
+        routineItems.push({
+          id: routine.id,
+          title: routine.title,
+          status: status,
+          dotAnim: new Animated.Value(0), // ドットアニメーション用の値（完了したもののみアニメーションする）
+        });
+      }
+      
+      // 完了したものを上部に表示するようにソート
+      routineItems.sort((a, b) => {
+        if (a.status === 'checked' && b.status !== 'checked') return -1;
+        if (a.status !== 'checked' && b.status === 'checked') return 1;
+        return 0;
+      });
+      
+      setRoutines(routineItems);
+    } catch (error) {
+      console.error('ルーティンデータの取得に失敗しました:', error);
+    }
+  };
   
   // アニメーションをクリーンアップする関数
   const cleanupAnimations = useCallback(() => {
@@ -91,8 +132,8 @@ export default function MorningCompleteScreen() {
     
     // 個別のアニメーション値をリセット
     fadeAnim.setValue(0);
-    celebrationAnim.setValue(1); // 最初から表示するため1に設定
     tapTextAnim.setValue(0);
+    routineListAnim.setValue(0);
     
     // パーティクルのアニメーション値もリセット
     particles.current.forEach(particle => {
@@ -103,9 +144,14 @@ export default function MorningCompleteScreen() {
       particle.rotate.setValue(0);
     });
     
+    // ルーティンドットのアニメーション値もリセット
+    routines.forEach(routine => {
+      routine.dotAnim.setValue(0);
+    });
+    
     // パーティクル配列をクリア
     particles.current = [];
-  }, [fadeAnim, celebrationAnim, tapTextAnim]);
+  }, [fadeAnim, tapTextAnim, routineListAnim, routines]);
   
   // コンポーネントのアンマウント時にアニメーションをクリーンアップ
   useEffect(() => {
@@ -116,10 +162,6 @@ export default function MorningCompleteScreen() {
   
   // パーティクルを作成
   useEffect(() => {
-    // 日替わりメッセージをランダムに選択
-    const randomIndex = Math.floor(Math.random() * encouragingMessages.length);
-    setMessage(encouragingMessages[randomIndex]);
-    
     // パーティクルの色
     const colors = [
       projectColors.primary, // 淡い橙
@@ -188,21 +230,13 @@ export default function MorningCompleteScreen() {
     return () => {
       cleanupAnimations();
     };
-  }, [cleanupAnimations]);
+  }, [cleanupAnimations, routines]);
   
   const startAnimation = useCallback(() => {
     // 既存のアニメーションがあればクリーンアップ
     if (animationsRef.current) {
       animationsRef.current.stop();
     }
-    
-    // セレブレーションアニメーション（単純化）
-    const celebrationAnimation = Animated.spring(celebrationAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    });
     
     // メインメッセージのフェードイン
     const mainFadeIn = Animated.timing(fadeAnim, {
@@ -276,9 +310,37 @@ export default function MorningCompleteScreen() {
       ]);
     });
     
+    // ルーティンリストのフェードイン
+    const routineListFadeIn = Animated.sequence([
+      Animated.delay(500), // メインメッセージ後に表示（遅延を短縮）
+      Animated.timing(routineListAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]);
+    
+    // 完了したルーティンのみドットをアニメーション
+    const completedRoutines = routines.filter(routine => routine.status === 'checked');
+    
+    // ルーティンドットのアニメーション（完了したもののみ）
+    const dotAnimations = completedRoutines.map((routine, index) => {
+      return Animated.sequence([
+        // リストが表示された後に少し遅延させて順番にドットを表示
+        Animated.delay(1000 + index * 200), // 遅延を短縮
+        Animated.spring(routine.dotAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]);
+    });
+    
     // タップテキストのフェードイン
     const tapTextFadeIn = Animated.sequence([
-      Animated.delay(2000), // メインアニメーション後に表示
+      // ルーティンリストとドットアニメーションの後に表示
+      Animated.delay(1000 + completedRoutines.length * 200 + 300), // 遅延を調整
       Animated.timing(tapTextAnim, {
         toValue: 1,
         duration: 500,
@@ -286,11 +348,12 @@ export default function MorningCompleteScreen() {
       }),
     ]);
     
-    // すべてのアニメーションを並行して実行（セレブレーションアニメーションは省略可能）
+    // すべてのアニメーションを並行して実行
     const compositeAnimation = Animated.parallel([
-      celebrationAnimation,
       mainFadeIn,
       ...particleAnimations,
+      routineListFadeIn,
+      ...dotAnimations,
       tapTextFadeIn,
     ]);
     
@@ -303,14 +366,7 @@ export default function MorningCompleteScreen() {
       // アニメーション参照をクリア
       animationsRef.current = null;
     });
-  }, [fadeAnim, celebrationAnim, tapTextAnim]);
-  
-  // 画面表示時に一度だけ実行
-  useEffect(() => {
-    // セレブレーション画像をプリロード
-    Image.prefetch(Image.resolveAssetSource(require('@/assets/images/celebration.png')).uri)
-      .catch(error => console.error('画像のプリロードに失敗しました', error));
-  }, []);
+  }, [fadeAnim, tapTextAnim, routineListAnim, routines]);
   
   const handleTap = useCallback(() => {
     // アニメーションを停止（シンプルに）
@@ -370,6 +426,45 @@ export default function MorningCompleteScreen() {
     );
   }, []);
   
+  // ルーティンアイテムをレンダリング
+  const renderRoutineItem = useCallback((routine: RoutineItem, index: number) => {
+    return (
+      <View key={routine.id} style={styles.routineItem}>
+        {routine.status === 'checked' ? (
+          <Animated.View 
+            style={[
+              styles.routineDot, 
+              { 
+                opacity: routine.dotAnim,
+                transform: [
+                  { scale: routine.dotAnim },
+                  { translateY: routine.dotAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0]
+                  })}
+                ]
+              }
+            ]}
+          />
+        ) : (
+          <View style={styles.routineDotPlaceholder} />
+        )}
+        <ThemedText 
+          style={[
+            styles.routineTitle,
+            routine.status === 'checked' ? styles.routineTitleCompleted : 
+              routine.status === 'skipped' ? styles.routineTitleSkipped : styles.routineTitleUnchecked
+          ]}
+        >
+          {routine.title}
+        </ThemedText>
+        {routine.status === 'skipped' && (
+          <ThemedText style={styles.skippedText}>スキップ</ThemedText>
+        )}
+      </View>
+    );
+  }, []);
+  
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -397,32 +492,47 @@ export default function MorningCompleteScreen() {
           {particles.current.map(renderParticle)}
         </View>
         
-        {/* セレブレーション画像（最初から表示） */}
-        <Animated.View 
-          style={[
-            styles.celebrationContainer, 
-            { 
-              opacity: celebrationAnim,
-              transform: [{ scale: celebrationAnim }]
-            }
-          ]}
-        >
-          <Image 
-            source={require('@/assets/images/celebration.png')} 
-            style={styles.celebrationImage}
-          />
-        </Animated.View>
-        
         {/* メインコンテンツ */}
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           <ThemedText style={styles.username}>{username}さん、</ThemedText>
           <ThemedText style={styles.congratsText} numberOfLines={1}>今日のルーティンおつかれさま！</ThemedText>
-          <ThemedText style={styles.messageText}>{message}</ThemedText>
         </Animated.View>
         
-        {/* タップで終了 */}
+        {/* ルーティンリスト */}
+        <Animated.View 
+          style={[
+            styles.routineListContainer,
+            { 
+              opacity: routineListAnim,
+              transform: [
+                { translateY: routineListAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0]
+                })}
+              ]
+            }
+          ]}
+        >
+          <ScrollView 
+            style={styles.routineList}
+            contentContainerStyle={styles.routineListContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {routines.length > 0 ? (
+              routines.map(renderRoutineItem)
+            ) : (
+              <ThemedText style={styles.noRoutinesText}>
+                登録されているルーティンがありません
+              </ThemedText>
+            )}
+          </ScrollView>
+        </Animated.View>
+        
+        {/* タップで終了（背景色付き） */}
         <Animated.View style={[styles.tapContainer, { opacity: tapTextAnim }]}>
-          <ThemedText style={styles.tapText}>タップで終了</ThemedText>
+          <View style={styles.tapBackground}>
+            <ThemedText style={styles.tapText}>画面タップで終了</ThemedText>
+          </View>
         </Animated.View>
       </TouchableOpacity>
     </SafeAreaView>
@@ -436,9 +546,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'flex-start', // 上寄せに変更
+    justifyContent: 'flex-start', 
     alignItems: 'center',
-    paddingTop: 20, // 上部に少し余白を追加
+    paddingTop: 10, // 上部の余白を減らす
   },
   background: {
     position: 'absolute',
@@ -455,58 +565,112 @@ const styles = StyleSheet.create({
     bottom: 0,
     overflow: 'hidden',
   },
-  celebrationContainer: {
-    position: 'absolute',
-    top: 60, // 上部に配置
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  celebrationImage: {
-    width: 100,
-    height: 100,
-    resizeMode: 'contain',
-  },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    marginTop: 230, // セレブレーション画像の下に配置
+    marginTop: 80, // 上部の余白を減らす
     width: '100%',
   },
   username: {
     fontFamily: fonts.families.primary,
-    fontSize: fonts.sizes['2xl'],
+    fontSize: fonts.sizes.xl,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4, // 余白を減らす
     paddingTop: 4,
   },
   congratsText: {
     fontFamily: fonts.families.primary,
-    fontSize: fonts.sizes.xl,
+    fontSize: fonts.sizes.lg,
     fontWeight: 'bold',
-    marginBottom: 30,
+    marginBottom: 12, // 余白を減らす
     textAlign: 'center',
     maxWidth: '95%',
-  },
-  messageText: {
-    fontFamily: fonts.families.primary,
-    fontSize: fonts.sizes.md,
-    textAlign: 'center',
-    marginTop: 10,
-    color: '#715A58',
   },
   particleBase: {
     position: 'absolute',
     pointerEvents: 'none',
   },
+  routineListContainer: {
+    width: '90%',
+    maxHeight: '70%', // 表示領域をさらに拡大
+    marginTop: 4, // 上部の余白を減らす
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 16,
+    padding: 12,
+    overflow: 'hidden',
+  },
+  routineList: {
+    width: '100%',
+  },
+  routineListContent: {
+    paddingVertical: 4,
+  },
+  routineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingVertical: 3,
+  },
+  routineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: projectColors.primary,
+    marginRight: 10,
+  },
+  routineDotPlaceholder: {
+    width: 10,
+    height: 10,
+    marginRight: 10,
+  },
+  routineTitle: {
+    fontFamily: fonts.families.primary,
+    fontSize: fonts.sizes.sm,
+    flex: 1,
+  },
+  routineTitleCompleted: {
+    color: '#2D2D2D',
+    fontWeight: 'bold',
+  },
+  routineTitleSkipped: {
+    color: '#8C7E8C',
+  },
+  routineTitleUnchecked: {
+    color: '#A9A9A9',
+  },
+  skippedText: {
+    fontFamily: fonts.families.primary,
+    fontSize: fonts.sizes.xs,
+    color: '#8C7E8C',
+    marginLeft: 6,
+  },
+  noRoutinesText: {
+    fontFamily: fonts.families.primary,
+    fontSize: fonts.sizes.sm,
+    color: '#8C7E8C',
+    textAlign: 'center',
+    marginTop: 8,
+  },
   tapContainer: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 40, // 位置を調整
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  tapBackground: {
+    backgroundColor: 'rgba(255, 241, 230, 0.85)', // 優しい背景色
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 16,
+    // borderWidth: 1,
+    // borderColor: 'rgba(233, 200, 180, 0.5)', // 薄い境界線
   },
   tapText: {
     fontFamily: fonts.families.primary,
-    fontSize: fonts.sizes.md,
+    fontSize: fonts.sizes.sm,
     color: '#8C7E8C',
   },
 }); 

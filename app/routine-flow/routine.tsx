@@ -186,7 +186,7 @@ export default function RoutineStepScreen() {
     });
   };
 
-  // 「今日はスキップ」ボタンのアニメーション
+  // 「スキップ」ボタンのアニメーション
   const animateSkipButton = (onComplete?: () => void) => {
     Animated.sequence([
       Animated.timing(skipButtonScale, {
@@ -403,7 +403,7 @@ export default function RoutineStepScreen() {
             ]}
           >
             <ThemedText style={styles.skipButtonText}>
-              今日はスキップ
+              スキップ
             </ThemedText>
           </Pressable>
         </Animated.View>
