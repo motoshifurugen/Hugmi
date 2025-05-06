@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, FlatList, Pressable, ScrollView, Animated, Alert, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { Image } from 'expo-image';
@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
+import { fonts } from '@/constants/fonts';
 
 // 名言データベース関連のインポート
 import { getAllQuotes } from '@/db/utils/quotes';
@@ -123,6 +124,32 @@ interface Quote {
 // 最大コレクション数
 const MAX_QUOTES = 50;
 
+// ProgressDisplayコンポーネントをメインコンポーネント外に抽出
+const ProgressDisplay = ({ current, total }: { current: number, total: number }) => (
+  <ThemedView style={styles.progressContainer}>
+    <ThemedText style={styles.progressText}>
+      <ThemedText style={styles.progressNumber}>{current}</ThemedText>
+      {" / "}
+      <ThemedText style={styles.progressTotal}>{total}</ThemedText>
+      {"\n"}
+      {"コンプリートまであと "}
+      <ThemedText style={styles.progressNumber}>{total - current}</ThemedText>
+      {" 個"}
+    </ThemedText>
+  </ThemedView>
+);
+
+// EmptyListComponentを分離
+const EmptyListComponent = ({ isFavoriteFilter }: { isFavoriteFilter: boolean }) => (
+  <ThemedView style={styles.emptyContainer}>
+    <ThemedText style={styles.emptyText}>
+      {isFavoriteFilter 
+        ? 'お気に入りに追加された名言はありません。' 
+        : 'アンロックされた名言はありません。'}
+    </ThemedText>
+  </ThemedView>
+);
+
 export default function QuotesScreen() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filterFavorites, setFilterFavorites] = useState(false);
@@ -135,7 +162,7 @@ export default function QuotesScreen() {
   // グローバルに保存されているアクティブユーザーIDを取得
   const activeUserId = useActiveUserIdSimple();
   
-  // データベースからデータを取得する
+  // データベースからデータを取得する - コンソールログの整理
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -151,21 +178,8 @@ export default function QuotesScreen() {
       const favoriteQuotes = await getFavoriteQuotesByUserId(activeUserId);
       const favoriteQuoteIds = new Set(favoriteQuotes.map(fav => fav.quoteId));
       
-      console.log(`[DEBUG] 名言データ取得: ${allQuotes.length}件, 表示済み: ${viewedQuoteIds.size}件, お気に入り: ${favoriteQuoteIds.size}件, ユーザーID: ${activeUserId}`);
-      
       // 名言データを画面用の形式に変換
       const formattedQuotes: Quote[] = allQuotes.map(quote => {
-        // 画像URIのチェック（デバッグ用）
-        if (quote.imagePath) {
-          // ローカル画像ファイルが存在するかテスト
-          const imageSource = getLocalImageSource(quote.imagePath);
-          if (!imageSource) {
-            console.log(`[警告] 画像の読み込みに失敗: ${quote.id} - ${quote.imagePath}`);
-          } else {
-            console.log(`[成功] 画像の読み込み成功: ${quote.id} - ${quote.imagePath}`);
-          }
-        }
-        
         return {
           id: quote.id,
           textJa: quote.textJa,
@@ -178,14 +192,6 @@ export default function QuotesScreen() {
           imagePath: quote.imagePath
         };
       });
-      
-      // 開発モードなら最初の数件の画像URIをログ出力
-      if (Constants.expoConfig?.extra?.env === 'development') {
-        console.log('[DEBUG] 画像URLサンプル:');
-        formattedQuotes.slice(0, 3).forEach(quote => {
-          console.log(`ID: ${quote.id}, 画像パス: ${quote.imagePath || 'なし'}`);
-        });
-      }
       
       setQuotes(formattedQuotes);
       setError(null);
@@ -249,39 +255,39 @@ export default function QuotesScreen() {
     }
   };
   
-  // アンロック済み名言数の計算
-  const unlockedCount = quotes.filter(quote => quote.unlocked).length;
+  // アンロック済み名言数の計算をuseMemoで最適化
+  const unlockedCount = useMemo(() => quotes.filter(quote => quote.unlocked).length, [quotes]);
   
-  // お気に入りフィルタリング
-  const displayedQuotes = filterFavorites 
-    ? quotes.filter(quote => quote.isFavorite && quote.unlocked) 
-    : quotes;
+  // お気に入りフィルタリングをuseMemoで最適化
+  const displayedQuotes = useMemo(() => 
+    filterFavorites 
+      ? quotes.filter(quote => quote.isFavorite && quote.unlocked) 
+      : quotes
+  , [quotes, filterFavorites]);
 
-  // 表示モード切替時のアニメーション
-  const toggleDisplayMode = (mode: 'card' | 'icon') => {
-    // アイコンモードに切り替える前に画像パスをログ出力
-    if (mode === 'icon') {
-      console.log('[DEBUG] アイコンモードに切り替え - 画像パス確認:');
-      quotes.slice(0, 3).forEach(quote => {
-        console.log(`ID: ${quote.id}, 画像パス: ${quote.imagePath || 'なし'}`);
-      });
-    }
-    
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      })
-    ]).start();
-    
-    setDisplayMode(mode);
-  };
+  // 表示モード切替時のアニメーション - 表示の問題を修正
+  const toggleDisplayMode = useCallback((mode: 'card' | 'icon') => {
+    // フェードアウト完了まで完全に不透明度を0にする
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
+      // フェードアウト完了後にモードを変更
+      // このタイミングでコンテンツが変わる
+      setDisplayMode(mode);
+      
+      // 少し遅延を入れてからフェードインを開始
+      // これによりフェードアウト→モード変更→フェードインの遷移をよりクリアにする
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }).start();
+      }, 50);
+    });
+  }, [fadeAnim]);
 
   // 名言カードの表示用アイテム
   const renderCardItem = ({ item }: { item: Quote }) => {
@@ -303,7 +309,7 @@ export default function QuotesScreen() {
                 <IconSymbol 
                   name={item.isFavorite ? "heart.fill" : "heart"} 
                   size={20} 
-                  color={item.isFavorite ? projectColors.red1 : "#888888"} 
+                  color={item.isFavorite ? projectColors.red1 : projectColors.black2} 
                 />
               </Pressable>
             </ThemedView>
@@ -313,8 +319,8 @@ export default function QuotesScreen() {
     );
   };
 
-  // アイコン表示用アイテム
-  const renderIconItem = ({ item }: { item: Quote }) => {
+  // アイコン表示用アイテム - エラー処理を改善
+  const renderIconItem = useCallback(({ item }: { item: Quote }) => {
     // 画像ソースを取得
     const imageSource = item.imagePath ? getLocalImageSource(item.imagePath) : null;
     
@@ -333,7 +339,7 @@ export default function QuotesScreen() {
             <IconSymbol
               name="lock.fill"
               size={22}
-              color={projectColors.softOrange}
+              color={projectColors.black2}
             />
           </ThemedView>
         </Pressable>
@@ -354,7 +360,6 @@ export default function QuotesScreen() {
                 contentFit="cover"
                 transition={300}
                 onError={() => {
-                  console.log(`画像の読み込みに失敗: ${item.id}, 画像: ${item.imagePath}`);
                   setImageLoadErrors(prev => ({ ...prev, [item.id]: true }));
                 }}
               />
@@ -375,7 +380,7 @@ export default function QuotesScreen() {
         </Pressable>
       </Link>
     );
-  };
+  }, [imageLoadErrors]);
 
   // アイコン表示のテキストを取得（名前のイニシャルなど）
   const getIconText = (item: Quote) => {
@@ -387,8 +392,8 @@ export default function QuotesScreen() {
     return item.id.replace(/[^\d]/g, '').charAt(0) || '?';
   };
 
-  // お気に入り切り替え
-  const toggleFavorite = (id: string) => {
+  // toggleFavoriteをuseCallbackで最適化
+  const toggleFavorite = useCallback((id: string) => {
     // 該当の名言を探す
     const quote = quotes.find(q => q.id === id);
     if (!quote) return;
@@ -398,7 +403,7 @@ export default function QuotesScreen() {
     
     // データベース更新
     updateFavorite(id, newFavoriteStatus);
-  };
+  }, [quotes, updateFavorite]);
 
   // 名言のアンロック（デモ用）
   const unlockQuote = (id: string) => {
@@ -454,21 +459,7 @@ export default function QuotesScreen() {
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">名言コレクション</ThemedText>
-        <ThemedView style={styles.progressContainer}>
-          <ThemedText style={styles.progressText}>
-            <ThemedText style={styles.progressNumber}>{unlockedCount}</ThemedText>
-            {" / "}
-            <ThemedText style={styles.progressTotal}>{MAX_QUOTES}</ThemedText>
-          </ThemedText>
-          <ThemedView style={styles.progressBarContainer}>
-            <ThemedView 
-              style={[
-                styles.progressBar, 
-                { width: `${(unlockedCount / MAX_QUOTES) * 100}%` }
-              ]}
-            />
-          </ThemedView>
-        </ThemedView>
+        <ProgressDisplay current={unlockedCount} total={MAX_QUOTES} />
       </ThemedView>
       
       <ThemedView style={styles.controlsContainer}>
@@ -486,6 +477,9 @@ export default function QuotesScreen() {
               size={20} 
               color={displayMode === 'icon' ? "#FFFFFF" : projectColors.softOrange} 
             />
+            <ThemedText style={[styles.toggleText, displayMode === 'icon' && styles.toggleTextActive]}>
+              アイコン表示
+            </ThemedText>
           </Pressable>
           
           <Pressable 
@@ -500,6 +494,9 @@ export default function QuotesScreen() {
               size={20} 
               color={displayMode === 'card' ? "#FFFFFF" : projectColors.softOrange} 
             />
+            <ThemedText style={[styles.toggleText, displayMode === 'card' && styles.toggleTextActive]}>
+              カード表示
+            </ThemedText>
           </Pressable>
         </ThemedView>
         
@@ -526,13 +523,7 @@ export default function QuotesScreen() {
             renderItem={renderCardItem}
             keyExtractor={item => item.id}
             style={styles.quoteList}
-            ListEmptyComponent={
-              <ThemedView style={styles.emptyContainer}>
-                <ThemedText style={styles.emptyText}>
-                  {filterFavorites ? 'お気に入りに追加された名言はありません。' : 'アンロックされた名言はありません。'}
-                </ThemedText>
-              </ThemedView>
-            }
+            ListEmptyComponent={<EmptyListComponent isFavoriteFilter={filterFavorites} />}
           />
         ) : (
           <FlatList
@@ -605,8 +596,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: '#666666',
+    fontSize: fonts.sizes.md,
+    color: projectColors.black2,
   },
   errorContainer: {
     flex: 1,
@@ -617,8 +608,8 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 16,
     marginBottom: 24,
-    fontSize: 16,
-    color: '#666666',
+    fontSize: fonts.sizes.md,
+    color: projectColors.black2,
     textAlign: 'center',
   },
   retryButton: {
@@ -629,7 +620,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: 'medium',
   },
   emptyContainer: {
     flex: 1,
@@ -638,8 +629,8 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#999999',
+    fontSize: fonts.sizes.md,
+    color: projectColors.black2,
     textAlign: 'center',
   },
   header: {
@@ -652,22 +643,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   progressText: {
-    fontSize: 20,
-    marginBottom: 8,
-    color: projectColors.neuDark,
-    fontWeight: '700',
+    fontSize: fonts.sizes.md,
+    color: projectColors.black1,
+    fontWeight: 'bold',
     letterSpacing: 0.5,
     textAlign: 'center',
   },
   progressNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: projectColors.softOrange,
+    fontSize: fonts.sizes['2xl'],
+    fontWeight: 'bold',
+    color: projectColors.accent,
   },
   progressTotal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: projectColors.neuDark,
+    fontSize: fonts.sizes.md,
+    fontWeight: 'bold',
+    color: projectColors.black1,
   },
   progressBarContainer: {
     width: '100%',
@@ -711,14 +701,15 @@ const styles = StyleSheet.create({
     backgroundColor: projectColors.softOrange,
   },
   toggleText: {
-    color: '#4A90E2',
+    color: projectColors.softOrange,
     marginLeft: 4,
-    fontSize: 12,
+    fontSize: fonts.sizes.xs,
+    fontWeight: 'bold',
   },
   toggleTextActive: {
     color: '#FFFFFF',
     marginLeft: 4,
-    fontSize: 12,
+    fontSize: fonts.sizes.xs,
   },
   filterButton: {
     padding: 10,
@@ -749,7 +740,7 @@ const styles = StyleSheet.create({
   },
   iconRow: {
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 2,
   },
   quoteItem: {
@@ -776,8 +767,8 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
   },
   quoteText: {
-    fontSize: 16,
-    fontStyle: 'italic',
+    fontSize: fonts.sizes.md,
+    fontWeight: 'medium',
     marginBottom: 8,
   },
   quoteFooter: {
@@ -786,8 +777,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quoteAuthor: {
-    fontSize: 13,
-    color: '#666666',
+    fontSize: fonts.sizes.sm,
+    color: projectColors.black2,
   },
   iconItem: {
     width: '19%',
@@ -830,7 +821,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   iconText: {
-    fontSize: 18,
+    fontSize: fonts.sizes.lg,
     fontWeight: 'bold',
     color: projectColors.neuDark,
   },

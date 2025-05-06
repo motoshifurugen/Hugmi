@@ -1,12 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, Pressable, View, Modal, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, Pressable, View, Modal, TextInput, ActivityIndicator, Animated, ViewStyle, TextStyle } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import DraggableFlatList from 'react-native-draggable-flatlist';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
+import { fonts } from '@/constants/fonts';
 import { getAllUsers } from '@/db/utils/users';
 import { 
   getRoutinesByUserId, 
@@ -15,6 +16,41 @@ import {
   deleteRoutine as deleteRoutineDB,
   reorderRoutines 
 } from '@/db/utils/routines';
+import { 
+  createNeomorphicStyle,
+  createNeomorphicButtonStyle,
+  createNeomorphicButtonPressedStyle
+} from '@/constants/NeuomorphicStyles';
+
+// ニューモーフィズムスタイルの定義
+const cardNeomorphStyle = {
+  ...createNeomorphicStyle(0, 4, 4, 1, false),
+  width: undefined,
+  height: undefined,
+  backgroundColor: projectColors.white1,
+  borderRadius: 16,
+  borderColor: 'rgba(255, 255, 255, 0.5)',
+};
+
+// アクションボタン用のニューモーフィズムスタイル
+const actionButtonNeomorphStyle = {
+  ...createNeomorphicButtonStyle(undefined, 16),
+  backgroundColor: projectColors.primary + '40',
+  paddingVertical: 16,
+  paddingHorizontal: 24,
+  width: '100%',
+  alignSelf: 'stretch',
+  shadowOpacity: 0.08,
+  shadowRadius: 3,
+  elevation: 2,
+  borderColor: projectColors.primary + '30',
+};
+
+// ボタン押下時のスタイル
+const actionButtonPressedStyle = {
+  ...createNeomorphicButtonPressedStyle(projectColors.primary + '50'),
+  opacity: 0.98,
+};
 
 interface Routine {
   id: string;
@@ -35,6 +71,34 @@ export default function RoutineScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const listOpacity = useRef(new Animated.Value(1)).current; // リストの透明度アニメーション用
+  const [isDragging, setIsDragging] = useState(false); // ドラッグ中かどうかを追跡
+  
+  // ボタンアニメーション用のAnimated Value
+  const addButtonScale = useRef(new Animated.Value(1)).current;
+  const cancelButtonScale = useRef(new Animated.Value(1)).current;
+  const saveButtonScale = useRef(new Animated.Value(1)).current;
+  const deleteButtonScale = useRef(new Animated.Value(1)).current;
+
+  // アニメーション用の参照オブジェクト
+  const orderAnimations = useRef<{[key: string]: Animated.Value}>({}).current;
+  const isUpdatingList = useRef(false);
+
+  // ボタンアニメーション関数
+  const animateButton = (buttonScale: Animated.Value) => {
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 1.03,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 70,
+        useNativeDriver: true,
+      })
+    ]).start();
+  };
 
   // データベースからルーティンを取得
   useEffect(() => {
@@ -78,12 +142,14 @@ export default function RoutineScreen() {
 
   // 新規追加モーダルを開く
   const openModal = () => {
+    animateButton(addButtonScale);
     setNewRoutineTitle(''); // 入力フィールドをリセット
     setIsModalVisible(true);
   };
 
   // 新規追加モーダルを閉じる
   const closeModal = () => {
+    animateButton(cancelButtonScale);
     setIsModalVisible(false);
   };
 
@@ -95,6 +161,7 @@ export default function RoutineScreen() {
 
   // 編集モーダルを閉じる
   const closeEditModal = () => {
+    animateButton(cancelButtonScale);
     setIsEditModalVisible(false);
     setEditingRoutine(null);
   };
@@ -102,6 +169,8 @@ export default function RoutineScreen() {
   // 新しいルーティンを追加
   const addNewRoutine = async () => {
     if (newRoutineTitle.trim() === '' || !userId) return;
+    
+    animateButton(saveButtonScale);
     
     try {
       setLoading(true);
@@ -137,6 +206,8 @@ export default function RoutineScreen() {
   // ルーティンを更新
   const updateRoutine = async () => {
     if (!editingRoutine || editingRoutine.title.trim() === '') return;
+    
+    animateButton(saveButtonScale);
     
     try {
       setLoading(true);
@@ -175,6 +246,8 @@ export default function RoutineScreen() {
   const deleteRoutine = async () => {
     if (!editingRoutine) return;
     
+    animateButton(deleteButtonScale);
+    
     try {
       setLoading(true);
       
@@ -196,38 +269,80 @@ export default function RoutineScreen() {
     }
   };
 
+  // ドラッグ開始時のイベントハンドラ
+  const onDragBegin = useCallback(() => {
+    setIsDragging(true);
+    isUpdatingList.current = false;
+    
+    // ドラッグ開始時にすでに少し透明にする
+    Animated.timing(listOpacity, {
+      toValue: 0.7,
+      duration: 80,
+      useNativeDriver: true,
+    }).start();
+  }, [listOpacity]);
+  
   // ドラッグ終了時のイベントハンドラ
-  const onDragEnd = useCallback(async ({ data }: { data: Routine[] }) => {
+  const onDragEnd = useCallback(async ({ data, from, to }: { data: Routine[], from: number, to: number }) => {
+    // ドロップした瞬間、更新フラグを立てて、即座に透明にする
+    isUpdatingList.current = true;
+    
+    // 即座にフェードアウト
+    listOpacity.setValue(0);  // 即時に完全透明化
+    
     try {
-      // 並び替え後のルーティンを一時的に更新（UIの即時反映のため）
-      setRoutines(data);
-      
       // データベースに並び替え情報を送信
       const reorderData = data.map((item, index) => ({
         id: item.id,
         order: index + 1
       }));
       
-      await reorderRoutines(userId, reorderData);
-      
-      // 並び替え後の最新のルーティンを反映
+      // 並び替え後のルーティンを更新
       const updatedRoutines = data.map((item, index) => ({
         ...item,
         order: index + 1
       }));
       
+      // UI更新（不可視状態で）
       setRoutines(updatedRoutines);
+      
+      // データベース更新（非同期）
+      reorderRoutines(userId, reorderData)
+        .catch(error => console.error('リスト保存中にエラーが発生しました:', error));
+      
+      // レンダリングが確実に完了するまで待機
+      setTimeout(() => {
+        // フェードイン
+        Animated.timing(listOpacity, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }).start(() => {
+          setIsDragging(false);
+          isUpdatingList.current = false;
+        });
+      }, 80); // 十分な遅延を設定
     } catch (error) {
       console.error('ルーティンの並び替えに失敗しました:', error);
       setError('ルーティンの並び替えに失敗しました');
       
-      // エラー時は元の状態に戻す
+      // エラー時に状態をリセット
+      setIsDragging(false);
+      isUpdatingList.current = false;
+      
+      // フェードイン
+      Animated.timing(listOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      
+      // 元の状態に戻す
       const fetchRoutines = async () => {
         try {
           const userRoutines = await getRoutinesByUserId(userId);
           const sortedRoutines = userRoutines.sort((a, b) => a.order - b.order).map(routine => ({
             ...routine,
-            // isActiveがnumberの場合はbooleanに変換
             isActive: routine.isActive === 1 ? true : Boolean(routine.isActive)
           }));
           setRoutines(sortedRoutines);
@@ -238,7 +353,88 @@ export default function RoutineScreen() {
       
       fetchRoutines();
     }
-  }, [userId]);
+  }, [userId, listOpacity]);
+
+  // ルーティンアイテムのレンダリング関数
+  const renderItem = useCallback(({ item, drag, isActive }: RenderItemParams<Routine>) => {
+    return (
+      <Animated.View
+        style={[
+          styles.routineItem,
+          { 
+            backgroundColor: isActive ? projectColors.secondary : projectColors.white1,
+            transform: [{ scale: isActive ? 1.02 : 1 }],
+            shadowOpacity: isActive ? 0.25 : 0.15,
+            shadowRadius: isActive ? 8 : 6,
+            elevation: isActive ? 10 : 8,
+            // ドラッグ中は他のアイテムを少し薄く表示
+            opacity: isDragging && !isActive ? 0.8 : 1,
+          }
+        ]}
+      >
+        <View style={styles.routineRow}>
+          {/* 左側に番号を表示 */}
+          <View 
+            style={[
+              styles.orderContainer,
+              {
+                backgroundColor: isActive 
+                  ? projectColors.primary + '60' 
+                  : projectColors.primary + '40',
+                transform: [{ scale: isActive ? 1.08 : 1 }]
+              }
+            ]}
+          >
+            <ThemedText 
+              style={[
+                styles.orderText,
+                { opacity: isActive ? 0.8 : 1 }
+              ]}
+            >
+              {item.order}
+            </ThemedText>
+          </View>
+          
+          {/* タイトル - タップで編集モーダルを表示 */}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.titleContainer,
+              pressed && styles.titleContainerPressed
+            ]}
+            onPress={() => openEditModal(item)}
+            disabled={loading || isDragging}
+            android_ripple={{ 
+              color: 'rgba(0,0,0,0.05)', 
+              borderless: false 
+            }}
+          >
+            <ThemedText 
+              style={[
+                styles.routineTitle,
+                isActive && { fontWeight: 'bold' }
+              ]}
+            >
+              {item.title}
+            </ThemedText>
+          </Pressable>
+          
+          {/* ドラッグハンドル - 触れた瞬間ドラッグ開始 */}
+          <Pressable 
+            onPressIn={drag}
+            onPress={drag}
+            onLongPress={drag}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed
+            ]}
+            disabled={loading}
+          >
+            <ThemedText style={[styles.dragHandle, isActive && { color: '#555' }]}>≡</ThemedText>
+          </Pressable>
+        </View>
+      </Animated.View>
+    );
+  }, [loading, isDragging]);
 
   if (loading && routines.length === 0) {
     return (
@@ -268,13 +464,23 @@ export default function RoutineScreen() {
         
         {/* 新規追加アイコン */}
         <View style={styles.headerActions}>
-          <Pressable 
-            style={styles.addButton} 
-            onPress={openModal}
-            disabled={loading}
-          >
-            <IconSymbol name="plus" size={22} color={projectColors.white1} />
-          </Pressable>
+          <Animated.View style={{ transform: [{ scale: addButtonScale }] }}>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.addButton,
+                pressed && styles.addButtonPressed
+              ]} 
+              onPress={openModal}
+              disabled={loading}
+              android_ripple={{ 
+                color: 'rgba(255,255,255,0.25)', 
+                borderless: false,
+                foreground: true 
+              }}
+            >
+              <IconSymbol name="plus" size={22} color={projectColors.white1} />
+            </Pressable>
+          </Animated.View>
         </View>
       </ThemedView>
       
@@ -287,50 +493,32 @@ export default function RoutineScreen() {
       <ThemedView style={styles.routineListContainer}>
         {routines.length > 0 ? (
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <DraggableFlatList
-              data={routines}
-              onDragEnd={onDragEnd}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, drag, isActive }) => (
-                <View
-                  style={[
-                    styles.routineItem,
-                    { backgroundColor: isActive ? projectColors.secondary : projectColors.white1 }
-                  ]}
-                >
-                  <View style={styles.routineRow}>
-                    {/* 左側に番号を表示 */}
-                    <View style={styles.orderContainer}>
-                      <ThemedText style={styles.orderText}>{item.order}</ThemedText>
-                    </View>
-                    
-                    {/* タイトル - タップで編集モーダルを表示 */}
-                    <Pressable 
-                      style={styles.titleContainer}
-                      onPress={() => openEditModal(item)}
-                      disabled={loading}
-                    >
-                      <ThemedText style={styles.routineTitle}>{item.title}</ThemedText>
-                    </Pressable>
-                    
-                    {/* ドラッグハンドル - 触れた瞬間ドラッグ開始 */}
-                    <Pressable 
-                      onPressIn={drag}  // 触れた瞬間ドラッグ開始
-                      onPress={drag}    // タップでもドラッグ開始（念のため）
-                      onLongPress={drag} // 長押しでもドラッグ開始（念のため）
-                      style={({ pressed }) => [
-                        styles.iconButton,
-                        pressed && styles.iconButtonPressed
-                      ]}
-                      disabled={loading}
-                    >
-                      <ThemedText style={styles.dragHandle}>≡</ThemedText>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-              contentContainerStyle={styles.listContentContainer}
-            />
+            <Animated.View 
+              style={{ 
+                flex: 1, 
+                opacity: listOpacity,
+              }}
+            >
+              <DraggableFlatList
+                data={routines}
+                onDragBegin={onDragBegin}
+                onDragEnd={onDragEnd}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContentContainer}
+                animationConfig={{ 
+                  damping: 30,
+                  stiffness: 300,
+                  mass: 0.8,
+                  overshootClamping: false,
+                  restDisplacementThreshold: 0.01,
+                  restSpeedThreshold: 0.01,
+                }}
+                autoscrollSpeed={400}
+                dragItemOverflow={true}
+                dragHitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              />
+            </Animated.View>
           </GestureHandlerRootView>
         ) : (
           <ThemedText style={styles.emptyListText}>
@@ -347,33 +535,41 @@ export default function RoutineScreen() {
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>新しいルーティンを追加</ThemedText>
+          <View style={[styles.modalContent, cardNeomorphStyle]}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>新しいルーティンを追加</ThemedText>
+            </View>
             
-            <TextInput
-              style={styles.input}
-              placeholder="ルーティンのタイトル"
-              value={newRoutineTitle}
-              onChangeText={setNewRoutineTitle}
-              autoFocus
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="ルーティンのタイトル"
+                value={newRoutineTitle}
+                onChangeText={setNewRoutineTitle}
+                autoFocus
+              />
+            </View>
             
             <View style={styles.modalButtons}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={closeModal}
-                disabled={loading}
-              >
-                <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
-              </Pressable>
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={styles.cancelButton} 
+                  onPress={closeModal}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
+                </Pressable>
+              </View>
               
-              <Pressable 
-                style={[styles.modalButton, styles.addRoutineButton]} 
-                onPress={addNewRoutine}
-                disabled={loading}
-              >
-                <ThemedText style={styles.addButtonText}>追加</ThemedText>
-              </Pressable>
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={styles.addRoutineButton} 
+                  onPress={addNewRoutine}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.addButtonText}>追加</ThemedText>
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
@@ -387,45 +583,53 @@ export default function RoutineScreen() {
         onRequestClose={closeEditModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>ルーティンを編集</ThemedText>
+          <View style={[styles.modalContent, cardNeomorphStyle]}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>ルーティンを編集</ThemedText>
+              
+              {/* 削除ボタンを上部に移動 */}
+              <Pressable 
+                style={styles.deleteIconButton} 
+                onPress={deleteRoutine}
+                disabled={loading}
+              >
+                <IconSymbol name="trash" size={22} color={projectColors.white1} />
+              </Pressable>
+            </View>
             
             {editingRoutine && (
-              <TextInput
-                style={styles.input}
-                placeholder="ルーティンのタイトル"
-                value={editingRoutine.title}
-                onChangeText={(text) => setEditingRoutine({...editingRoutine, title: text})}
-                autoFocus
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="ルーティンのタイトル"
+                  value={editingRoutine.title}
+                  onChangeText={(text) => setEditingRoutine({...editingRoutine, title: text})}
+                  autoFocus
+                />
+              </View>
             )}
             
             <View style={styles.modalButtons}>
-              <Pressable 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={closeEditModal}
-                disabled={loading}
-              >
-                <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
-              </Pressable>
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={styles.cancelButton} 
+                  onPress={closeEditModal}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.cancelButtonText}>キャンセル</ThemedText>
+                </Pressable>
+              </View>
               
-              <Pressable 
-                style={[styles.modalButton, styles.addRoutineButton]} 
-                onPress={updateRoutine}
-                disabled={loading}
-              >
-                <ThemedText style={styles.addButtonText}>更新</ThemedText>
-              </Pressable>
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={styles.addRoutineButton} 
+                  onPress={updateRoutine}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.addButtonText}>更新</ThemedText>
+                </Pressable>
+              </View>
             </View>
-
-            {/* 削除ボタン */}
-            <Pressable 
-              style={styles.deleteButton} 
-              onPress={deleteRoutine}
-              disabled={loading}
-            >
-              <ThemedText style={styles.deleteButtonText}>このルーティンを削除</ThemedText>
-            </Pressable>
           </View>
         </View>
       </Modal>
@@ -438,42 +642,55 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: projectColors.white1,
-  },
+  } as ViewStyle,
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 20,
-  },
+  } as ViewStyle,
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   addButton: {
-    backgroundColor: projectColors.success,  // より薄い緑色を使用
+    backgroundColor: projectColors.success,
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
+    shadowColor: projectColors.black1,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+  } as ViewStyle,
+  addButtonPressed: {
+    backgroundColor: projectColors.success + 'E6', // 90% opacity
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.1,
+    elevation: 2,
+    transform: [{ scale: 0.98 }],
+  } as ViewStyle,
   emptyListText: {
     textAlign: 'center',
     marginTop: 20,
     fontSize: 16,
     color: '#888',
-  },
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   routineListContainer: {
     flex: 1,
-  },
+  } as ViewStyle,
   listContentContainer: {
     paddingBottom: 20,
-  },
+  } as ViewStyle,
   routineItem: {
-    padding: 10, // 縦幅を縮める
+    padding: 10,
     borderRadius: 12,
-    marginVertical: 6, // 縦マージンも縮める
+    marginVertical: 6,
     
     // ニューモーフィズム効果
     backgroundColor: projectColors.white1,
@@ -486,16 +703,16 @@ const styles = StyleSheet.create({
     // 内側の光の効果
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.7)',
-  },
+  } as ViewStyle,
   routineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   orderContainer: {
-    width: 28, // サイズを少し小さく
-    height: 28, // サイズを少し小さく
+    width: 28,
+    height: 28,
     borderRadius: 14,
-    backgroundColor: projectColors.primary,
+    backgroundColor: projectColors.primary + '40',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -505,127 +722,180 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
-  },
+  } as ViewStyle,
   orderText: {
     color: projectColors.black1,
-    fontSize: 13, // フォントサイズも少し小さく
-    fontWeight: 'bold',
-  },
+    fontSize: 13,
+    fontWeight: fonts.weights.bold,
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   titleContainer: {
     flex: 1,
-    paddingVertical: 5, // タップしやすい高さを確保
-  },
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+  } as ViewStyle,
+  titleContainerPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  } as ViewStyle,
   routineTitle: {
     fontSize: 16,
-  },
+    fontFamily: fonts.families.primary,
+    fontWeight: fonts.weights.medium,
+  } as TextStyle,
   iconButton: {
-    padding: 6, // 少し小さく
+    padding: 6,
     marginLeft: 5,
     borderRadius: 20,
-  },
+  } as ViewStyle,
   iconButtonPressed: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
+  } as ViewStyle,
   dragHandle: {
-    fontSize: 28, // 少し小さく
+    fontSize: 28,
     color: '#888888',
-    paddingTop: 10, // 調整
-  },
+    paddingTop: 10,
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   // モーダルスタイル
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start', // 上寄せに変更
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 130, // 上からの余白を追加
-  },
+    paddingTop: 100,
+    paddingHorizontal: 16,
+  } as ViewStyle,
   modalContent: {
-    width: '90%', // 幅を広げる
-    backgroundColor: projectColors.white1, // white1に変更
+    width: '100%',
+    backgroundColor: projectColors.white1,
     borderRadius: 16,
-    padding: 20,
-    // ニューモーフィズム効果をモーダルにも
+    padding: 24,
+    maxWidth: 400,
     shadowColor: projectColors.black1,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
-  },
+    alignItems: 'center',
+  } as ViewStyle,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  } as ViewStyle,
+  deleteIconButton: {
+    backgroundColor: projectColors.red1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'rgba(0,0,0,0.3)',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+    marginLeft: 15,
+  } as ViewStyle,
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: fonts.weights.bold,
     textAlign: 'center',
-    color: projectColors.black1, // 黒色に戻す
-  },
+    color: projectColors.black1,
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   input: {
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 18,
+    marginBottom: 28,
     backgroundColor: 'white',
     color: projectColors.black1,
-  },
+    fontFamily: fonts.families.primary,
+    width: '100%',
+    minHeight: 56,
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+    textAlign: 'left',
+    flexShrink: 1,
+  } as TextStyle,
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    width: '100%',
+  } as ViewStyle,
+  buttonContainer: {
+    width: '48%',
+  } as ViewStyle,
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
-  },
+    minHeight: 56,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  } as ViewStyle,
   addRoutineButton: {
     backgroundColor: projectColors.success,
-    marginLeft: 8,
-  },
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  } as ViewStyle,
   cancelButtonText: {
     color: '#666666',
-    fontWeight: 'bold',
-  },
+    fontWeight: fonts.weights.bold,
+    fontFamily: fonts.families.primary,
+    fontSize: 18,
+    textAlign: 'center',
+  } as TextStyle,
   addButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  deleteButton: {
-    marginTop: 20,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: projectColors.white1,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    color: projectColors.red1,
-    fontWeight: 'bold',
-  },
+    color: projectColors.white1,
+    fontWeight: fonts.weights.bold,
+    fontFamily: fonts.families.primary,
+    fontSize: 18,
+    textAlign: 'center',
+  } as TextStyle,
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: projectColors.black1,
-  },
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   errorText: {
     fontSize: 16,
     color: projectColors.red1,
     textAlign: 'center',
-  },
+    fontFamily: fonts.families.primary,
+  } as TextStyle,
   overlayLoading: {
     position: 'absolute',
     top: 0,
@@ -636,5 +906,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
-  },
+  } as ViewStyle,
+  inputContainer: {
+    width: '100%',
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  } as ViewStyle,
 }); 

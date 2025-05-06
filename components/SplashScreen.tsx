@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, Dimensions } from 'react-native';
 import { projectColors } from '@/constants/Colors';
+import { fonts } from '@/constants/fonts';
 import { createNeomorphicStyle, create3DCircleStyle } from '@/constants/NeuomorphicStyles';
 
 // グローバル状態変数 - アプリケーション全体で1回だけアニメーションを実行するため
@@ -299,14 +300,15 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 46,
-    fontFamily: 'ZenMaruGothic_700Bold',
+    fontFamily: fonts.families.primary,
+    fontWeight: 'bold',
     color: projectColors.black1,
   },
   subtitle: {
     marginTop: 20,
     fontSize: 16,
-    fontFamily: 'ZenMaruGothic_400Regular',
-    color: '#666',
+    fontFamily: fonts.families.primary,
+    color: projectColors.black1,
   },
   lightEffect: {
     ...create3DCircleStyle(220, 6, 12),
