@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { 
   getNotificationPermissions, 
   scheduleRoutineNotification as scheduleNotification,
-  cancelRoutineNotifications as cancelNotifications
+  scheduleNightNotification as scheduleNightNotify,
+  cancelRoutineNotifications as cancelNotifications,
+  cancelNightNotifications as cancelNightNotify
 } from './notificationService';
 
 /**
@@ -32,12 +34,16 @@ export const useNotifications = () => {
     permission,
     requestPermissions,
     scheduleRoutineNotification: scheduleNotification,
+    scheduleNightNotification: scheduleNightNotify,
     cancelRoutineNotifications: cancelNotifications,
+    cancelNightNotifications: cancelNightNotify
   };
 };
 
 // サービス関数をエクスポートして、コンポーネント外からも使用できるようにする
 export { 
   scheduleNotification as scheduleRoutineNotification, 
-  cancelNotifications as cancelRoutineNotifications 
+  scheduleNightNotify as scheduleNightNotification,
+  cancelNotifications as cancelRoutineNotifications,
+  cancelNightNotify as cancelNightNotifications
 }; 
