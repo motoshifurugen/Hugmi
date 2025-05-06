@@ -89,9 +89,9 @@ export default function TutorialController({ children }: TutorialControllerProps
     console.log('[DEBUG] チュートリアルが完了しました');
     setShowTutorial(false);
     
-    // ホーム画面に遷移
-    console.log('[DEBUG] ホーム画面に遷移します');
-    router.replace('/(tabs)/home');
+    // 名言画面に遷移（通常のログインフロー同様）
+    console.log('[DEBUG] 名言画面に遷移します');
+    router.replace('/daily-quote');
   };
 
   // まだローディング中の場合は何も表示しない
