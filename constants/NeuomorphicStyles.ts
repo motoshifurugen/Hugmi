@@ -1,5 +1,5 @@
 import { projectColors } from './Colors';
-import { ViewStyle } from 'react-native';
+import { ViewStyle, DimensionValue } from 'react-native';
 
 /**
  * ニューモーフィズムスタイルを生成する関数
@@ -57,7 +57,7 @@ export const createNeomorphicStyle = (
  * @returns ViewStyleオブジェクト
  */
 export const createNeomorphicButtonStyle = (
-  width: string | number = '70%',
+  width: DimensionValue = '70%',
   borderRadius: number = 20
 ): ViewStyle => {
   return {
@@ -83,7 +83,6 @@ export const createNeomorphicButtonStyle = (
     borderLeftColor: projectColors.neuLight,
     borderBottomColor: 'transparent',
     borderRightColor: 'transparent',
-    
     width,
     alignSelf: 'center',
   };
@@ -156,7 +155,7 @@ export const create3DCircleStyle = (
     width: size,
     height: size,
     borderRadius: size / 2,
-    backgroundColor: projectColors.softOrange,
+    backgroundColor: projectColors.primary,
     borderWidth,
     borderColor: 'rgba(255, 255, 255, 0.8)',
     position: 'absolute',

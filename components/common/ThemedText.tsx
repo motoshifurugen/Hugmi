@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.families.primary,
     fontSize: 32,
     fontWeight: 'bold',
-    lineHeight: 32,
+    lineHeight: 36,
   },
   subtitle: {
     fontFamily: fonts.families.primary,

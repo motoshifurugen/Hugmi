@@ -9,6 +9,7 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts as useCustomFonts, ZenMaruGothic_400Regular, ZenMaruGothic_500Medium, ZenMaruGothic_700Bold } from '@expo-google-fonts/zen-maru-gothic';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as SecureStore from 'expo-secure-store';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { db } from '@/db';
@@ -70,8 +71,17 @@ export default function RootLayout() {
           const { getAllUsers } = await import('@/db/utils/users');
           const users = await getAllUsers();
           if (users.length > 0) {
-            setActiveUserId(users[0].id);
-            console.log(`[DEBUG] アクティブユーザーとして設定: ${users[0].id}`);
+            const userId = users[0].id;
+            setActiveUserId(userId);
+            console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
+            
+            // SecureStoreにも保存する
+            try {
+              await SecureStore.setItemAsync('active_user_id', userId);
+              console.log(`[DEBUG] アクティブユーザーIDをSecureStoreに保存: ${userId}`);
+            } catch (error) {
+              console.error('アクティブユーザーIDの保存に失敗しました:', error);
+            }
           }
         } catch (error) {
           console.error('ユーザーデータ取得エラー:', error);
@@ -93,7 +103,17 @@ export default function RootLayout() {
             console.log('最初のユーザー:', users[0].name);
             
             // アクティブユーザーIDをグローバル設定（最初のユーザー）
-            setActiveUserId(users[0].id);
+            const userId = users[0].id;
+            setActiveUserId(userId);
+            console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
+            
+            // SecureStoreにも保存する
+            try {
+              await SecureStore.setItemAsync('active_user_id', userId);
+              console.log(`[DEBUG] アクティブユーザーIDをSecureStoreに保存: ${userId}`);
+            } catch (error) {
+              console.error('アクティブユーザーIDの保存に失敗しました:', error);
+            }
             
             // スキーマのマイグレーション（必要であれば）
             const migrationResult = await migrateToNewSchema();
