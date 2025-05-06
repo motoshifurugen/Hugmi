@@ -56,6 +56,13 @@ export default function MorningCompleteScreen() {
   // 画面の寸法を取得
   const { width, height } = Dimensions.get('window');
 
+  // ルーティンドットのアニメーション値をリセットする関数
+  const resetRoutineAnimations = useCallback(() => {
+    routines.forEach(routine => {
+      routine.dotAnim.setValue(0);
+    });
+  }, [routines]);
+
   // ユーザー名とルーティンデータを取得
   useEffect(() => {
     const fetchUserData = async () => {
@@ -91,24 +98,21 @@ export default function MorningCompleteScreen() {
       // 今日のルーティンログを取得
       const todayLogs = await getRoutineLogsByDate(userId, today);
       
-      // ルーティンアイテムを作成
-      const routineItems: RoutineItem[] = [];
-      
-      // 各ルーティンの状態を確認
-      for (const routine of allRoutines) {
+      // Array.mapを使用してルーティンアイテムを生成
+      const routineItems: RoutineItem[] = allRoutines.map(routine => {
         // 対応するログを検索
         const log = todayLogs.find(log => log.routineId === routine.id);
         
         // ルーティンのステータスを決定
         const status = log ? log.status : 'unchecked';
         
-        routineItems.push({
+        return {
           id: routine.id,
           title: routine.title,
           status: status,
           dotAnim: new Animated.Value(0), // ドットアニメーション用の値（完了したもののみアニメーションする）
-        });
-      }
+        };
+      });
       
       // 完了したものを上部に表示するようにソート
       routineItems.sort((a, b) => {
@@ -144,14 +148,12 @@ export default function MorningCompleteScreen() {
       particle.rotate.setValue(0);
     });
     
-    // ルーティンドットのアニメーション値もリセット
-    routines.forEach(routine => {
-      routine.dotAnim.setValue(0);
-    });
+    // ルーティンドットのアニメーション値をリセット（別の関数に分離）
+    resetRoutineAnimations();
     
     // パーティクル配列をクリア
     particles.current = [];
-  }, [fadeAnim, tapTextAnim, routineListAnim, routines]);
+  }, [fadeAnim, tapTextAnim, routineListAnim, resetRoutineAnimations]);
   
   // コンポーネントのアンマウント時にアニメーションをクリーンアップ
   useEffect(() => {
