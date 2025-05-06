@@ -14,6 +14,7 @@ import { projectColors } from '@/constants/Colors';
 // 名言データベース関連のインポート
 import { getAllQuotes } from '@/db/utils/quotes';
 import { getViewedQuotesByUserId } from '@/db/utils/viewed_quotes';
+import { getFavoriteQuotesByUserId, addFavoriteQuote, removeFavoriteQuote } from '@/db/utils/favorite_quotes';
 
 // グローバル状態管理
 import { useActiveUserIdSimple } from '@/hooks/useActiveUser';
@@ -146,7 +147,11 @@ export default function QuotesScreen() {
       const viewedQuotesRecords = await getViewedQuotesByUserId(activeUserId);
       const viewedQuoteIds = new Set(viewedQuotesRecords.map(record => record.quoteId));
       
-      console.log(`[DEBUG] 名言データ取得: ${allQuotes.length}件, 表示済み: ${viewedQuoteIds.size}件, ユーザーID: ${activeUserId}`);
+      // お気に入り名言のIDリストを取得
+      const favoriteQuotes = await getFavoriteQuotesByUserId(activeUserId);
+      const favoriteQuoteIds = new Set(favoriteQuotes.map(fav => fav.quoteId));
+      
+      console.log(`[DEBUG] 名言データ取得: ${allQuotes.length}件, 表示済み: ${viewedQuoteIds.size}件, お気に入り: ${favoriteQuoteIds.size}件, ユーザーID: ${activeUserId}`);
       
       // 名言データを画面用の形式に変換
       const formattedQuotes: Quote[] = allQuotes.map(quote => {
@@ -168,7 +173,7 @@ export default function QuotesScreen() {
           authorJa: quote.authorJa,
           authorEn: quote.authorEn,
           era: quote.era,
-          isFavorite: false, // お気に入り状態は別のテーブルから取得する必要があるが、今回は簡略化
+          isFavorite: favoriteQuoteIds.has(quote.id), // お気に入り状態を設定
           unlocked: viewedQuoteIds.has(quote.id), // 表示済みのみアンロック
           imagePath: quote.imagePath
         };
@@ -207,10 +212,28 @@ export default function QuotesScreen() {
   // お気に入り状態の更新
   const updateFavorite = async (id: string, isFavorite: boolean) => {
     try {
-      // 実際のアプリではここでデータベースを更新
+      // データベースを更新
       console.log(`[DEBUG] お気に入り更新: id=${id}, isFavorite=${isFavorite}`);
       
-      // ローカルの状態だけ更新（デモ用）
+      let success = false;
+      if (isFavorite) {
+        // お気に入りに追加
+        success = await addFavoriteQuote(activeUserId, id);
+      } else {
+        // お気に入りから削除
+        success = await removeFavoriteQuote(activeUserId, id);
+      }
+      
+      if (!success) {
+        console.error(`お気に入り${isFavorite ? '登録' : '解除'}に失敗しました`);
+        Alert.alert(
+          'エラー',
+          `お気に入り${isFavorite ? '登録' : '解除'}に失敗しました。もう一度お試しください。`
+        );
+        return false;
+      }
+      
+      // ローカルの状態を更新
       setQuotes(quotes.map(quote => 
         quote.id === id ? {...quote, isFavorite} : quote
       ));
@@ -813,7 +836,7 @@ const styles = StyleSheet.create({
   },
   iconFavorite: {
     position: 'absolute',
-    top: 6,
+    bottom: 6,
     right: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 8,

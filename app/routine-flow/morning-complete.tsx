@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { fonts } from '@/constants/fonts';
 import { projectColors } from '@/constants/Colors';
+import { getAllUsers } from '@/db/utils/users';
 
 // 日替わりメッセージの配列
 const encouragingMessages = [
@@ -48,14 +49,38 @@ export default function MorningCompleteScreen() {
   const celebrationAnim = useRef(new Animated.Value(1)).current; // 最初から表示するため1に設定
   const tapTextAnim = useRef(new Animated.Value(0)).current;
   
-  const [username, setUsername] = useState('まい'); // ユーザー名（本来はストアから取得）
+  const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const particles = useRef<Particle[]>([]);
   const animationsRef = useRef<Animated.CompositeAnimation | null>(null);
   const animationsComplete = useRef(false);
   
   // 画面の寸法を取得
   const { width, height } = Dimensions.get('window');
+
+  // ユーザー名を取得
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        // ユーザーを取得（アプリでは1人のみという前提）
+        const users = await getAllUsers();
+        if (users.length > 0) {
+          setUsername(users[0].name);
+        } else {
+          console.error('ユーザーが見つかりません');
+          setUsername('ゲスト');
+        }
+      } catch (error) {
+        console.error('ユーザー名の取得に失敗しました:', error);
+        setUsername('ゲスト');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUsername();
+  }, []);
   
   // アニメーションをクリーンアップする関数
   const cleanupAnimations = useCallback(() => {
@@ -344,6 +369,16 @@ export default function MorningCompleteScreen() {
       />
     );
   }, []);
+  
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ThemedView style={styles.container}>
+          <ThemedText>読み込み中...</ThemedText>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
   
   return (
     <SafeAreaView style={styles.safeArea}>
