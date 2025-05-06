@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
   },
   iconFavorite: {
     position: 'absolute',
-    top: 6,
+    bottom: 6,
     right: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 8,

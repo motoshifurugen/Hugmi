@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, ActivityIndicator, ScrollView, Pressable } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View, ActivityIndicator, ScrollView, Pressable, Animated } from 'react-native';
 import { router } from 'expo-router';
 
 import { HelloWave } from '@/components/common/HelloWave';
@@ -68,11 +68,6 @@ const actionButtonPressedStyle = {
   backgroundColor: projectColors.softOrange,
   opacity: 0.95,
   transform: [{ scale: 0.98 }],
-  
-  // 押された時は影を小さく
-  shadowOffset: { width: 2, height: 2 },
-  shadowOpacity: 0.8,
-  shadowRadius: 3,
 };
 
 export default function HomeScreen() {
@@ -81,6 +76,10 @@ export default function HomeScreen() {
   const [routineProgress, setRoutineProgress] = useState({ completed: 0, total: 0 });
   const [todayQuote, setTodayQuote] = useState({ textJa: '', authorJa: '' });
   const [userId, setUserId] = useState('');
+  
+  // ボタンアニメーション用のAnimated Valueを追加
+  const routineButtonScale = useRef(new Animated.Value(1)).current;
+  const quotesButtonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loadData = async () => {
@@ -152,6 +151,40 @@ export default function HomeScreen() {
     loadData();
   }, []);
   
+  // ボタンアニメーション関数
+  const animateButton = (buttonScale: Animated.Value, onComplete?: () => void) => {
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 1.05, // ルーティン画面の「できた！」ボタンと同じ値
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      if (onComplete) {
+        onComplete();
+      }
+    });
+  };
+  
+  // 明日のルーティンボタンのハンドラ
+  const handleRoutinePress = () => {
+    animateButton(routineButtonScale, () => {
+      router.push('/(tabs)/routine');
+    });
+  };
+  
+  // 名言コレクションボタンのハンドラ
+  const handleQuotesPress = () => {
+    animateButton(quotesButtonScale, () => {
+      router.push('/(tabs)/quotes');
+    });
+  };
+  
   // 時間帯に応じた挨拶を取得
   const greeting = getTimeBasedGreeting();
   
@@ -215,27 +248,31 @@ export default function HomeScreen() {
       
       {/* アクションボタン */}
       <View style={styles.actionsContainer}>
-        <Pressable 
-          style={({ pressed }) => [
-            styles.actionButton,
-            pressed ? styles.buttonPressed : styles.button
-          ]}
-          onPress={() => router.push('/(tabs)/routine')}
-        >
-          <IconSymbol name="list.star" size={22} color={projectColors.black1} />
-          <ThemedText style={styles.actionButtonText}>明日のルーティン</ThemedText>
-        </Pressable>
+        <Animated.View style={{ transform: [{ scale: routineButtonScale }], width: '48%' }}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed
+            ]}
+            onPress={handleRoutinePress}
+          >
+            <IconSymbol name="list.star" size={22} color={projectColors.black1} />
+            <ThemedText style={styles.actionButtonText}>明日のルーティン</ThemedText>
+          </Pressable>
+        </Animated.View>
         
-        <Pressable 
-          style={({ pressed }) => [
-            styles.actionButton,
-            pressed ? styles.buttonPressed : styles.button
-          ]}
-          onPress={() => router.push('/(tabs)/quotes')}
-        >
-          <IconSymbol name="sparkles" size={22} color={projectColors.black1} />
-          <ThemedText style={styles.actionButtonText}>名言コレクション</ThemedText>
-        </Pressable>
+        <Animated.View style={{ transform: [{ scale: quotesButtonScale }], width: '48%' }}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed
+            ]}
+            onPress={handleQuotesPress}
+          >
+            <IconSymbol name="sparkles" size={22} color={projectColors.black1} />
+            <ThemedText style={styles.actionButtonText}>名言コレクション</ThemedText>
+          </Pressable>
+        </Animated.View>
       </View>
     </ScrollView>
   );
@@ -342,10 +379,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   actionButton: {
+    ...actionButtonNeomorphStyle,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    flex: 0.48,
+    alignItems: 'center',
   },
   actionButtonText: {
     fontFamily: fonts.families.primary,
@@ -359,5 +396,8 @@ const styles = StyleSheet.create({
   },
   button: {
     ...actionButtonNeomorphStyle,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 
