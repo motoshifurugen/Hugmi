@@ -99,11 +99,9 @@ const getLocalImageSource = (fileName: string) => {
       case 'marcel_proust.png':
         return require('../../assets/images/great_person/marcel_proust.png');
       default:
-        console.log(`[警告] 未対応の画像ファイル: ${fileName}`);
         return null;
     }
   } catch (error) {
-    console.log(`[エラー] 画像の読み込みに失敗: ${fileName}`, error);
     return null;
   }
 };
@@ -196,7 +194,6 @@ export default function QuotesScreen() {
       setQuotes(formattedQuotes);
       setError(null);
     } catch (err) {
-      console.error('名言データの取得に失敗しました:', err);
       setError('データの読み込みに失敗しました。後でもう一度お試しください。');
       // バックアップとしてサンプルデータを使用
       setQuotes(SAMPLE_QUOTES);
@@ -219,8 +216,6 @@ export default function QuotesScreen() {
   const updateFavorite = async (id: string, isFavorite: boolean) => {
     try {
       // データベースを更新
-      console.log(`[DEBUG] お気に入り更新: id=${id}, isFavorite=${isFavorite}`);
-      
       let success = false;
       if (isFavorite) {
         // お気に入りに追加
@@ -231,7 +226,6 @@ export default function QuotesScreen() {
       }
       
       if (!success) {
-        console.error(`お気に入り${isFavorite ? '登録' : '解除'}に失敗しました`);
         Alert.alert(
           'エラー',
           `お気に入り${isFavorite ? '登録' : '解除'}に失敗しました。もう一度お試しください。`
@@ -246,7 +240,6 @@ export default function QuotesScreen() {
       
       return true;
     } catch (err) {
-      console.error('お気に入り状態の更新に失敗しました:', err);
       Alert.alert(
         'エラー',
         'お気に入り状態の更新に失敗しました。'

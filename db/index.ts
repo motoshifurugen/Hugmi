@@ -126,10 +126,8 @@ class Database {
         );`
       );
       
-      console.log('Database initialized successfully');
       return Promise.resolve();
     } catch (error) {
-      console.error('Error initializing database:', error);
       return Promise.reject(error);
     }
   }
@@ -552,7 +550,6 @@ class Database {
     } catch (error) {
       // エラー時はロールバック
       await this.db.runAsync("ROLLBACK");
-      console.error("Error reordering routines:", error);
       return false;
     }
   }

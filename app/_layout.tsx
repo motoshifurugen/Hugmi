@@ -37,10 +37,9 @@ const ANIMATION_EVENTS = {
 // ユーザーIDが設定されたときに通知を設定する共通関数
 const setupUserNotifications = async (userId: string) => {
   try {
-    console.log(`[DEBUG] ユーザーID: ${userId} の通知を設定します`);
     await setupNotifications(userId);
   } catch (error) {
-    console.error('通知設定中にエラーが発生しました:', error);
+    // 通知設定中のエラーは無視
   }
 };
 
@@ -70,28 +69,22 @@ export default function RootLayout() {
   // データベース初期化処理
   const initializeDatabase = useCallback(async (resetDb = true) => {
     try {
-      console.log('[DEBUG] データベース初期化を開始...');
-      
       // データベースからデータを読み込む前にスキーマの初期化を実行
       await db.initialize();
-      console.log('データベースの初期化が完了しました');
       
       // 名言データが存在するか確認
       const { getAllQuotes } = await import('@/db/utils/quotes');
       const quotes = await getAllQuotes();
-      console.log(`データベース内の名言数: ${quotes.length}`);
       
       if (quotes.length === 0) {
         // 名言データが存在しない場合は、シードデータだけを実行
         const { seedQuotes } = await import('@/db/seeds/quotes');
         await seedQuotes();
-        console.log('名言シードデータの投入が完了しました');
       }
       
       if (resetDb) {
         // 開発モードでシードを実行（データクリア付き）
         await runAllSeeds(true);
-        console.log('シードデータの投入が完了しました');
         
         // ユーザーデータを取得してアクティブユーザーIDを設定
         try {
@@ -100,7 +93,6 @@ export default function RootLayout() {
           if (users.length > 0) {
             const userId = users[0].id;
             setActiveUserId(userId);
-            console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
             // 通知を設定
             await setupUserNotifications(userId);
@@ -108,13 +100,12 @@ export default function RootLayout() {
             // SecureStoreにも保存する
             try {
               await SecureStore.setItemAsync('active_user_id', userId);
-              console.log(`[DEBUG] アクティブユーザーIDをSecureStoreに保存: ${userId}`);
             } catch (error) {
-              console.error('アクティブユーザーIDの保存に失敗しました:', error);
+              // エラー時は無視
             }
           }
         } catch (error) {
-          console.error('ユーザーデータ取得エラー:', error);
+          // エラー時は無視
         }
       } else {
         // シードデータが必要か確認する
@@ -122,18 +113,13 @@ export default function RootLayout() {
           // ユーザーデータが正しく作成されているか確認
           const { getAllUsers } = await import('@/db/utils/users');
           const users = await getAllUsers();
-          console.log(`データベース内のユーザー数: ${users.length}`);
           
           if (users.length === 0) {
             // ユーザーが存在しない場合、チュートリアルで作成するのでシードは実行しない
-            console.log('ユーザーが見つかりません。チュートリアルで作成されるのを待ちます。');
           } else {
-            console.log('最初のユーザー:', users[0].name);
-            
             // アクティブユーザーIDをグローバル設定（最初のユーザー）
             const userId = users[0].id;
             setActiveUserId(userId);
-            console.log(`[DEBUG] アクティブユーザーIDをグローバル設定: ${userId}`);
             
             // 通知を設定
             await setupUserNotifications(userId);
@@ -141,14 +127,12 @@ export default function RootLayout() {
             // SecureStoreにも保存する
             try {
               await SecureStore.setItemAsync('active_user_id', userId);
-              console.log(`[DEBUG] アクティブユーザーIDをSecureStoreに保存: ${userId}`);
             } catch (error) {
-              console.error('アクティブユーザーIDの保存に失敗しました:', error);
+              // エラー時は無視
             }
             
             // スキーマのマイグレーション（必要であれば）
             const migrationResult = await migrateToNewSchema();
-            console.log('マイグレーション結果:', migrationResult ? '成功' : '不要または失敗');
           }
           
           // もう一度ユーザーデータを確認し、確実にアクティブユーザーIDを設定
@@ -156,7 +140,6 @@ export default function RootLayout() {
           if (allUsers.length > 0) {
             const userId = allUsers[0].id;
             setActiveUserId(userId);
-            console.log(`[DEBUG] アクティブユーザーとして設定: ${userId}`);
             
             // 朝の時間帯とルーティン状況に基づいて初期ルートを決定
             // ここで初回ログインかどうかを判定して渡す
@@ -165,7 +148,6 @@ export default function RootLayout() {
             
             if (isFirstLogin) {
               // 初回ログイン後は名言画面に遷移するようフラグを渡す
-              console.log('[DEBUG] チュートリアル完了後の初回ルート決定');
               const route = await determineInitialRoute(userId, true);
               setInitialRoute(route);
               
@@ -176,14 +158,11 @@ export default function RootLayout() {
               const route = await determineInitialRoute(userId);
               setInitialRoute(route);
             }
-            
-            console.log(`[DEBUG] 初期ルートを決定しました: ${initialRoute}`);
           } else {
             // ユーザーが存在しない場合はデフォルトでホーム画面へ（具体的なパスを指定）
             setInitialRoute('(tabs)/home');
           }
         } catch (error) {
-          console.error('データ確認中にエラーが発生しました:', error);
           // エラーが発生した場合はデフォルトでホーム画面へ
           setInitialRoute('(tabs)/home');
         }
@@ -193,14 +172,11 @@ export default function RootLayout() {
       setDbInitialized(true);
       // DailyQuoteScreenコンポーネント用にグローバル状態を更新
       setDbInitializedGlobal(true);
-      console.log('[DEBUG] データベース初期化完了フラグを設定しました');
     } catch (error) {
-      console.error('データベースの初期化中にエラーが発生しました:', error);
       // エラー時もルートを設定して進める
       setInitialRoute('(tabs)/home'); // エラー時はホーム画面へ
       setDbInitialized(true); // エラー時も初期化完了とみなす
       setDbInitializedGlobal(true); // DailyQuoteScreen用の状態も更新
-      console.log('[DEBUG] エラーが発生しましたが、データベース初期化完了フラグを設定しました');
     }
   }, []);
   
@@ -212,7 +188,6 @@ export default function RootLayout() {
         try {
           // Expoデフォルトスプラッシュスクリーンを非表示にする
           await SplashScreen.hideAsync();
-          console.log('[DEBUG] Expoデフォルトスプラッシュスクリーンを非表示にしました');
           
           // データベース初期化を非同期で開始（待機あり）
           await initializeDatabase(false);
@@ -222,7 +197,6 @@ export default function RootLayout() {
             setForceNavigate(true);
           }
         } catch (e) {
-          console.warn('スプラッシュスクリーンの非表示に失敗:', e);
           // エラー時もデータベース初期化を実行（待機あり）
           await initializeDatabase(false);
         }
@@ -238,14 +212,12 @@ export default function RootLayout() {
     if (ANIMATION_EVENTS.COMPLETE && dbInitialized) {
       // フラグをリセット（不要だが念のため）
       ANIMATION_EVENTS.COMPLETE = false;
-      console.log('[DEBUG] アニメーションとDB初期化の両方が完了しました。スプラッシュ非表示へ。');
       setShowSplash(false);
     }
   }, [dbInitialized]);
 
   // アニメーション完了時のコールバック
   const onAnimationComplete = useCallback(() => {
-    console.log('[DEBUG] スプラッシュアニメーション完了イベントを発行します');
     // イベント発行
     ANIMATION_EVENTS.COMPLETE = true;
   }, []);

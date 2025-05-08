@@ -83,11 +83,9 @@ export default function MorningCompleteScreen() {
           // ユーザーのルーティンログを取得
           await fetchRoutineData(users[0].id);
         } else {
-          console.error('ユーザーが見つかりません');
           setUsername('ゲスト');
         }
       } catch (error) {
-        console.error('ユーザー名の取得に失敗しました:', error);
         setUsername('ゲスト');
       } finally {
         setLoading(false);
@@ -132,7 +130,7 @@ export default function MorningCompleteScreen() {
       
       setRoutines(routineItems);
     } catch (error) {
-      console.error('ルーティンデータの取得に失敗しました:', error);
+      // エラー時は空のルーティンリストを表示
     }
   };
   

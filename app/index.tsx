@@ -21,9 +21,8 @@ export default function Index() {
         
         // 通知権限を確認（要求はしない - 設定画面から行う）
         const { status } = await Notifications.getPermissionsAsync();
-        console.log('通知の権限状態:', status);
       } catch (error) {
-        console.error('通知権限の確認中にエラーが発生しました:', error);
+        // 通知権限の確認中のエラーは無視
       }
     })();
   }, []);

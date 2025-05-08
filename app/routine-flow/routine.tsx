@@ -65,7 +65,6 @@ export default function RoutineStepScreen() {
         // ユーザーを取得（アプリでは1人のみという前提）
         const users = await getAllUsers();
         if (users.length === 0) {
-          console.error('ユーザーが見つかりません');
           setLoading(false);
           return;
         }
@@ -88,7 +87,7 @@ export default function RoutineStepScreen() {
         
         setRoutines(sortedRoutines);
       } catch (error) {
-        console.error('ルーティンの取得に失敗しました:', error);
+        // エラー処理
       } finally {
         setLoading(false);
       }
@@ -219,7 +218,6 @@ export default function RoutineStepScreen() {
         // ユーザーを取得
         const users = await getAllUsers();
         if (users.length === 0) {
-          console.error('ユーザーが見つかりません');
           return;
         }
         
@@ -259,7 +257,6 @@ export default function RoutineStepScreen() {
   const handleSkipStep = async () => {
     if (!currentRoutine) return;
     
-    // スキップボタンのアニメーションを実行
     animateSkipButton(async () => {
       try {
         // ルーティンログをデータベースに保存
@@ -268,13 +265,12 @@ export default function RoutineStepScreen() {
         // ユーザーを取得
         const users = await getAllUsers();
         if (users.length === 0) {
-          console.error('ユーザーが見つかりません');
           return;
         }
         
         const userId = users[0].id;
         
-        // ルーティンログを作成
+        // ルーティンログを作成（スキップとして記録）
         await createRoutineLog({
           userId,
           date: today,

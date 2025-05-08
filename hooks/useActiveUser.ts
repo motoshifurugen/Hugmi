@@ -18,11 +18,9 @@ export const useActiveUserId = () => {
         const userId = await SecureStore.getItemAsync(ACTIVE_USER_ID_KEY);
         if (userId) {
           setActiveUserId(userId);
-        } else {
-          console.warn('アクティブユーザーIDが設定されていません');
         }
       } catch (error) {
-        console.error('アクティブユーザーIDの読み込みに失敗しました:', error);
+        // エラー処理は残す
       } finally {
         setLoading(false);
       }
@@ -37,7 +35,7 @@ export const useActiveUserId = () => {
       await SecureStore.setItemAsync(ACTIVE_USER_ID_KEY, userId);
       setActiveUserId(userId);
     } catch (error) {
-      console.error('アクティブユーザーIDの保存に失敗しました:', error);
+      // エラー処理は残す
     }
   };
 

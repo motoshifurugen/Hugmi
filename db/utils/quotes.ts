@@ -100,7 +100,6 @@ export const checkNewSchemaExists = async (): Promise<boolean> => {
     // author_jaカラムが存在するか確認
     return result.some(column => column.name === 'author_ja');
   } catch (error) {
-    console.error('Error checking schema:', error);
     // エラー時はfalseを返し、安全のため古いスキーマとして扱う
     return false;
   }
@@ -111,9 +110,7 @@ export const checkNewSchemaExists = async (): Promise<boolean> => {
  */
 export const getAllQuotes = async () => {
   try {
-    console.log('[DEBUG] すべての名言を取得開始...');
     const quotes = await db.getAllQuotes();
-    console.log(`[DEBUG] 名言を${quotes.length}件取得`);
     
     return quotes.map(quote => ({
       id: quote.id,
@@ -126,7 +123,6 @@ export const getAllQuotes = async () => {
       imagePath: quote.image_path
     }));
   } catch (error) {
-    console.error('[DEBUG] 全名言取得エラー:', error);
     return [];
   }
 };
@@ -136,9 +132,7 @@ export const getAllQuotes = async () => {
  */
 export const getPublishedQuotes = async () => {
   try {
-    console.log('[DEBUG] 公開済み名言を取得開始...');
     const quotes = await db.getPublishedQuotes();
-    console.log(`[DEBUG] 公開済み名言を${quotes.length}件取得`);
     
     return quotes.map(quote => ({
       id: quote.id,
@@ -151,7 +145,6 @@ export const getPublishedQuotes = async () => {
       imagePath: quote.image_path
     }));
   } catch (error) {
-    console.error('[DEBUG] 公開済み名言取得エラー:', error);
     return [];
   }
 };
@@ -161,11 +154,9 @@ export const getPublishedQuotes = async () => {
  */
 export const getQuoteById = async (id: string) => {
   try {
-    console.log(`[DEBUG] 名言をIDで取得: id=${id}`);
     const quote = await db.getQuoteById(id);
     
     if (!quote) {
-      console.log('[DEBUG] 指定されたIDの名言が見つかりませんでした');
       return null;
     }
     
@@ -180,7 +171,6 @@ export const getQuoteById = async (id: string) => {
       imagePath: quote.image_path
     };
   } catch (error) {
-    console.error('[DEBUG] ID指定名言取得エラー:', error);
     return null;
   }
 };
@@ -190,11 +180,9 @@ export const getQuoteById = async (id: string) => {
  */
 export const getRandomQuote = async () => {
   try {
-    console.log('[DEBUG] ランダム名言を取得開始...');
     const quote = await db.getRandomQuote();
     
     if (!quote) {
-      console.log('[DEBUG] ランダム名言が取得できませんでした');
       return null;
     }
     
@@ -209,7 +197,6 @@ export const getRandomQuote = async () => {
       imagePath: quote.image_path
     };
   } catch (error) {
-    console.error('[DEBUG] ランダム名言取得エラー:', error);
     return null;
   }
 };
@@ -253,7 +240,6 @@ export const createQuote = async (quoteData: {
       imagePath: quote.image_path
     };
   } catch (error) {
-    console.error('Error creating quote:', error);
     return null;
   }
 };
@@ -288,7 +274,6 @@ export const updateQuote = async (
       imagePath: quote.image_path
     };
   } catch (error) {
-    console.error('Error updating quote:', error);
     return null;
   }
 };
@@ -300,7 +285,6 @@ export const deleteQuote = async (id: string) => {
   try {
     return await db.deleteQuote(id);
   } catch (error) {
-    console.error('Error deleting quote:', error);
     return false;
   }
 }; 

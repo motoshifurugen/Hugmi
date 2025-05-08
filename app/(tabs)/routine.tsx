@@ -130,7 +130,6 @@ export default function RoutineScreen() {
         
         setRoutines(sortedRoutines);
       } catch (error) {
-        console.error('ルーティンの取得に失敗しました:', error);
         setError('ルーティンの取得に失敗しました');
       } finally {
         setLoading(false);
@@ -196,7 +195,6 @@ export default function RoutineScreen() {
       setNewRoutineTitle('');
       setIsModalVisible(false);
     } catch (error) {
-      console.error('ルーティンの追加に失敗しました:', error);
       setError('ルーティンの追加に失敗しました');
     } finally {
       setLoading(false);
@@ -235,7 +233,6 @@ export default function RoutineScreen() {
       
       closeEditModal();
     } catch (error) {
-      console.error('ルーティンの更新に失敗しました:', error);
       setError('ルーティンの更新に失敗しました');
     } finally {
       setLoading(false);
@@ -256,13 +253,12 @@ export default function RoutineScreen() {
       
       if (success) {
         // 成功したら状態を更新
-        const updatedRoutines = routines.filter(item => item.id !== editingRoutine.id);
-        setRoutines(updatedRoutines);
+        const filteredRoutines = routines.filter(item => item.id !== editingRoutine.id);
+        setRoutines(filteredRoutines);
       }
       
       closeEditModal();
     } catch (error) {
-      console.error('ルーティンの削除に失敗しました:', error);
       setError('ルーティンの削除に失敗しました');
     } finally {
       setLoading(false);
@@ -308,7 +304,12 @@ export default function RoutineScreen() {
       
       // データベース更新（非同期）
       reorderRoutines(userId, reorderData)
-        .catch(error => console.error('リスト保存中にエラーが発生しました:', error));
+        .then(() => {
+          isUpdatingList.current = false;
+        })
+        .catch(error => {
+          isUpdatingList.current = false;
+        });
       
       // レンダリングが確実に完了するまで待機
       setTimeout(() => {
@@ -323,7 +324,6 @@ export default function RoutineScreen() {
         });
       }, 80); // 十分な遅延を設定
     } catch (error) {
-      console.error('ルーティンの並び替えに失敗しました:', error);
       setError('ルーティンの並び替えに失敗しました');
       
       // エラー時に状態をリセット
@@ -341,13 +341,9 @@ export default function RoutineScreen() {
       const fetchRoutines = async () => {
         try {
           const userRoutines = await getRoutinesByUserId(userId);
-          const sortedRoutines = userRoutines.sort((a, b) => a.order - b.order).map(routine => ({
-            ...routine,
-            isActive: routine.isActive === 1 ? true : Boolean(routine.isActive)
-          }));
-          setRoutines(sortedRoutines);
+          setRoutines(userRoutines);
         } catch (fetchError) {
-          console.error('ルーティンの再取得に失敗しました:', fetchError);
+          setError('ルーティンの再取得に失敗しました');
         }
       };
       

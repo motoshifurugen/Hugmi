@@ -59,12 +59,8 @@ const AUTHOR_IMAGES: Record<string, ImageSourcePropType> = {
 
 // 著者画像を取得する関数
 const getAuthorImage = (fileName: string): ImageSourcePropType => {
-  // デバッグログを追加
-  console.log(`著者画像を取得中: ${fileName}`);
-  
   // ファイル名が空の場合はデフォルト画像を返す
   if (!fileName || fileName.trim() === '') {
-    console.log('ファイル名が空のため、デフォルト画像を使用します');
     return AUTHOR_IMAGES['seneca.png'];
   }
   
@@ -73,11 +69,9 @@ const getAuthorImage = (fileName: string): ImageSourcePropType => {
   
   // 見つからない場合はデフォルト画像を返す
   if (!image) {
-    console.log(`${fileName}に対応する画像が見つかりません。デフォルト画像を使用します`);
     return AUTHOR_IMAGES['seneca.png'];
   }
   
-  console.log(`${fileName}の画像を正常に取得しました`);
   return image;
 };
 
@@ -140,8 +134,6 @@ export default function QuoteDetailScreen() {
         if (viewedQuoteIds.size > 0) {
           // 表示済みの名言だけをフィルタリング
           targetQuotes = allQuotes.filter(quote => viewedQuoteIds.has(quote.id));
-        } else {
-          console.log('表示済み名言がないため、すべての名言を表示します');
         }
         
         // 指定されたIDの名言を中心に表示するための準備
@@ -161,7 +153,6 @@ export default function QuoteDetailScreen() {
             if (!imagePath || imagePath.trim() === '') {
               imagePath = 'seneca.png'; // デフォルト画像を設定
             }
-            console.log(`名言ID ${quote.id}: imagePathを設定: ${imagePath}`);
             
             return {
               ...quote,
@@ -173,7 +164,6 @@ export default function QuoteDetailScreen() {
         );
         
         if (formattedQuotes.length === 0) {
-          console.log('名言データが見つかりませんでした。デフォルトの名言を表示します。');
           // デフォルトの名言を作成（実際のアプリでは適切なデフォルト値に変更してください）
           const defaultQuote: Quote = {
             id: 'default',
@@ -210,7 +200,6 @@ export default function QuoteDetailScreen() {
         }, 100);
         
       } catch (err) {
-        console.error('名言データの取得に失敗しました:', err);
         // エラー処理
         setLoading(false);
       }
@@ -233,8 +222,6 @@ export default function QuoteDetailScreen() {
       // お気に入り状態を反転
       const newFavoriteStatus = !currentQuote.isFavorite;
       
-      console.log(`名言ID ${id} をお気に入り${newFavoriteStatus ? '登録' : '解除'}中...`);
-      
       // データベースを更新
       let success = false;
       if (newFavoriteStatus) {
@@ -244,23 +231,18 @@ export default function QuoteDetailScreen() {
       }
       
       if (!success) {
-        console.error(`お気に入り${newFavoriteStatus ? '登録' : '解除'}に失敗しました`);
         setFavoriteError(`お気に入り${newFavoriteStatus ? '登録' : '解除'}に失敗しました`);
         return;
       }
       
-      console.log(`名言ID ${id} のお気に入り${newFavoriteStatus ? '登録' : '解除'}が完了しました`);
-      
-      // ローカルの状態を更新
-      const newQuotes = [...quotes];
-      newQuotes[currentIndex] = {
-        ...currentQuote,
-        isFavorite: newFavoriteStatus
-      };
-      setQuotes(newQuotes);
+      // UI状態を更新
+      setQuotes(prevQuotes => {
+        return prevQuotes.map(quote => 
+          quote.id === id ? { ...quote, isFavorite: newFavoriteStatus } : quote
+        );
+      });
     } catch (err) {
-      console.error('お気に入り状態の更新に失敗しました:', err);
-      setFavoriteError('お気に入り操作に失敗しました');
+      setFavoriteError('お気に入り状態の更新に失敗しました');
     } finally {
       setFavoriteLoading(false);
     }
@@ -351,9 +333,11 @@ export default function QuoteDetailScreen() {
     
     const jaFontSize = calculateFontSize(item.textJa);
     
-    // 著者画像のパスを取得（デバッグログを追加）
+    // 著者画像のパスを取得
     const authorImagePath = item.imagePath || 'seneca.png';
-    console.log(`カード ${index} (ID: ${item.id}) の著者画像パス: ${authorImagePath}`);
+    
+    // 著者画像を取得
+    const authorImage = getAuthorImage(authorImagePath);
     
     return (
       <View 
@@ -427,7 +411,7 @@ export default function QuoteDetailScreen() {
                 <View style={styles.authorImageContainer}>
                   <Image
                     key={`author-image-${item.id}`}
-                    source={getAuthorImage(authorImagePath)}
+                    source={authorImage}
                     style={styles.authorImage}
                     contentFit="cover"
                     cachePolicy="none" // キャッシュを無効化

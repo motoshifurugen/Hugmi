@@ -34,7 +34,7 @@ const isDevelopment = () => {
       return true;
     }
   } catch (e) {
-    console.log('Constantsチェック中のエラー:', e);
+    // エラーがあっても処理を継続
   }
   
   // 3. 開発用のビルドとして常に表示する（TODO: 本番リリース前に削除）
@@ -92,7 +92,7 @@ export default function SettingsScreen() {
           }
         }
       } catch (error) {
-        console.error('ユーザー設定の取得に失敗しました:', error);
+        // エラー時は静かに失敗
       }
     };
 
@@ -146,7 +146,6 @@ export default function SettingsScreen() {
       if (userId) {
         try {
           await updateUser(userId, { routineStartTime: timeString });
-          console.log('ルーティン開始時間を更新しました:', timeString);
           
           // 通知が有効な場合は通知をスケジュール（設定時刻になったときのみ通知）
           if (morningNotificationsEnabled) {
@@ -159,7 +158,7 @@ export default function SettingsScreen() {
             );
           }
         } catch (error) {
-          console.error('ルーティン開始時間の更新に失敗しました:', error);
+          // エラー時は静かに失敗
         }
       }
       
@@ -189,7 +188,6 @@ export default function SettingsScreen() {
       if (userId) {
         try {
           await updateUser(userId, { nightNotifyTime: timeString });
-          console.log('夜の通知時間を更新しました:', timeString);
           
           // 夜の通知をスケジュール
           if (nightNotificationsEnabled) {
@@ -201,7 +199,7 @@ export default function SettingsScreen() {
             );
           }
         } catch (error) {
-          console.error('夜の通知時間の更新に失敗しました:', error);
+          // エラー時は静かに失敗
         }
       }
       
@@ -351,32 +349,29 @@ export default function SettingsScreen() {
   // データベースをクリアする関数
   const clearDatabase = async () => {
     try {
-      const sqliteDb = db.getDatabase();
+      // 削除するテーブルのリスト
+      const tables = [
+        'viewed_quotes',
+        'favorite_quotes',
+        'mood_logs',
+        'routines',
+        'routine_records'
+      ];
       
-      // 既存のテーブルのデータを削除
-      const tables = ['viewed_quotes', 'favorite_quotes', 'mood_logs', 'routine_logs', 'routines', 'quotes', 'users'];
+      // 各テーブルを削除
+      const sqliteDb = db.getDatabase();
       for (const table of tables) {
         try {
-          console.log(`[DEBUG] ${table}テーブルのデータを削除中...`);
-          await sqliteDb.execAsync(`DELETE FROM ${table}`);
+          await sqliteDb.runAsync(`DELETE FROM ${table}`);
         } catch (dropError) {
-          console.error(`[DEBUG] ${table}テーブルの削除に失敗:`, dropError);
+          // テーブル削除エラーは無視して次へ進む
         }
       }
-      console.log('[DEBUG] データベースのクリアが完了しました');
       
-      Alert.alert(
-        'データベースのクリア完了',
-        'データベースがクリアされました。アプリを再起動してください。',
-        [{ text: 'OK' }]
-      );
+      // 完了メッセージ
+      Alert.alert('完了', 'データがクリアされました');
     } catch (error) {
-      console.error('データベースクリア中にエラーが発生しました:', error);
-      Alert.alert(
-        'エラー',
-        'データベースのクリアに失敗しました。',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('エラー', 'データのクリア中にエラーが発生しました');
     }
   };
 
@@ -399,38 +394,25 @@ export default function SettingsScreen() {
 
   // お問い合わせ処理
   const handleContact = async () => {
-    const contactEmail = 'furugenmotoshig@gmail.com';
     try {
       const isAvailable = await MailComposer.isAvailableAsync();
+      
       if (isAvailable) {
         await MailComposer.composeAsync({
-          recipients: [contactEmail],
-          subject: '【Hugmi】お問い合わせ',
-          body: '',
+          recipients: ['contact@example.com'], // 実際のメールアドレスに変更する
+          subject: `Hugmiアプリに関するお問い合わせ (v${appVersion})`,
+          body: ''
         });
       } else {
-        // メールアプリが利用できない場合は代替手段を提供
+        // メール機能が利用できない場合はコピー
+        Clipboard.setString('contact@example.com');
         Alert.alert(
-          'メールアプリが見つかりません',
-          `メールアプリが設定されていないか、利用できません。以下のアドレスに直接お問い合わせください:\n${contactEmail}`,
-          [
-            { 
-              text: 'メールアドレスをコピー', 
-              onPress: () => {
-                Clipboard.setString(contactEmail);
-                Alert.alert('コピーしました', 'メールアドレスをクリップボードにコピーしました。');
-              }
-            },
-            { text: 'キャンセル', style: 'cancel' }
-          ]
+          'メール機能が利用できません',
+          'メールアドレスをクリップボードにコピーしました。他のメールアプリからお問い合わせください。'
         );
       }
     } catch (error) {
-      console.error('メール送信エラー:', error);
-      Alert.alert(
-        'エラー',
-        `メールの送信準備中にエラーが発生しました。直接 ${contactEmail} にお問い合わせください。`
-      );
+      Alert.alert('エラー', 'メール送信に失敗しました。他の方法でお問い合わせください。');
     }
   };
 
@@ -585,7 +567,7 @@ export default function SettingsScreen() {
             </ThemedView>
           </Pressable>
           
-          {/* 開発環境の場合のみ表示するデータ削除ボタン */}
+          {/* 開発環境の場合のみ表示するデータ削除ボタン
           {isDevEnv && (
             <Pressable onPress={confirmDatabaseClear}>
               <ThemedView style={[styles.linkItem, styles.dangerItem]}>
@@ -593,7 +575,7 @@ export default function SettingsScreen() {
                 <IconSymbol name="trash" size={16} color={projectColors.red1} />
               </ThemedView>
             </Pressable>
-          )}
+          )} */}
         </ThemedView>
       </ScrollView>
     </ThemedView>

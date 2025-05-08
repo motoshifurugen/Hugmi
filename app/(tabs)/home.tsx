@@ -120,9 +120,7 @@ export default function HomeScreen() {
           user = users[0];
           setUserId(user.id);
           setUserName(user.name);
-          console.log(`[DEBUG] ホーム画面: ユーザー「${user.name}」を読み込みました`);
         } else {
-          console.log('[DEBUG] ホーム画面: ユーザーが見つかりません、ゲストとして表示します');
           setUserName('ゲスト');
           
           // 最初のアクセス時にユーザーがいない場合は、一時的なルーティンデータを表示
@@ -143,7 +141,6 @@ export default function HomeScreen() {
         
         setLoading(false);
       } catch (error) {
-        console.error('ホーム画面データの読み込みエラー:', error);
         setLoading(false);
         // エラー時のデフォルト
         setUserName('ゲスト');
@@ -164,7 +161,6 @@ export default function HomeScreen() {
       // 今日の名言を取得
       await loadQuoteData(userId);
     } catch (error) {
-      console.error('ユーザーデータの読み込みエラー:', error);
       // デフォルト値はすでに初期化済み
     }
   };
@@ -178,7 +174,6 @@ export default function HomeScreen() {
         completed: progress.completed,
         total: progress.total
       });
-      console.log(`[DEBUG] ホーム画面: ルーティン進捗を取得 (${progress.completed}/${progress.total})`);
       
       // ルーティンの状態を取得
       const started = await isTodayRoutineStarted(userId);
@@ -186,7 +181,6 @@ export default function HomeScreen() {
       setRoutineStarted(started);
       setRoutineCompleted(completed);
     } catch (error) {
-      console.error('ルーティンデータの取得に失敗しました:', error);
       // エラー時のデフォルト値
       setRoutineProgress(DEFAULT_ROUTINE_PROGRESS);
       setRoutineStarted(false);
@@ -197,18 +191,15 @@ export default function HomeScreen() {
   // 名言データ読み込み用の関数
   const loadQuoteData = async (userId: string) => {
     try {
-      console.log('[DEBUG] ホーム画面: 今日の名言を取得開始');
       const todayQuote = await getTodayViewedQuote(userId);
       
       if (todayQuote) {
-        console.log('[DEBUG] ホーム画面: 今日の名言を取得成功');
         setTodayQuote({
           textJa: todayQuote.textJa,
           authorJa: todayQuote.authorJa
         });
       } else {
         // 表示履歴がない場合は、ランダムな名言を表示
-        console.log('[DEBUG] ホーム画面: 表示履歴がないためランダムな名言を取得');
         const randomQuote = await getUnviewedRandomQuote(userId);
         if (randomQuote) {
           setTodayQuote({
@@ -221,7 +212,6 @@ export default function HomeScreen() {
         }
       }
     } catch (error) {
-      console.error('名言データの取得に失敗しました:', error);
       // エラー時のデフォルト
       setTodayQuote(DEFAULT_QUOTE);
     }
