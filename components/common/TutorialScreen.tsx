@@ -207,7 +207,7 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
   
   // 次のステップに進む
   const goToNextStep = () => {
-    if (step === 5) {  // 最終ステップ
+    if (step === 4) {  // 最終ステップ (統合したので5から4に変更)
       completeTutorial();
     } else {
       setStep(step + 1);
@@ -237,201 +237,237 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
       case 0:
         return (
           <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.quoteText}>
-              すべての習慣は、{'\n'}最初の一歩からはじまります。
-            </Text>
-            <Text style={styles.stepDescription}>
-              少し深呼吸して、ここからはじめましょう
-            </Text>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={goToNextStep}
-            >
-              <Text style={styles.buttonText}>はじめる</Text>
-            </TouchableOpacity>
+            <View style={styles.contentContainer}>
+              <Text style={styles.quoteText}>
+                どんな朝も、{'\n'}
+                やさしく包み込むように。
+              </Text>
+              <Text style={[styles.stepTitle, { marginTop: 20 }]}>
+                <Text style={styles.brandName}>Hugmi</Text>へようこそ。
+              </Text>
+              <Text style={styles.stepDescription}>
+                忙しい毎朝。{'\n'}
+                がんばれない日だって、ありますよね。{'\n'}
+                <Text style={styles.brandNameSmall}>Hugmi</Text>は、{'\n'}
+                そんなあなたの朝を、{'\n'}
+                そっとハグするアプリです。
+              </Text>
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.primaryButton}
+                onPress={goToNextStep}
+              >
+                <Text style={styles.buttonText}>次へ</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         );
         
       case 1:
         return (
           <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.stepTitle}>Hugmiへようこそ</Text>
-            <Text style={styles.stepDescription}>
-              Hugmi（ハグミー）は、あなたの小さな習慣をサポートします。
-              朝のルーティンを作り、一日を整えていきましょう。
-            </Text>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={goToNextStep}
-            >
-              <Text style={styles.buttonText}>次へ</Text>
-            </TouchableOpacity>
+            <View style={styles.contentContainer}>
+              <Text style={styles.stepTitle}>あなたのお名前は？</Text>
+              <Text style={styles.stepDescription}>
+                Hugmiであなたをどう呼べばいいですか？{'\n'}
+              </Text>
+              <TextInput
+                style={styles.textInput}
+                value={name}
+                onChangeText={setName}
+                placeholder="例：まい"
+                placeholderTextColor="#aaa"
+                maxLength={20}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (name.trim() !== '') {
+                    goToNextStep();
+                  }
+                }}
+              />
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.primaryButton,
+                  name.trim() === '' && styles.disabledButton
+                ]}
+                onPress={goToNextStep}
+                disabled={name.trim() === ''}
+              >
+                <Text style={styles.buttonText}>次へ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.skipButton}
+                onPress={() => {
+                  setName('ゲスト');
+                  goToNextStep();
+                }}
+              >
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         );
         
       case 2:
         return (
           <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.stepTitle}>あなたのお名前は？</Text>
-            <Text style={styles.stepDescription}>
-              Hugmiであなたをどう呼べばいいですか？{'\n'}
-              （後から変更できます）
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              value={name}
-              onChangeText={setName}
-              placeholder="例：まい"
-              placeholderTextColor="#aaa"
-              maxLength={20}
-              returnKeyType="done"
-              onSubmitEditing={() => {
-                if (name.trim() !== '') {
-                  goToNextStep();
-                }
-              }}
-            />
-            <TouchableOpacity 
-              style={[
-                styles.primaryButton,
-                name.trim() === '' && styles.disabledButton
-              ]}
-              onPress={goToNextStep}
-              disabled={name.trim() === ''}
-            >
-              <Text style={styles.buttonText}>次へ</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={() => {
-                setName('ゲスト');
-                goToNextStep();
-              }}
-            >
-            </TouchableOpacity>
+            <View style={styles.contentContainer}>
+              <Text style={styles.stepTitle}>朝のルーティンを選びましょう</Text>
+              <Text style={styles.stepDescription}>
+                （後から変更できます）
+              </Text>
+              
+              <View style={styles.customRoutineContainer}>
+                <TextInput
+                  style={styles.customRoutineInput}
+                  value={customRoutine}
+                  onChangeText={setCustomRoutine}
+                  placeholder="自分で入力する"
+                  placeholderTextColor="#aaa"
+                  returnKeyType="done"
+                  onSubmitEditing={addCustomRoutine}
+                />
+                <TouchableOpacity
+                  style={[styles.addButton, customRoutine.trim() === '' && styles.disabledButton]}
+                  onPress={addCustomRoutine}
+                  disabled={customRoutine.trim() === ''}
+                >
+                  <Text style={styles.addButtonText}>追加</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.routineListContainer}>
+                <ScrollView 
+                  style={styles.routineScrollView}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={true}
+                >
+                  {/* 自分で追加したカスタムルーティンを先に表示 */}
+                  {selectedRoutines.filter(r => !SAMPLE_ROUTINES.includes(r)).map((routine, index) => (
+                    <TouchableOpacity
+                      key={`custom-${index}`}
+                      style={[styles.routineItem, styles.selectedRoutineItem]}
+                      onPress={() => toggleRoutine(routine)}
+                    >
+                      <Text style={styles.routineText}>{routine}</Text>
+                      <AntDesign name="check" size={20} color={projectColors.softOrange} />
+                    </TouchableOpacity>
+                  ))}
+                  
+                  {/* サンプルルーティンを後に表示 */}
+                  {SAMPLE_ROUTINES.map((routine, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.routineItem,
+                        selectedRoutines.includes(routine) && styles.selectedRoutineItem
+                      ]}
+                      onPress={() => toggleRoutine(routine)}
+                    >
+                      <Text style={styles.routineText}>{routine}</Text>
+                      {selectedRoutines.includes(routine) && (
+                        <AntDesign name="check" size={20} color={projectColors.softOrange} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.primaryButton,
+                  selectedRoutines.length === 0 && styles.disabledButton
+                ]}
+                onPress={goToNextStep}
+                disabled={selectedRoutines.length === 0}
+              >
+                <Text style={styles.buttonText}>次へ</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         );
         
       case 3:
         return (
           <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.stepTitle}>朝のルーティンを選びましょう</Text>
-            <Text style={styles.stepDescription}>
-              朝に取り組みたい習慣を選んでください。{'\n'}
-              （後から変更できます）
-            </Text>
-            
-            <View style={styles.customRoutineContainer}>
-              <TextInput
-                style={styles.customRoutineInput}
-                value={customRoutine}
-                onChangeText={setCustomRoutine}
-                placeholder="自分で入力する"
-                placeholderTextColor="#aaa"
-                returnKeyType="done"
-                onSubmitEditing={addCustomRoutine}
-              />
-              <TouchableOpacity
-                style={[styles.addButton, customRoutine.trim() === '' && styles.disabledButton]}
-                onPress={addCustomRoutine}
-                disabled={customRoutine.trim() === ''}
+            <View style={styles.contentContainer}>
+              <Text style={styles.stepTitle}>Hugmiの使い方</Text>
+              <Text style={styles.stepDescription}>
+                Hugmiの朝は、こんなふうに始まります。
+              </Text>
+              
+              <View style={styles.numberedItemContainer}>
+                <View style={styles.numberCircle}>
+                  <Text style={styles.numberText}>1</Text>
+                </View>
+                <Text style={styles.numberedItemText}>
+                  朝起きたら、アプリを開きます
+                </Text>
+              </View>
+              
+              <View style={styles.numberedItemContainer}>
+                <View style={styles.numberCircle}>
+                  <Text style={styles.numberText}>2</Text>
+                </View>
+                <Text style={styles.numberedItemText}>
+                  名言と出会い、やさしく心を整えます
+                </Text>
+              </View>
+              
+              <View style={styles.numberedItemContainer}>
+                <View style={styles.numberCircle}>
+                  <Text style={styles.numberText}>3</Text>
+                </View>
+                <Text style={styles.numberedItemText}>
+                  ルーティンを、ひとつずつ
+                </Text>
+              </View>
+              
+              <View style={styles.numberedItemContainer}>
+                <View style={styles.numberCircle}>
+                  <Text style={styles.numberText}>4</Text>
+                </View>
+                <Text style={styles.numberedItemText}>
+                  編集もかんたん。あなたのペースで続けられます
+                </Text>
+              </View>
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.primaryButton}
+                onPress={goToNextStep}
               >
-                <Text style={styles.addButtonText}>追加</Text>
+                <Text style={styles.buttonText}>次へ</Text>
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.routineListContainer}>
-              <ScrollView 
-                style={styles.routineScrollView}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={true}
-              >
-                {/* 自分で追加したカスタムルーティンを先に表示 */}
-                {selectedRoutines.filter(r => !SAMPLE_ROUTINES.includes(r)).map((routine, index) => (
-                  <TouchableOpacity
-                    key={`custom-${index}`}
-                    style={[styles.routineItem, styles.selectedRoutineItem]}
-                    onPress={() => toggleRoutine(routine)}
-                  >
-                    <Text style={styles.routineText}>{routine}</Text>
-                    <AntDesign name="check" size={20} color={projectColors.softOrange} />
-                  </TouchableOpacity>
-                ))}
-                
-                {/* サンプルルーティンを後に表示 */}
-                {SAMPLE_ROUTINES.map((routine, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.routineItem,
-                      selectedRoutines.includes(routine) && styles.selectedRoutineItem
-                    ]}
-                    onPress={() => toggleRoutine(routine)}
-                  >
-                    <Text style={styles.routineText}>{routine}</Text>
-                    {selectedRoutines.includes(routine) && (
-                      <AntDesign name="check" size={20} color={projectColors.softOrange} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            
-            <TouchableOpacity 
-              style={[
-                styles.primaryButton,
-                selectedRoutines.length === 0 && styles.disabledButton
-              ]}
-              onPress={goToNextStep}
-              disabled={selectedRoutines.length === 0}
-            >
-              <Text style={styles.buttonText}>次へ</Text>
-            </TouchableOpacity>
           </Animated.View>
         );
         
       case 4:
         return (
           <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.stepTitle}>Hugmiの使い方</Text>
-            <Text style={styles.stepDescription}>
-              1. 朝起きたら、アプリを開きます
-            </Text>
-            <Text style={styles.stepDescription}>
-              2. 今日の名言に出会います
-            </Text>
-            <Text style={styles.stepDescription}>
-              3. 朝のルーティンを実行していきます
-            </Text>
-            <Text style={styles.stepDescription}>
-              4. ホーム画面から、ルーティンの編集ができます
-            </Text>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={goToNextStep}
-            >
-              <Text style={styles.buttonText}>次へ</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        );
-        
-      case 5:
-        return (
-          <Animated.View style={[styles.stepContent, animatedStyle]}>
-            <Text style={styles.stepTitle}>準備完了！</Text>
-            <Text style={styles.stepDescription}>
-              {name ? `${name}さん、` : ''}Hugmiへようこそ！
-            </Text>
-            <Text style={styles.stepDescription}>
-              これからのあなたの朝をサポートします。{'\n'}
-              明日がすこし楽しみになりますように。
-            </Text>
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={goToNextStep}
-            >
-              <Text style={styles.buttonText}>始める</Text>
-            </TouchableOpacity>
+            <View style={styles.contentContainer}>
+              <Text style={styles.stepTitle}>準備ができました！</Text>
+              <Text style={styles.stepDescription}>
+                これからの朝を、あなたらしく。
+              </Text>
+              <Text style={styles.stepDescription}>
+                Hugmiと一緒に、{'\n'}
+                すこしずつ整えていきましょう。
+              </Text>
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.primaryButton}
+                onPress={goToNextStep}
+              >
+                <Text style={styles.buttonText}>始める</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         );
         
@@ -442,7 +478,7 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
 
   // ステップインジケーターを表示
   const renderStepIndicator = () => {
-    const totalSteps = 6; // 0～5の6ステップ
+    const totalSteps = 5; // 0～4の5ステップ(統合したので6から5に変更)
     
     return (
       <View style={styles.stepIndicatorContainer}>
@@ -500,15 +536,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: projectColors.background,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 40,
     paddingBottom: 20,
   },
   stepIndicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 30,
-    marginBottom: 30,
+    marginTop: 20,
+    marginBottom: 20,
   },
   stepDot: {
     width: 8,
@@ -525,78 +561,133 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 30,
+    paddingBottom: 30,
+  },
+  contentContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 10,
+  },
+  buttonContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  brandName: {
+    color: projectColors.text,
+    fontWeight: 'bold',
+    fontSize: 22,
+    letterSpacing: 0.5,
+    paddingHorizontal: 2,
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
+  },
+  brandNameSmall: {
+    color: projectColors.text,
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    paddingHorizontal: 2,
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
   },
   stepTitle: {
     fontFamily: 'ZenMaruGothic_700Bold',
-    fontSize: 24,
+    fontSize: 22,
     color: projectColors.text,
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   quoteText: {
     fontFamily: 'ZenMaruGothic_500Medium',
-    fontSize: 22,
+    fontSize: 20,
     color: projectColors.accent,
-    marginBottom: 40,
+    marginBottom: 32,
     textAlign: 'center',
     lineHeight: 32,
     fontWeight: 'bold',
   },
   stepDescription: {
     fontFamily: 'ZenMaruGothic_400Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: projectColors.text,
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
+    lineHeight: 24,
+  },
+  numberedItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  numberCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: projectColors.softOrange,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  numberText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'ZenMaruGothic_700Bold',
+  },
+  numberedItemText: {
+    flex: 1,
+    fontFamily: 'ZenMaruGothic_400Regular',
+    fontSize: 14,
+    color: projectColors.text,
     lineHeight: 24,
   },
   textInput: {
     width: '100%',
-    height: 50,
+    height: 46,
     borderWidth: 1,
     borderColor: projectColors.border,
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 30,
+    marginBottom: 24,
     fontFamily: 'ZenMaruGothic_400Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: projectColors.text,
     backgroundColor: '#fff',
   },
   primaryButton: {
     backgroundColor: projectColors.softOrange,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 22,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'ZenMaruGothic_500Medium',
   },
   backButton: {
     position: 'absolute',
     top: 40,
-    left: 20,
+    left: 16,
     padding: 10,
   },
   skipButton: {
-    marginTop: 15,
+    marginTop: 12,
     padding: 10,
   },
   skipButtonText: {
     color: projectColors.secondaryText,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'ZenMaruGothic_400Regular',
   },
   routineListContainer: {
@@ -612,10 +703,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: projectColors.border,
   },
@@ -626,34 +717,34 @@ const styles = StyleSheet.create({
   },
   routineText: {
     fontFamily: 'ZenMaruGothic_400Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: projectColors.text,
   },
   customRoutineContainer: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: 15,
+    marginBottom: 12,
     marginTop: 5,
   },
   customRoutineInput: {
     flex: 1,
-    height: 50,
+    height: 46,
     borderWidth: 1,
     borderColor: projectColors.border,
     borderRadius: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     fontFamily: 'ZenMaruGothic_400Regular',
-    fontSize: 16,
+    fontSize: 14,
     color: projectColors.text,
     backgroundColor: '#fff',
   },
   addButton: {
     backgroundColor: projectColors.success,
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    marginLeft: 10,
+    marginLeft: 8,
   },
   disabledButton: {
     backgroundColor: '#ccc',
@@ -661,7 +752,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'ZenMaruGothic_500Medium',
   },
 }); 
