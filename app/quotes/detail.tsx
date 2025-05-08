@@ -485,7 +485,7 @@ export default function QuoteDetailScreen() {
     <GestureHandlerRootView style={styles.container}>
       <ThemedView style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={projectColors.primary} />
+          <IconSymbol name="chevron.left" size={24} color={projectColors.accent} />
         </Pressable>
         <ThemedText type="title">名言カード</ThemedText>
         <View style={{ width: 40 }} />
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 16,
   },
   backButton: {
