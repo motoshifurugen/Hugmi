@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   quoteContainer: {
     padding: 24,
     borderRadius: 16,
-    marginBottom: 20,
+    marginBottom: 4,
     alignItems: 'flex-start',
     backgroundColor: projectColors.white1,
   } as ViewStyle,

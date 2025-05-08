@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.families.primary,
     color: projectColors.black1,
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
     lineHeight: 36,
   },

@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 36,
     marginBottom: 24,
   },
   progressContainer: {

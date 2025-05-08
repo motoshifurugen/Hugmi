@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, Pressable, Animated, Alert, View, Easing } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { 
@@ -334,6 +334,17 @@ export default function RoutineStepScreen() {
     );
   };
 
+  // テキストの長さに基づいて動的にフォントサイズを調整する
+  const dynamicFontSize = useMemo(() => {
+    if (!currentRoutine) return 24;
+    
+    const titleLength = currentRoutine.title.length;
+    if (titleLength <= 4) return 28; // 非常に短いテキスト
+    if (titleLength <= 8) return 26; // 短いテキスト
+    if (titleLength <= 12) return 24; // 中程度のテキスト
+    return 22; // 長いテキスト
+  }, [currentRoutine]);
+  
   if (!fontsLoaded || loading) {
     return (
       <ThemedView style={styles.container}>
@@ -375,7 +386,13 @@ export default function RoutineStepScreen() {
           <Animated.View style={[styles.routineCircle, {
             transform: [{ scale: pulseAnim }]
           }]} />
-          <ThemedText style={styles.routineTitle} numberOfLines={2}>
+          <ThemedText style={[
+            styles.routineTitle, 
+            { fontSize: dynamicFontSize }
+          ]} 
+          numberOfLines={currentRoutine.title.length <= 15 ? 1 : 2} 
+          adjustsFontSizeToFit 
+          minimumFontScale={0.8}>
             {currentRoutine.title}
           </ThemedText>
         </View>
@@ -466,22 +483,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
-    width: 200,
-    height: 200,
+    width: 200, // 元のサイズに戻す
+    height: 200, // 元のサイズに戻す
   },
   routineCircle: {
-    ...create3DCircleStyle(160, 4, 8),
+    ...create3DCircleStyle(160, 4, 8), // 元のサイズに戻す
   },
   routineTitle: {
-    fontSize: 26,
     textAlign: 'center',
     color: projectColors.black1,
     fontFamily: fonts.families.primary,
     fontWeight: 'bold',
     zIndex: 10,
-    paddingHorizontal: 0,
-    maxWidth: 250,
-    lineHeight: 34,
+    paddingHorizontal: 0, 
+    width: '100%',
+    maxWidth: 260, // さらに幅を拡大
+    lineHeight: 34, // 行間をやや広げる
+    includeFontPadding: false, // フォントのパディングを削除して一貫した表示を確保
+    position: 'absolute', // 絶対位置指定で円の中央に配置
+    alignSelf: 'center', // 水平方向中央揃え
   },
   buttonContainer: {
     alignItems: 'center',

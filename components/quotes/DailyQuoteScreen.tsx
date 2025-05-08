@@ -398,7 +398,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           ]} 
           onPress={onStart}
         >
-          <ThemedText style={styles.buttonText}>
+          <ThemedText style={styles.buttonText} numberOfLines={1} ellipsizeMode="tail">
             今日の朝をはじめる
           </ThemedText>
         </Pressable>
@@ -507,7 +507,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startButton: {
-    ...createNeomorphicButtonStyle('70%', 20),
+    ...createNeomorphicButtonStyle(240, 20),
+    minWidth: 240,
+    maxWidth: 240,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
   },
   buttonPressed: {
     ...createNeomorphicButtonPressedStyle(),
@@ -517,5 +521,6 @@ const styles = StyleSheet.create({
     fontFamily: 'ZenMaruGothic_700Bold',
     color: projectColors.black1,
     textAlign: 'center',
+    includeFontPadding: false, // フォントのパディングを無効化して一貫した表示を確保
   },
 }); 

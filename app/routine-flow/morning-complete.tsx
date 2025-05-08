@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { StyleSheet, Pressable, Animated, TouchableOpacity, Dimensions, View, Image, SafeAreaView, ScrollView } from 'react-native';
+import { StyleSheet, Pressable, Animated, TouchableOpacity, Dimensions, View, Image, SafeAreaView, ScrollView, Easing } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,7 +15,11 @@ import { getRoutineById, getActiveRoutinesByUserId } from '@/db/utils/routines';
 // シンプルなパーティクルの種類
 enum ParticleType {
   CIRCLE,
-  PETAL
+  PETAL,
+  STAR,    // 星型
+  HEART,   // ハート型
+  SPARKLE, // キラキラ
+  BUBBLE   // 水玉/バブル
 }
 
 // パーティクルのプロパティ
@@ -30,6 +34,10 @@ interface Particle {
   type: ParticleType;
   size: number;
   duration: number;
+  delay: number; // 遅延用のプロパティを追加
+  initialBurst?: boolean; // 初期バースト効果用
+  burstAngle?: number; // バースト時の角度
+  burstDistance?: number; // バースト時の距離
 }
 
 // ルーティンアイテムの型定義
@@ -52,6 +60,7 @@ export default function MorningCompleteScreen() {
   const particles = useRef<Particle[]>([]);
   const animationsRef = useRef<Animated.CompositeAnimation | null>(null);
   const animationsComplete = useRef(false);
+  const isAnimationStarted = useRef(false); // アニメーション開始フラグを追加
   
   // 画面の寸法を取得
   const { width, height } = Dimensions.get('window');
@@ -166,20 +175,25 @@ export default function MorningCompleteScreen() {
   useEffect(() => {
     // パーティクルの色
     const colors = [
-      projectColors.primary, // 淡い橙
-      projectColors.secondary, // 淡いピンク
-      '#FFE0D1', // 淡いピーチ
-      '#FFD6C4', // 淡いコーラル
-      '#FFEFD6', // 淡いクリーム
+      projectColors.primary,    // 淡い橙
+      projectColors.secondary,  // 淡いピンク
+      '#FFE0D1',               // 淡いピーチ
+      '#FFD6C4',               // 淡いコーラル
+      '#FFEFD6',               // 淡いクリーム
+      '#FFD1E0',               // 淡いピンク
+      '#E0F8FF',               // 淡い水色
+      '#FFF9C4',               // 淡い黄色
+      '#E8F5E9',               // 淡い緑
+      '#FFE57F',               // 淡い金色
     ];
     
     const newParticles: Particle[] = [];
     
     // 花びらを画面全体に表示するために、あらかじめ配置場所を決定
     const positions = [];
-    // 画面を8x10のグリッドに分割（パフォーマンス向上のため少し削減）
-    const gridX = 8;
-    const gridY = 10;
+    // 画面を10x12のグリッドに分割（パーティクル数を増やす）
+    const gridX = 10;
+    const gridY = 12;
     
     // グリッド内の各セルに花びらを配置
     for (let y = 0; y < gridY; y++) {
@@ -197,20 +211,68 @@ export default function MorningCompleteScreen() {
       [positions[i], positions[j]] = [positions[j], positions[i]];
     }
     
-    // パーティクルの数を40個に減らす（パフォーマンス向上のため）
-    const particleCount = 40;
+    // バースト効果用のパーティクル
+    const centerX = width / 2;
+    const centerY = height / 2.5; // 少し上に配置
+    const burstCount = 20;
+    
+    for (let i = 0; i < burstCount; i++) {
+      const angle = (i / burstCount) * Math.PI * 2; // 円形に均等配置
+      const distance = 30 + Math.random() * 20; // 初期距離
+      const burstType = Math.random() < 0.7 
+        ? (Math.random() < 0.5 ? ParticleType.SPARKLE : ParticleType.STAR)
+        : (Math.random() < 0.5 ? ParticleType.BUBBLE : ParticleType.HEART);
+      
+      newParticles.push({
+        id: i,
+        x: new Animated.Value(centerX),
+        y: new Animated.Value(centerY),
+        rotate: new Animated.Value(0),
+        scale: new Animated.Value(0.1),
+        opacity: new Animated.Value(0.8),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        type: burstType,
+        size: 6 + Math.floor(Math.random() * 10),
+        duration: 3000 + Math.random() * 2000,
+        delay: 500,
+        initialBurst: true,
+        burstAngle: angle,
+        burstDistance: distance + Math.random() * 100
+      });
+    }
+    
+    // 通常のパーティクル (既存の実装を拡張)
+    // パーティクル数を増やす
+    const particleCount = 80;
     for (let i = 0; i < particleCount; i++) {
       // シャッフルした位置から取得
       const position = positions[i % positions.length];
       
-      // アニメーション時間をやや短めに設定
-      const duration = 4000 + Math.random() * 4000; // 4〜8秒
+      // 遅延時間をランダムに設定
+      const delay = Math.random() * 2000;
       
-      // 花びらを多くする
-      const particleType = Math.random() < 0.8 ? ParticleType.PETAL : ParticleType.CIRCLE;
+      // アニメーション時間
+      const duration = 4000 + Math.random() * 6000; // 4〜10秒
+      
+      // パーティクルタイプの分布を設定
+      const rand = Math.random();
+      let particleType;
+      if (rand < 0.35) {
+        particleType = ParticleType.PETAL;
+      } else if (rand < 0.5) {
+        particleType = ParticleType.CIRCLE;
+      } else if (rand < 0.65) {
+        particleType = ParticleType.BUBBLE;
+      } else if (rand < 0.8) {
+        particleType = ParticleType.SPARKLE;
+      } else if (rand < 0.9) {
+        particleType = ParticleType.STAR;
+      } else {
+        particleType = ParticleType.HEART;
+      }
       
       newParticles.push({
-        id: i,
+        id: i + burstCount, // バーストパーティクルと重複しないようにする
         x: new Animated.Value(position.x),
         y: new Animated.Value(position.y),
         rotate: new Animated.Value(0),
@@ -220,6 +282,7 @@ export default function MorningCompleteScreen() {
         type: particleType,
         size: 6 + Math.floor(Math.random() * 14), // 6-20pxのサイズ
         duration: duration,
+        delay: delay
       });
     }
     
@@ -232,7 +295,7 @@ export default function MorningCompleteScreen() {
     return () => {
       cleanupAnimations();
     };
-  }, [cleanupAnimations, routines]);
+  }, [cleanupAnimations, routines, width, height]);
   
   const startAnimation = useCallback(() => {
     // 既存のアニメーションがあればクリーンアップ
@@ -249,67 +312,139 @@ export default function MorningCompleteScreen() {
     
     // パーティクルのアニメーション
     const particleAnimations = particles.current.map(particle => {
-      // ランダムな速度係数
-      const speedFactor = 0.3 + Math.random() * 0.5; // やや遅めに
-      
-      // 現在の位置を取得
-      const currentX = Number(JSON.stringify(particle.x)) || 0;
-      const currentY = Number(JSON.stringify(particle.y)) || 0;
-      
-      // ランダムな移動方向（特定の方向へのバイアスなし）
-      const angle = Math.random() * Math.PI * 2; // 0〜2πのランダムな角度
-      const distance = 50 + Math.random() * 100; // 50〜150ピクセルのランダムな距離
-      
-      // 角度と距離から移動量を計算
-      const moveX = Math.cos(angle) * distance * speedFactor;
-      const moveY = Math.sin(angle) * distance * speedFactor;
-      
-      return Animated.parallel([
-        // X位置のアニメーション
-        Animated.timing(particle.x, {
-          toValue: currentX + moveX,
-          duration: particle.duration,
-          useNativeDriver: true,
-        }),
-        // Y位置のアニメーション
-        Animated.timing(particle.y, {
-          toValue: currentY + moveY,
-          duration: particle.duration,
-          useNativeDriver: true,
-        }),
-        // 回転のアニメーション - やや穏やかに
-        Animated.timing(particle.rotate, {
-          toValue: Math.random() * 4 - 2, // -2〜2回転（より穏やかに）
-          duration: particle.duration,
-          useNativeDriver: true,
-        }),
-        // スケールのアニメーション
-        Animated.sequence([
-          Animated.timing(particle.scale, {
-            toValue: 0.7 + Math.random() * 0.5, // 0.7〜1.2
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(particle.scale, {
-            toValue: 0,
-            duration: particle.duration - 1500,
-            useNativeDriver: true,
-          }),
-        ]),
-        // 透明度のアニメーション
-        Animated.sequence([
-          Animated.timing(particle.opacity, {
-            toValue: 0.5 + Math.random() * 0.4, // 0.5〜0.9
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(particle.opacity, {
-            toValue: 0,
-            duration: particle.duration - 1500,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]);
+      // バースト効果のアニメーションかどうかで処理を分ける
+      if (particle.initialBurst && particle.burstAngle !== undefined && particle.burstDistance !== undefined) {
+        // バースト効果用のアニメーション
+        const targetX = Math.cos(particle.burstAngle) * particle.burstDistance + width / 2;
+        const targetY = Math.sin(particle.burstAngle) * particle.burstDistance + height / 2.5;
+        
+        return Animated.sequence([
+          // 遅延
+          Animated.delay(particle.delay),
+          // バースト効果（一斉に飛び散る）
+          Animated.parallel([
+            // 位置アニメーション
+            Animated.timing(particle.x, {
+              toValue: targetX,
+              duration: 1500,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.timing(particle.y, {
+              toValue: targetY,
+              duration: 1500,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            // 回転
+            Animated.timing(particle.rotate, {
+              toValue: Math.random() * 6 - 3, // -3〜3回転
+              duration: 1500,
+              useNativeDriver: true,
+            }),
+            // サイズ変化
+            Animated.sequence([
+              Animated.timing(particle.scale, {
+                toValue: 0.8 + Math.random() * 0.7,
+                duration: 700,
+                useNativeDriver: true,
+              }),
+              Animated.timing(particle.scale, {
+                toValue: 0,
+                duration: 800,
+                useNativeDriver: true,
+              }),
+            ]),
+            // 透明度変化
+            Animated.sequence([
+              Animated.timing(particle.opacity, {
+                toValue: 0.7 + Math.random() * 0.3,
+                duration: 700,
+                useNativeDriver: true,
+              }),
+              Animated.timing(particle.opacity, {
+                toValue: 0,
+                duration: 800,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]),
+        ]);
+      } else {
+        // 通常のパーティクルアニメーション（既存の実装を拡張）
+        // ランダムな速度係数
+        const speedFactor = 0.3 + Math.random() * 0.5;
+        
+        // 現在の位置を取得
+        const currentX = Number(JSON.stringify(particle.x)) || 0;
+        const currentY = Number(JSON.stringify(particle.y)) || 0;
+        
+        // ランダムな移動方向
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 50 + Math.random() * 120;
+        
+        // 角度と距離から移動量を計算
+        const moveX = Math.cos(angle) * distance * speedFactor;
+        const moveY = Math.sin(angle) * distance * speedFactor;
+        
+        // ゆらゆら動くようなアニメーション
+        const wobbleX = currentX + moveX + Math.sin(angle) * 20 * (Math.random() > 0.5 ? 1 : -1);
+        const wobbleY = currentY + moveY;
+        
+        return Animated.sequence([
+          // 遅延
+          Animated.delay(particle.delay),
+          // アニメーション本体
+          Animated.parallel([
+            // X位置のアニメーション（ゆらゆら効果追加）
+            Animated.timing(particle.x, {
+              toValue: wobbleX,
+              duration: particle.duration,
+              easing: Easing.bezier(0.25, 0.1, 0.25, 1), // なめらかな動き
+              useNativeDriver: true,
+            }),
+            // Y位置のアニメーション
+            Animated.timing(particle.y, {
+              toValue: wobbleY,
+              duration: particle.duration,
+              easing: Easing.bezier(0.1, 0.8, 0.2, 1), // 少し重力っぽく
+              useNativeDriver: true,
+            }),
+            // 回転のアニメーション - より多様に
+            Animated.timing(particle.rotate, {
+              toValue: Math.random() * 6 - 3, // -3〜3回転（より変化をつける）
+              duration: particle.duration,
+              useNativeDriver: true,
+            }),
+            // スケールのアニメーション
+            Animated.sequence([
+              Animated.timing(particle.scale, {
+                toValue: 0.7 + Math.random() * 0.7, // 0.7〜1.4
+                duration: 1500,
+                useNativeDriver: true,
+              }),
+              Animated.timing(particle.scale, {
+                toValue: 0,
+                duration: particle.duration - 1500,
+                useNativeDriver: true,
+              }),
+            ]),
+            // 透明度のアニメーション
+            Animated.sequence([
+              Animated.timing(particle.opacity, {
+                toValue: 0.5 + Math.random() * 0.5, // 0.5〜1.0
+                duration: 1500,
+                useNativeDriver: true,
+              }),
+              Animated.timing(particle.opacity, {
+                toValue: 0,
+                duration: particle.duration - 1500,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]),
+        ]);
+      }
     });
     
     // ルーティンリストのフェードイン
@@ -368,7 +503,7 @@ export default function MorningCompleteScreen() {
       // アニメーション参照をクリア
       animationsRef.current = null;
     });
-  }, [fadeAnim, tapTextAnim, routineListAnim, routines]);
+  }, [fadeAnim, tapTextAnim, routineListAnim, routines, width, height]);
   
   const handleTap = useCallback(() => {
     // アニメーションを停止（シンプルに）
@@ -393,31 +528,147 @@ export default function MorningCompleteScreen() {
         { translateX: particle.x },
         { translateY: particle.y },
         { rotate: particle.rotate.interpolate({
-          inputRange: [-2, 2],
-          outputRange: ['-180deg', '180deg']
+          inputRange: [-3, 3],
+          outputRange: ['-270deg', '270deg']
         })},
         { scale: particle.scale },
       ],
       opacity: particle.opacity,
-      backgroundColor: particle.color,
+      backgroundColor: particle.type === ParticleType.SPARKLE ? 'transparent' : particle.color,
       width: particle.size,
-      height: particle.type === ParticleType.PETAL ? particle.size * 1.5 : particle.size,
+      height: particle.type === ParticleType.PETAL 
+        ? particle.size * 1.5 
+        : particle.type === ParticleType.HEART 
+          ? particle.size * 1.1 
+          : particle.size,
     };
     
     // タイプに応じた形状
     let shapeStyle = {};
-    if (particle.type === ParticleType.CIRCLE) {
+    if (particle.type === ParticleType.CIRCLE || particle.type === ParticleType.BUBBLE) {
       shapeStyle = {
         borderRadius: particle.size / 2,
+        // バブルの場合は少し透明感を出す
+        ...(particle.type === ParticleType.BUBBLE && {
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.5)',
+          backgroundColor: `${particle.color}99`, // 半透明
+        }),
       };
     } else if (particle.type === ParticleType.PETAL) {
-      // 花びら風の楕円形（初期回転は固定値に変更してメモリ使用量を削減）
+      // 花びら風の楕円形
       shapeStyle = {
         borderRadius: particle.size / 2,
         borderTopLeftRadius: particle.size,
         borderBottomRightRadius: particle.size,
-        transform: [{ rotate: `${(particle.id * 36) % 360}deg` }], // 固定値を使用
+        transform: [{ rotate: `${(particle.id * 36) % 360}deg` }],
       };
+    } else if (particle.type === ParticleType.STAR) {
+      // 星型はビューではなく星形のテキストを使用
+      return (
+        <Animated.Text
+          key={particle.id}
+          style={[
+            styles.particleBase,
+            animatedStyle,
+            {
+              fontSize: particle.size * 1.5,
+              color: particle.color,
+              textAlign: 'center',
+              lineHeight: particle.size * 1.5,
+              backgroundColor: 'transparent',
+              transform: [
+                { translateX: particle.x },
+                { translateY: particle.y },
+                { rotate: particle.rotate.interpolate({
+                  inputRange: [-3, 3],
+                  outputRange: ['-270deg', '270deg']
+                })},
+                { scale: particle.scale },
+              ],
+            },
+          ]}
+        >
+          ★
+        </Animated.Text>
+      );
+    } else if (particle.type === ParticleType.HEART) {
+      // ハート型はテキストで表現
+      return (
+        <Animated.Text
+          key={particle.id}
+          style={[
+            styles.particleBase,
+            animatedStyle,
+            {
+              fontSize: particle.size * 1.5,
+              color: particle.color,
+              textAlign: 'center',
+              lineHeight: particle.size * 1.5,
+              backgroundColor: 'transparent',
+              transform: [
+                { translateX: particle.x },
+                { translateY: particle.y },
+                { rotate: particle.rotate.interpolate({
+                  inputRange: [-3, 3],
+                  outputRange: ['-270deg', '270deg']
+                })},
+                { scale: particle.scale },
+              ],
+            },
+          ]}
+        >
+          ♡
+        </Animated.Text>
+      );
+    } else if (particle.type === ParticleType.SPARKLE) {
+      // キラキラ効果（十字型）
+      return (
+        <Animated.View
+          key={particle.id}
+          style={[
+            styles.particleBase,
+            {
+              transform: [
+                { translateX: particle.x },
+                { translateY: particle.y },
+                { rotate: particle.rotate.interpolate({
+                  inputRange: [-3, 3],
+                  outputRange: ['-270deg', '270deg']
+                })},
+                { scale: particle.scale },
+              ],
+              opacity: particle.opacity,
+              width: particle.size * 2,
+              height: particle.size * 2,
+              backgroundColor: 'transparent',
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+          ]}
+        >
+          {/* 水平線 */}
+          <View
+            style={{
+              position: 'absolute',
+              width: particle.size * 2,
+              height: particle.size / 3,
+              backgroundColor: particle.color,
+              borderRadius: particle.size / 4,
+            }}
+          />
+          {/* 垂直線 */}
+          <View
+            style={{
+              position: 'absolute',
+              width: particle.size / 3,
+              height: particle.size * 2,
+              backgroundColor: particle.color,
+              borderRadius: particle.size / 4,
+            }}
+          />
+        </Animated.View>
+      );
     }
     
     return (
@@ -585,7 +836,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.families.primary,
     fontSize: fonts.sizes.lg,
     fontWeight: 'bold',
-    marginBottom: 12, // 余白を減らす
+    marginBottom: 24, // 余白を減らす
     textAlign: 'center',
     maxWidth: '95%',
   },

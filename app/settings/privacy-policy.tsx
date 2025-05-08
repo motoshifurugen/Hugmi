@@ -44,12 +44,12 @@ export default function PrivacyPolicyScreen() {
         
         <ThemedView style={styles.bulletContainer}>
           <ThemedText style={styles.bullet}>• ユーザーが登録したルーティンや設定情報</ThemedText>
-          <ThemedText style={styles.bullet}>• 名言のコレクション・お気に入り情報</ThemedText>
+          <ThemedText style={styles.bullet}>• 名言のコレクションおよびお気に入り情報</ThemedText>
           <ThemedText style={styles.bullet}>• 通知の時間設定</ThemedText>
         </ThemedView>
         
         <ThemedText style={styles.paragraph}>
-          本アプリでは、これらの情報を外部のサーバーに送信することはありません。
+          ※本アプリでは、これらの情報を外部のサーバーに送信することはありません。
         </ThemedText>
         
         <ThemedText style={styles.sectionTitle}>2. 情報の利用目的</ThemedText>
@@ -70,10 +70,15 @@ export default function PrivacyPolicyScreen() {
         
         <ThemedText style={styles.sectionTitle}>4. 通知機能について</ThemedText>
         <ThemedText style={styles.paragraph}>
-          本アプリでは、ユーザーの端末に通知を送信するため、通知の権限が必要となる場合があります。この通知設定は、端末の設定から変更できます。
+          本アプリでは、ユーザーの端末に通知を送信するため、通知の権限が必要となる場合があります。通知の受信設定は、端末の「設定」よりいつでも変更できます。
         </ThemedText>
         
-        <ThemedText style={styles.sectionTitle}>5. 改訂について</ThemedText>
+        <ThemedText style={styles.sectionTitle}>5. 広告表示について</ThemedText>
+        <ThemedText style={styles.paragraph}>
+          本アプリでは、一部画面において第三者提供のネイティブ広告（アプリ内に自然に表示される形式の広告）を掲載する場合があります。広告の表示に際して、ユーザーの個人情報を収集・送信することはありませんが、広告の最適化や表示回数の管理のために、広告配信事業者によって端末識別子などの情報が利用されることがあります。広告に関連するプライバシー情報の取り扱いについては、各広告配信事業者のプライバシーポリシーをご確認ください。
+        </ThemedText>
+        
+        <ThemedText style={styles.sectionTitle}>6. 改訂について</ThemedText>
         <ThemedText style={styles.paragraph}>
           本ポリシーの内容は、ユーザーへの通知なく変更される場合があります。重要な変更がある場合は、アプリ内でお知らせします。
         </ThemedText>
