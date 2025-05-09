@@ -18,6 +18,7 @@ import CornerDecoration from '@/components/common/ui/CornerDecoration';
 import { router } from 'expo-router';
 import { getUnviewedRandomQuote, recordViewedQuote } from '@/db/utils/viewed_quotes';
 import { createNeomorphicButtonStyle, createNeomorphicButtonPressedStyle } from '@/constants/NeuomorphicStyles';
+import { emitQuoteViewed } from '@/utils/events';
 
 // データベース初期化状態のグローバル変数
 let DB_INITIALIZED = false;
@@ -144,6 +145,9 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           try {
             console.log(`[DEBUG] 保留していた名言の表示を記録: ${quoteId}`);
             await recordViewedQuote(ACTIVE_USER_ID, quoteId);
+            // 名言表示イベントを発行（コレクション画面で即時反映するため）
+            console.log(`[DEBUG] 保留していた名言の表示イベントを発行: ${quoteId}`);
+            emitQuoteViewed(quoteId);
           } catch (error) {
             console.error('[DEBUG] 保留中の表示記録エラー:', error);
           }
@@ -209,6 +213,10 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
                 console.log('[DEBUG] ユーザーがまだ作成されていません。表示記録をスキップします。');
                 return;
               }
+              
+              // 名言表示イベントを発行（コレクション画面で即時反映するため）
+              console.log('[DEBUG] 名言表示イベントを発行:', quote.id);
+              emitQuoteViewed(quote.id);
               
               if (DB_INITIALIZED) {
                 // データベースが初期化済みの場合は直接記録

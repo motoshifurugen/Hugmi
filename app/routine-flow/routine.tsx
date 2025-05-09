@@ -88,6 +88,7 @@ export default function RoutineStepScreen() {
         setRoutines(sortedRoutines);
       } catch (error) {
         // エラー処理
+        console.error('ルーティンデータの取得に失敗しました:', error);
       } finally {
         setLoading(false);
       }
@@ -96,209 +97,322 @@ export default function RoutineStepScreen() {
     fetchRoutines();
   }, []);
   
+  // クリーンアップ関数を追加して、アニメーションリソースを解放
+  useEffect(() => {
+    return () => {
+      // コンポーネントのアンマウント時にAnimated.Valueをリセット
+      fadeAnim.setValue(1);
+      slideAnim.setValue(0);
+      buttonScale.setValue(1);
+      skipButtonScale.setValue(1);
+      pulseAnim.setValue(1);
+      dotScaleAnim.setValue(1);
+    };
+  }, [fadeAnim, slideAnim, buttonScale, skipButtonScale, pulseAnim, dotScaleAnim]);
+  
   // パルスアニメーションを開始（よりスムーズな実装）
   useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        // 大きくなるアニメーション
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1500, // 拡大に1.5秒
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        // 小さくなるアニメーション
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500, // 縮小にも1.5秒
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        })
-      ])
-    );
+    let pulseAnimation: Animated.CompositeAnimation | null = null;
     
-    pulseAnimation.start();
+    try {
+      pulseAnimation = Animated.loop(
+        Animated.sequence([
+          // 大きくなるアニメーション
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
+            duration: 1500, // 拡大に1.5秒
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          // 小さくなるアニメーション
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500, // 縮小にも1.5秒
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          })
+        ])
+      );
+      
+      pulseAnimation.start();
+    } catch (error) {
+      console.error('パルスアニメーションの開始に失敗しました:', error);
+      // アニメーションが失敗した場合のフォールバック
+      pulseAnim.setValue(1);
+    }
     
     return () => {
-      pulseAnimation.stop();
+      if (pulseAnimation) {
+        pulseAnimation.stop();
+      }
       pulseAnim.setValue(1);
     };
   }, []);
   
   // 現在のステップドットのアニメーション
   useEffect(() => {
-    // ステップが変わるたびにドットアニメーションをリセットして再開
-    dotScaleAnim.setValue(0.8);
-    Animated.sequence([
-      Animated.timing(dotScaleAnim, {
-        toValue: 1.2,
-        duration: 300,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.back(2)),
-      }),
-      Animated.timing(dotScaleAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      })
-    ]).start();
+    try {
+      // ステップが変わるたびにドットアニメーションをリセットして再開
+      dotScaleAnim.setValue(0.8);
+      Animated.sequence([
+        Animated.timing(dotScaleAnim, {
+          toValue: 1.2,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.back(2)),
+        }),
+        Animated.timing(dotScaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start();
+    } catch (error) {
+      console.error('ドットアニメーションでエラーが発生しました:', error);
+      // エラー時はアニメーションをスキップして通常サイズに
+      dotScaleAnim.setValue(1);
+    }
   }, [currentStep]);
   
   // ステップが変わるたびのアニメーション
   const animateTransition = (nextStep: number) => {
-    // フェードアウト
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 450,
-      useNativeDriver: true,
-    }).start(() => {
-      // フェードアウト完了後にステップを更新
-      setCurrentStep(nextStep);
-      
-      // フェードイン
+    try {
+      // フェードアウト
       Animated.timing(fadeAnim, {
-        toValue: 1,
+        toValue: 0,
         duration: 450,
         useNativeDriver: true,
-      }).start();
-    });
+      }).start(() => {
+        try {
+          // フェードアウト完了後にステップを更新
+          setCurrentStep(nextStep);
+          
+          // フェードイン
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 450,
+            useNativeDriver: true,
+          }).start();
+        } catch (error) {
+          console.error('フェードイン処理でエラー:', error);
+          // エラーが発生してもステップを更新
+          setCurrentStep(nextStep);
+        }
+      });
+    } catch (error) {
+      console.error('フェードアウト処理でエラー:', error);
+      // アニメーションエラー時は直接ステップを更新
+      setCurrentStep(nextStep);
+    }
   };
   
   // 「できた！」ボタンのアニメーション
   const animateCompleteButton = (onComplete?: () => void) => {
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 1.05, // 1.1から1.05に縮小して控えめに
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      // アニメーション完了時にコールバックを実行
+    try {
+      Animated.sequence([
+        Animated.timing(buttonScale, {
+          toValue: 1.05, // 1.1から1.05に縮小して控えめに
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        try {
+          // アニメーション完了時にコールバックを実行
+          if (onComplete) {
+            onComplete();
+          }
+        } catch (error) {
+          console.error('アニメーション完了コールバックでエラー:', error);
+        }
+      });
+    } catch (error) {
+      console.error('アニメーション開始でエラー:', error);
+      // エラーが発生してもコールバックを実行
       if (onComplete) {
-        onComplete();
+        setTimeout(() => {
+          try {
+            onComplete();
+          } catch (innerError) {
+            console.error('遅延コールバック実行でエラー:', innerError);
+          }
+        }, 300);
       }
-    });
+    }
   };
 
   // 「スキップ」ボタンのアニメーション
   const animateSkipButton = (onComplete?: () => void) => {
-    Animated.sequence([
-      Animated.timing(skipButtonScale, {
-        toValue: 0.95, // 少し縮小するアニメーション
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.timing(skipButtonScale, {
-        toValue: 1,
-        duration: 120,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      // アニメーション完了時にコールバックを実行
+    try {
+      Animated.sequence([
+        Animated.timing(skipButtonScale, {
+          toValue: 0.95, // 少し縮小するアニメーション
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(skipButtonScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        try {
+          // アニメーション完了時にコールバックを実行
+          if (onComplete) {
+            onComplete();
+          }
+        } catch (error) {
+          console.error('スキップボタンアニメーション完了コールバックでエラー:', error);
+        }
+      });
+    } catch (error) {
+      console.error('スキップボタンアニメーション開始でエラー:', error);
+      // エラーが発生してもコールバックを実行
       if (onComplete) {
-        onComplete();
+        setTimeout(() => {
+          try {
+            onComplete();
+          } catch (innerError) {
+            console.error('スキップボタン遅延コールバック実行でエラー:', innerError);
+          }
+        }, 300);
       }
-    });
+    }
   };
   
   const handleCompleteStep = async () => {
     if (!currentRoutine) return;
     
-    // ボタンのアニメーションを実行し、完了時に次のステップへ移行
-    animateCompleteButton(async () => {
-      try {
-        // ルーティンログをデータベースに保存
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        
-        // ユーザーを取得
-        const users = await getAllUsers();
-        if (users.length === 0) {
-          return;
-        }
-        
-        const userId = users[0].id;
-        
-        // ルーティンログを作成
-        await createRoutineLog({
-          userId,
-          date: today,
-          routineId: currentRoutine.id,
-          status: 'checked'
-        });
-        
-        if (currentStep < totalSteps - 1) {
-          // ルーティンを完了としてマーク
-          const updatedRoutines = [...routines];
-          updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
-          setRoutines(updatedRoutines);
+    try {
+      // ボタンのアニメーションを実行し、完了時に次のステップへ移行
+      animateCompleteButton(async () => {
+        try {
+          // ルーティンログをデータベースに保存
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           
-          // アニメーションを実行して次のステップへ
-          animateTransition(currentStep + 1);
-        } else {
-          // 最後のステップを完了
-          const updatedRoutines = [...routines];
-          updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
-          setRoutines(updatedRoutines);
+          // ユーザーを取得
+          const users = await getAllUsers();
+          if (users.length === 0) {
+            return;
+          }
           
-          // 朝の完了画面へ遷移
-          router.push('/routine-flow/morning-complete');
+          const userId = users[0].id;
+          
+          // ルーティンログを作成
+          await createRoutineLog({
+            userId,
+            date: today,
+            routineId: currentRoutine.id,
+            status: 'checked'
+          });
+          
+          if (currentStep < totalSteps - 1) {
+            // ルーティンを完了としてマーク
+            const updatedRoutines = [...routines];
+            updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
+            setRoutines(updatedRoutines);
+            
+            // アニメーションを実行して次のステップへ
+            animateTransition(currentStep + 1);
+          } else {
+            // 最後のステップを完了
+            const updatedRoutines = [...routines];
+            updatedRoutines[currentStep] = {...currentRoutine, completed: true, skipped: false};
+            setRoutines(updatedRoutines);
+            
+            // 朝の完了画面へ遷移
+            router.push('/routine-flow/morning-complete');
+          }
+        } catch (error) {
+          console.error('ルーティンの記録に失敗しました:', error);
+          // エラーが発生してもアプリがクラッシュしないよう次のステップに進む
+          if (currentStep < totalSteps - 1) {
+            // 次のステップへ（エラー時でも）
+            animateTransition(currentStep + 1);
+          } else {
+            // 最後のステップ（エラー時でも完了画面へ）
+            router.push('/routine-flow/morning-complete');
+          }
         }
-      } catch (error) {
-        console.error('ルーティンの記録に失敗しました:', error);
+      });
+    } catch (error) {
+      console.error('「できた！」ボタン処理でエラーが発生しました:', error);
+      // ボタンアニメーション自体がエラーになった場合でも次のステップへ
+      if (currentStep < totalSteps - 1) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        router.push('/routine-flow/morning-complete');
       }
-    });
+    }
   };
   
   const handleSkipStep = async () => {
     if (!currentRoutine) return;
     
-    animateSkipButton(async () => {
-      try {
-        // ルーティンログをデータベースに保存
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        
-        // ユーザーを取得
-        const users = await getAllUsers();
-        if (users.length === 0) {
-          return;
-        }
-        
-        const userId = users[0].id;
-        
-        // ルーティンログを作成（スキップとして記録）
-        await createRoutineLog({
-          userId,
-          date: today,
-          routineId: currentRoutine.id,
-          status: 'skipped'
-        });
-        
-        if (currentStep < totalSteps - 1) {
-          // ルーティンをスキップとしてマーク
-          const updatedRoutines = [...routines];
-          updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
-          setRoutines(updatedRoutines);
+    try {
+      animateSkipButton(async () => {
+        try {
+          // ルーティンログをデータベースに保存
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           
-          // アニメーションを実行して次のステップへ
-          animateTransition(currentStep + 1);
-        } else {
-          // 最後のステップをスキップとしてマーク
-          const updatedRoutines = [...routines];
-          updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
-          setRoutines(updatedRoutines);
+          // ユーザーを取得
+          const users = await getAllUsers();
+          if (users.length === 0) {
+            return;
+          }
           
-          // 朝の完了画面へ遷移
-          router.push('/routine-flow/morning-complete');
+          const userId = users[0].id;
+          
+          // ルーティンログを作成（スキップとして記録）
+          await createRoutineLog({
+            userId,
+            date: today,
+            routineId: currentRoutine.id,
+            status: 'skipped'
+          });
+          
+          if (currentStep < totalSteps - 1) {
+            // ルーティンをスキップとしてマーク
+            const updatedRoutines = [...routines];
+            updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+            setRoutines(updatedRoutines);
+            
+            // アニメーションを実行して次のステップへ
+            animateTransition(currentStep + 1);
+          } else {
+            // 最後のステップをスキップとしてマーク
+            const updatedRoutines = [...routines];
+            updatedRoutines[currentStep] = {...currentRoutine, completed: false, skipped: true};
+            setRoutines(updatedRoutines);
+            
+            // 朝の完了画面へ遷移
+            router.push('/routine-flow/morning-complete');
+          }
+        } catch (error) {
+          console.error('ルーティンのスキップ記録に失敗しました:', error);
+          // エラーが発生してもアプリがクラッシュしないよう次のステップに進む
+          if (currentStep < totalSteps - 1) {
+            // 次のステップへ（エラー時でも）
+            animateTransition(currentStep + 1);
+          } else {
+            // 最後のステップ（エラー時でも完了画面へ）
+            router.push('/routine-flow/morning-complete');
+          }
         }
-      } catch (error) {
-        console.error('ルーティンの記録に失敗しました:', error);
+      });
+    } catch (error) {
+      console.error('「スキップ」ボタン処理でエラーが発生しました:', error);
+      // ボタンアニメーション自体がエラーになった場合でも次のステップへ
+      if (currentStep < totalSteps - 1) {
+        setCurrentStep(currentStep + 1);
+      } else {
+        router.push('/routine-flow/morning-complete');
       }
-    });
+    }
   };
 
   // ステップインジケーターをレンダリング（点で表示）
