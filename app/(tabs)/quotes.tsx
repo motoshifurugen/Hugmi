@@ -11,6 +11,7 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
+import { subscribeFavoriteChange, emitFavoriteChange } from '@/utils/events'; // イベント購読のインポート
 
 // 名言データベース関連のインポート
 import { getAllQuotes } from '@/db/utils/quotes';
@@ -207,6 +208,29 @@ export default function QuotesScreen() {
     fetchData();
   }, [fetchData]);
   
+  // お気に入り変更イベントを購読
+  useEffect(() => {
+    // お気に入り変更イベントのコールバック
+    const handleFavoriteChange = ({ quoteId, isFavorite }: { quoteId: string, isFavorite: boolean }) => {
+      console.log(`[QUOTES] お気に入り変更イベント受信: ID=${quoteId}, 状態=${isFavorite}`);
+      
+      // 即座に状態を更新（データベースから再取得せずに）
+      setQuotes(prevQuotes => {
+        return prevQuotes.map(quote => 
+          quote.id === quoteId ? { ...quote, isFavorite } : quote
+        );
+      });
+    };
+    
+    // イベントを購読
+    const unsubscribe = subscribeFavoriteChange(handleFavoriteChange);
+    
+    // クリーンアップ関数でイベント購読を解除
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  
   // 表示モードが変更されたときに画像読み込みエラーの状態をリセット
   useEffect(() => {
     setImageLoadErrors({});
@@ -237,6 +261,10 @@ export default function QuotesScreen() {
       setQuotes(quotes.map(quote => 
         quote.id === id ? {...quote, isFavorite} : quote
       ));
+      
+      // お気に入り変更イベントを発行
+      // グローバルに変更を通知（他の画面でも同期するため）
+      emitFavoriteChange(id, isFavorite);
       
       return true;
     } catch (err) {

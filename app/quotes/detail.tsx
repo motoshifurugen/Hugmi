@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import CornerDecoration from '@/components/common/ui/CornerDecoration';
 import { projectColors } from '@/constants/Colors';
+import { emitFavoriteChange } from '@/utils/events';
 
 // データベース関連のインポート
 import { getQuoteById, getAllQuotes } from '@/db/utils/quotes';
@@ -241,6 +242,9 @@ export default function QuoteDetailScreen() {
           quote.id === id ? { ...quote, isFavorite: newFavoriteStatus } : quote
         );
       });
+      
+      // お気に入り変更イベントを発行（名言コレクション画面で購読）
+      emitFavoriteChange(id, newFavoriteStatus);
     } catch (err) {
       setFavoriteError('お気に入り状態の更新に失敗しました');
     } finally {
