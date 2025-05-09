@@ -11,7 +11,7 @@ import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
-import { subscribeFavoriteChange, emitFavoriteChange } from '@/utils/events'; // イベント購読のインポート
+import { subscribeFavoriteChange, emitFavoriteChange, subscribeQuoteViewed } from '@/utils/events'; // イベント購読のインポート
 
 // 名言データベース関連のインポート
 import { getAllQuotes } from '@/db/utils/quotes';
@@ -224,6 +224,29 @@ export default function QuotesScreen() {
     
     // イベントを購読
     const unsubscribe = subscribeFavoriteChange(handleFavoriteChange);
+    
+    // クリーンアップ関数でイベント購読を解除
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  
+  // 名言表示イベントを購読
+  useEffect(() => {
+    // 名言表示イベントのコールバック
+    const handleQuoteViewed = ({ quoteId }: { quoteId: string }) => {
+      console.log(`[QUOTES] 名言表示イベント受信: ID=${quoteId}`);
+      
+      // 即座に状態を更新（データベースから再取得せずに）
+      setQuotes(prevQuotes => {
+        return prevQuotes.map(quote => 
+          quote.id === quoteId ? { ...quote, unlocked: true } : quote
+        );
+      });
+    };
+    
+    // イベントを購読
+    const unsubscribe = subscribeQuoteViewed(handleQuoteViewed);
     
     // クリーンアップ関数でイベント購読を解除
     return () => {
