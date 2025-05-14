@@ -199,4 +199,47 @@ export const getViewedQuotesByUserId = async (userId: string) => {
   } catch (error) {
     return [];
   }
+};
+
+/**
+ * 今日の名言を表示済みかどうかをチェックする関数
+ * 午前0時〜午前2:59は前日の名言をチェックする
+ */
+export const hasTodayViewedQuote = async (userId: string): Promise<boolean> => {
+  try {
+    // 現在の日本時間
+    const now = new Date();
+    
+    // 午前0時〜午前2:59の場合は前日の日付をチェック
+    const targetDate = new Date(now);
+    if (now.getHours() >= 0 && now.getHours() < 3) {
+      targetDate.setDate(targetDate.getDate() - 1);
+    }
+    
+    // 対象日付を YYYY-MM-DD 形式に変換
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    // ターゲット日付の0時0分0秒 (視聴記録の開始時間)
+    const startDate = `${dateString}T00:00:00.000Z`;
+    
+    // ターゲット日付の23時59分59秒 (視聴記録の終了時間)
+    const endDate = `${dateString}T23:59:59.999Z`;
+    
+    // 指定した日付範囲の視聴履歴を取得
+    const database = db.getDatabase();
+    const result = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM viewed_quotes 
+       WHERE user_id = ? AND viewed_at BETWEEN ? AND ?`,
+      [userId, startDate, endDate]
+    );
+    
+    // 履歴が1件以上あれば表示済み
+    return !!(result && result.count > 0);
+  } catch (error) {
+    console.error('名言表示チェックエラー:', error);
+    return false; // エラー時はfalseを返す（未表示として扱う）
+  }
 }; 

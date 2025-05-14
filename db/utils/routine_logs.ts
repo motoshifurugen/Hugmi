@@ -194,7 +194,9 @@ export const getRoutineCompletionRate = async (
  */
 export async function getTodayRoutineProgress(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+    // 日付の取得
+    const { getCurrentDate } = await import('@/constants/utils');
+    const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
     
     // ユーザーのアクティブなルーティン総数を取得
     const routines = await db.getActiveRoutinesByUserId(userId);
@@ -225,7 +227,9 @@ export async function isTodayRoutineCompleted(userId: string) {
 // 今日のルーティンが開始されているかチェックする関数
 export async function isTodayRoutineStarted(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+    // 日付の取得
+    const { getCurrentDate } = await import('@/constants/utils');
+    const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
     
     // db.raw の代わりに既存の関数を使用
     const logs = await db.getRoutineLogsByDate(userId, today);

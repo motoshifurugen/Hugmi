@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
-import { getTimeBasedGreeting } from '@/constants/utils';
+import { getTimeBasedGreeting, getTimePeriod } from '@/constants/utils';
 import { getTodayRoutineProgress, isTodayRoutineStarted, isTodayRoutineCompleted } from '@/db/utils/routine_logs';
 import { getTodayViewedQuote, getUnviewedRandomQuote } from '@/db/utils/viewed_quotes';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
@@ -168,7 +168,7 @@ export default function HomeScreen() {
   // ルーティンデータ読み込み用の関数
   const loadRoutineData = async (userId: string) => {
     try {
-      // 今日のルーティン進捗を取得
+      // 今日のルーティン進捗を取得（getCurrentDateが内部で使用され、午前0時〜午前2:59は前日の日付を返す）
       const progress = await getTodayRoutineProgress(userId);
       setRoutineProgress({
         completed: progress.completed,
@@ -191,6 +191,7 @@ export default function HomeScreen() {
   // 名言データ読み込み用の関数
   const loadQuoteData = async (userId: string) => {
     try {
+      // 今日の名言を取得（午前0時〜午前2:59は前日の名言を取得）
       const todayQuote = await getTodayViewedQuote(userId);
       
       if (todayQuote) {

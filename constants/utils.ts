@@ -2,32 +2,80 @@
  * 時間帯に応じた挨拶を返すユーティリティ関数
  */
 export const getTimeBasedGreeting = (): string => {
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   
-  if (hour >= 5 && hour < 12) {
+  // 午前3時〜午前10:59 => 朝
+  if (hour >= 3 && hour < 11) {
     return 'おはよう';
-  } else if (hour >= 12 && hour < 18) {
+  }
+  // 午前11時〜午後5:59 => 昼
+  else if (hour >= 11 && hour < 18) {
     return 'こんにちは';
-  } else {
+  }
+  // 午後6時〜午前2:59 => 夜
+  else {
     return 'こんばんは';
   }
 };
 
 /**
  * 現在の日付を YYYY-MM-DD 形式で返す
+ * 午前0時〜午前2:59の場合は前日の日付を返す
  */
 export const getCurrentDate = (): string => {
+  // 基準は日本時間
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  
+  // 午前0時〜午前2:59の場合は日付を1日戻す（前日の日付とする）
+  const targetDate = new Date(now);
+  if (now.getHours() >= 0 && now.getHours() < 3) {
+    targetDate.setDate(targetDate.getDate() - 1);
+  }
+  
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-// 現在が朝の時間帯（5:00〜11:00）かどうかをチェックする関数
+/**
+ * 時間帯を判別する関数
+ * @returns 'morning' | 'daytime' | 'evening'
+ */
+export function getTimePeriod(): 'morning' | 'daytime' | 'evening' {
+  const hour = new Date().getHours();
+  
+  // 午前3時〜午前10:59 => 朝
+  if (hour >= 3 && hour < 11) {
+    return 'morning';
+  }
+  // 午前11時〜午後5:59 => 昼
+  else if (hour >= 11 && hour < 18) {
+    return 'daytime';
+  }
+  // 午後6時〜午前2:59 => 夜
+  else {
+    return 'evening';
+  }
+}
+
+// 現在が朝の時間帯（3:00〜10:59）かどうかをチェックする関数
 export function isMorningTime(): boolean {
   const hour = new Date().getHours();
-  return hour >= 5 && hour < 11;
+  return hour >= 3 && hour < 11;
+}
+
+// 現在が昼の時間帯（11:00〜17:59）かどうかをチェックする関数
+export function isDaytimeTime(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 11 && hour < 18;
+}
+
+// 現在が夜の時間帯（18:00〜2:59）かどうかをチェックする関数
+export function isEveningTime(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 18 || hour < 3;
 }
 
 // ユーティリティ関数：アプリの初期ルートを決定
@@ -41,9 +89,10 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
 
     // 必要な関数をインポート
     const { isTodayRoutineCompleted, isTodayRoutineStarted } = await import('@/db/utils/routine_logs');
+    const { hasTodayViewedQuote } = await import('@/db/utils/viewed_quotes');
     
-    // 朝の時間帯かどうか
-    const isMorning = isMorningTime();
+    // 時間帯を取得
+    const timePeriod = getTimePeriod();
     
     // 今日のルーティンが開始済みかどうか
     const routineStarted = await isTodayRoutineStarted(userId);
@@ -51,18 +100,27 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
     // 今日のルーティンが完了済みかどうか
     const routineCompleted = await isTodayRoutineCompleted(userId);
     
-    console.log(`[DEBUG] ルート決定: 朝の時間帯=${isMorning}, ルーティン開始済み=${routineStarted}, ルーティン完了=${routineCompleted}`);
+    // 今日の名言を表示済みかどうか
+    const quoteViewed = await hasTodayViewedQuote(userId);
     
-    // 朝の時間帯かつルーティン未実施の場合は朝フローへ
-    if (isMorning && !routineStarted && !routineCompleted) {
+    console.log(`[DEBUG] ルート決定: 時間帯=${timePeriod}, ルーティン開始済み=${routineStarted}, ルーティン完了=${routineCompleted}, 名言表示済み=${quoteViewed}`);
+    
+    // 名言をまだ表示していない場合は、時間帯に関わらず必ず名言画面へ
+    if (!quoteViewed) {
+      console.log('[DEBUG] 名言未表示：時間帯に関わらず名言画面へ遷移します');
+      return 'daily-quote';
+    }
+    
+    // 朝の時間帯: 無条件で名言画面からルーティンへ
+    if (timePeriod === 'morning') {
       return 'daily-quote'; // 名言画面から朝のフローを開始
     }
     
-    // それ以外の場合はホーム画面へ - ここを確実なタブパスへ変更
+    // それ以外の場合はホーム画面へ
     return '(tabs)/home';
   } catch (error) {
     console.error('初期ルートの決定中にエラーが発生しました:', error);
-    // エラー時はデフォルトでホーム画面に遷移（こちらも確実なパスに）
+    // エラー時はデフォルトでホーム画面に遷移
     return '(tabs)/home';
   }
 } 
