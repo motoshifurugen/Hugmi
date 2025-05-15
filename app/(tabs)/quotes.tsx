@@ -5,10 +5,12 @@ import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
+import { HapticPressable } from '@/components/common/HapticPressable';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
 import { subscribeFavoriteChange, emitFavoriteChange, subscribeQuoteViewed } from '@/utils/events'; // イベント購読のインポート
@@ -344,18 +346,20 @@ export default function QuotesScreen() {
             <ThemedText style={styles.quoteText}>{item.textJa}</ThemedText>
             <ThemedView style={styles.quoteFooter}>
               <ThemedText style={styles.quoteAuthor}>- {item.authorJa}</ThemedText>
-              <Pressable
+              <HapticPressable
                 onPress={(e) => {
                   e.stopPropagation();
                   toggleFavorite(item.id);
                 }}
+                hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <IconSymbol 
                   name={item.isFavorite ? "heart.fill" : "heart"} 
                   size={20} 
                   color={item.isFavorite ? projectColors.red1 : projectColors.black2} 
                 />
-              </Pressable>
+              </HapticPressable>
             </ThemedView>
           </ThemedView>
         </Pressable>

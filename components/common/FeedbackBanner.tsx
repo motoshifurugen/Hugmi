@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Linking, SafeAreaView } from 'react-native';
 import { projectColors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { HapticButton } from './HapticButton';
+import * as Haptics from 'expo-haptics';
 
 type FeedbackBannerProps = {
   onClose?: () => void;
@@ -40,21 +42,23 @@ const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
       <View style={styles.container}>
         <Text style={styles.text}>📝 感想をお聞かせください</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
+          <HapticButton 
             style={buttonStyle}
             onPress={handlePress}
             activeOpacity={0.8}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Light}
           >
             <Text style={styles.buttonText}>フィードバックを送る</Text>
-          </TouchableOpacity>
+          </HapticButton>
           {allowClose && (
-            <TouchableOpacity 
+            <HapticButton 
               style={styles.closeButton} 
               onPress={handleClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hapticStyle={Haptics.ImpactFeedbackStyle.Light}
             >
               <Ionicons name="close" size={18} color={projectColors.black2} />
-            </TouchableOpacity>
+            </HapticButton>
           )}
         </View>
       </View>
