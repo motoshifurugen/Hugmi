@@ -6,10 +6,12 @@ import * as SecureStore from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
 import { determineInitialRoute } from '@/constants/utils';
 import { projectColors } from '@/constants/Colors';
+import Logger from '@/utils/logger';
+import { AppRoute } from '@/types/routeTypes';
 
 // アプリの初期画面
 export default function Index() {
-  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [initialRoute, setInitialRoute] = useState<AppRoute | null>(null);
 
   // アプリ起動時に通知権限を確認し、適切なルートを決定
   useEffect(() => {
@@ -34,16 +36,16 @@ export default function Index() {
         if (userId) {
           // 初期ルートを決定
           const route = await determineInitialRoute(userId);
-          console.log('[DEBUG] index.tsx - 初期ルート決定:', route);
+          Logger.debug('index.tsx - 初期ルート決定:', route);
           setInitialRoute(route);
         } else {
           // ユーザーIDがない場合はホーム画面へ
-          setInitialRoute('(tabs)/home');
+          setInitialRoute('/(tabs)/home');
         }
       } catch (error) {
-        console.error('[DEBUG] 初期ルート決定エラー:', error);
+        Logger.error('初期ルート決定エラー:', error);
         // エラー時はホーム画面へ
-        setInitialRoute('(tabs)/home');
+        setInitialRoute('/(tabs)/home');
       }
     })();
   }, []);

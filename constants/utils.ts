@@ -79,12 +79,15 @@ export function isEveningTime(): boolean {
 }
 
 // ユーティリティ関数：アプリの初期ルートを決定
-export async function determineInitialRoute(userId: string, isFirstLogin: boolean = false) {
+import Logger from '@/utils/logger';
+import { AppRoute, isValidAppRoute } from '@/types/routeTypes';
+
+export async function determineInitialRoute(userId: string, isFirstLogin: boolean = false): Promise<AppRoute> {
   try {
     // 初回ログイン時は時間帯に関わらず名言画面に遷移
     if (isFirstLogin) {
-      console.log('[DEBUG] 初回ログイン：時間帯に関わらず名言画面へ遷移します');
-      return 'daily-quote';
+      Logger.debug('初回ログイン：時間帯に関わらず名言画面へ遷移します');
+      return '/daily-quote';
     }
 
     // 必要な関数をインポート
@@ -103,26 +106,26 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
     // 今日の名言を表示済みかどうか
     const quoteViewed = await hasTodayViewedQuote(userId);
     
-    console.log(`[DEBUG] ルート決定: 時間帯=${timePeriod}, ルーティン開始済み=${routineStarted}, ルーティン完了=${routineCompleted}, 名言表示済み=${quoteViewed}`);
+    Logger.debug(`ルート決定: 時間帯=${timePeriod}, ルーティン開始済み=${routineStarted}, ルーティン完了=${routineCompleted}, 名言表示済み=${quoteViewed}`);
     
     // 名言をまだ表示していない場合は、時間帯に関わらず必ず名言画面へ
     if (!quoteViewed) {
-      console.log('[DEBUG] 名言未表示：時間帯に関わらず名言画面へ遷移します');
-      return 'daily-quote';
+      Logger.debug('名言未表示：時間帯に関わらず名言画面へ遷移します');
+      return '/daily-quote';
     }
     
     // 朝の時間帯で名言が表示済みかつルーティン未開始の場合のみ、ルーティン画面へ
     if (timePeriod === 'morning' && !routineStarted) {
-      console.log('[DEBUG] 朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
+      Logger.debug('朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
       return '/routine-flow/routine';
     }
     
     // それ以外の場合はホーム画面へ
-    console.log('[DEBUG] ホーム画面へ遷移します');
-    return '(tabs)/home';
+    Logger.debug('ホーム画面へ遷移します');
+    return '/(tabs)/home';
   } catch (error) {
-    console.error('初期ルートの決定中にエラーが発生しました:', error);
+    Logger.error('初期ルートの決定中にエラーが発生しました:', error);
     // エラー時はデフォルトでホーム画面に遷移
-    return '(tabs)/home';
+    return '/(tabs)/home';
   }
 } 
