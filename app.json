@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hugmi",
     "slug": "Hugmi",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -70,7 +70,7 @@
         "projectId": "cc3bc9aa-a3b0-42ae-95c6-9d2f0a0dbde5"
       }
     },
-    "runtimeVersion": "1.0.2",
+    "runtimeVersion": "1.0.3",
     "updates": {
       "url": "https://u.expo.dev/cc3bc9aa-a3b0-42ae-95c6-9d2f0a0dbde5"
     },
