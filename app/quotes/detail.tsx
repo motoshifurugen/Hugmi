@@ -92,7 +92,9 @@ interface Quote {
 }
 
 export default function QuoteDetailScreen() {
-  const { id: quoteId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const quoteId = typeof params.id === 'string' ? params.id : '';
+  
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -124,6 +126,14 @@ export default function QuoteDetailScreen() {
       try {
         setLoading(true);
         setInitialScrollComplete(false);
+        
+        console.log(`[DEBUG] 名言詳細を読み込み中: ID=${quoteId}`);
+        
+        if (!quoteId) {
+          console.error('URLパラメータからquoteIdを取得できませんでした');
+          setLoading(false);
+          return;
+        }
         
         // すべての名言を取得
         const allQuotes = await getAllQuotes();
@@ -167,7 +177,8 @@ export default function QuoteDetailScreen() {
         );
         
         if (formattedQuotes.length === 0) {
-          // デフォルトの名言を作成（実際のアプリでは適切なデフォルト値に変更してください）
+          console.error('名言データが見つかりませんでした');
+          // デフォルトの名言を作成
           const defaultQuote: Quote = {
             id: 'default',
             textJa: 'これはデフォルトの名言です。',
@@ -182,8 +193,13 @@ export default function QuoteDetailScreen() {
           setQuotes([defaultQuote]);
           setCurrentIndex(0);
         } else {
+          console.log(`[DEBUG] 名言が見つかりました: インデックス=${targetQuoteIndex}, ID=${formattedQuotes[targetQuoteIndex]?.id}`);
+          // インデックスが有効範囲内かチェック
+          const validIndex = targetQuoteIndex >= 0 && targetQuoteIndex < formattedQuotes.length 
+            ? targetQuoteIndex 
+            : 0;
           // 先にインデックスを設定してから、データを設定
-          setCurrentIndex(targetQuoteIndex);
+          setCurrentIndex(validIndex);
           // 少し遅延させてデータを設定（順序を保証するため）
           setTimeout(() => {
             setQuotes(formattedQuotes);
@@ -203,6 +219,7 @@ export default function QuoteDetailScreen() {
         }, 100);
         
       } catch (err) {
+        console.error('名言詳細の読み込み中にエラーが発生しました:', err);
         // エラー処理
         setLoading(false);
       }
@@ -311,8 +328,12 @@ export default function QuoteDetailScreen() {
     );
   }
   
-  // 正しいカードのみを表示するためのデータ
-  const visibleQuotes = initialScrollComplete ? quotes : (quotes.length > 0 ? [quotes[currentIndex]] : []);
+  // 表示用の名言配列（初回スクロール完了後はすべて表示、それまでは現在のインデックスのみ）
+  const visibleQuotes = initialScrollComplete ? quotes : (
+    quotes.length > 0 && currentIndex >= 0 && currentIndex < quotes.length 
+      ? [quotes[currentIndex]] 
+      : quotes.length > 0 ? [quotes[0]] : []
+  );
 
   if (quotes.length === 0) {
     return (
@@ -505,7 +526,7 @@ export default function QuoteDetailScreen() {
               horizontal
               pagingEnabled={true}
               showsHorizontalScrollIndicator={false}
-              initialScrollIndex={0}
+              initialScrollIndex={initialScrollComplete ? currentIndex : 0}
               windowSize={5}
               maxToRenderPerBatch={quotes.length}
               initialNumToRender={1}
@@ -516,12 +537,24 @@ export default function QuoteDetailScreen() {
               })}
               decelerationRate="fast"
               onScrollToIndexFailed={(info) => {
+                console.error(`[ERROR] スクロール失敗: index=${info.index}, averageItemLength=${info.averageItemLength}, highestMeasuredFrameIndex=${info.highestMeasuredFrameIndex}`);
+                // スクロール失敗時の代替処理
                 const wait = new Promise(resolve => setTimeout(resolve, 100));
                 wait.then(() => {
-                  flatListRef.current?.scrollToIndex({ 
-                    index: info.index, 
-                    animated: false 
-                  });
+                  if (flatListRef.current) {
+                    // 有効な範囲内のインデックスにスクロール
+                    const safeIndex = Math.min(info.index, visibleQuotes.length - 1);
+                    if (safeIndex >= 0) {
+                      flatListRef.current.scrollToIndex({
+                        index: safeIndex,
+                        animated: false,
+                        viewPosition: 0.5
+                      });
+                    } else {
+                      // データがない場合や無効なインデックスの場合は先頭にスクロール
+                      flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+                    }
+                  }
                 });
               }}
               onMomentumScrollEnd={(e) => {
@@ -558,11 +591,24 @@ export default function QuoteDetailScreen() {
                 e.persist();
               }}
               onLayout={() => {
-                // レイアウト完了時に一度だけ全データを表示するように切り替え
-                if (!initialScrollComplete && visibleQuotes.length === 1) {
+                // レイアウト完了時に正しいインデックスにスクロール
+                if (!initialScrollComplete && visibleQuotes.length > 0) {
                   setTimeout(() => {
-                    setInitialScrollComplete(true);
-                  }, 300);
+                    if (flatListRef.current && currentIndex > 0 && currentIndex < quotes.length) {
+                      // visibleQuotesが1つの場合は初期表示のみなので、スクロールしない
+                      if (visibleQuotes.length > 1) {
+                        flatListRef.current.scrollToIndex({
+                          index: currentIndex,
+                          animated: false,
+                          viewPosition: 0.5
+                        });
+                      }
+                    }
+                    // 少し遅延させてからデータ表示を切り替え
+                    setTimeout(() => {
+                      setInitialScrollComplete(true);
+                    }, 200);
+                  }, 100);
                 }
               }}
             />

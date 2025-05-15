@@ -280,7 +280,7 @@ export const seedQuotes = async () => {
         imagePath: 'jane_austen.png'
       },
       {
-        textJa: '一度の笑いは、\nどんなため息百個よりも、\n価値がある。\nだから今日、少しでも笑えたなら、\nそれでいい。',
+        textJa: '一度の笑いは、\nどんなため息100個よりも、\n価値がある。\n今日、少しでも笑えたなら、\nそれでいい。',
         textEn: 'A laugh is worth a hundred groans in any market.',
         authorJa: 'チャールズ・ラム',
         authorEn: 'charles_lamb',
