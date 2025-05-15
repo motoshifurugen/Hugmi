@@ -24,7 +24,7 @@ export const seedQuotes = async () => {
         imagePath: 'confucius.png'
       },
       {
-        textJa: 'なりたい自分を、\n今日からすこしだけ生きてみよう。',
+        textJa: 'なりたい自分を、\n今日からすこしだけ\n生きてみよう。',
         textEn: 'The greatest way to live with honor in this world is to be what we pretend to be.',
         authorJa: 'ソクラテス',
         authorEn: 'socrates',
@@ -352,7 +352,7 @@ export const seedQuotes = async () => {
         imagePath: 'george_eliot.png'
       },
       {
-        textJa: '陽ざしはあたたかくて、\n雨はこころを潤してくれる。\n風は背すじを伸ばしてくれて、\n雪は気分をふわっとさせてくれる。\n「悪い天気」なんて、\nほんとはないのかもしれないね。',
+        textJa: '陽ざしはあたたかくて、\n雨はこころを潤す。\n風は背すじを伸ばしてくれて、\n雪は気分を軽くしてくれる。\n「悪い天気」なんて、\n本当はないのかもしれないね。',
         textEn: 'Sunshine is delicious, rain is refreshing, wind braces us up, snow is exhilarating. There is really no such thing as bad weather, only different kinds of good weather.',
         authorJa: 'ジェームズ・ラスキン',
         authorEn: 'john_ruskin',
@@ -400,7 +400,7 @@ export const seedQuotes = async () => {
         imagePath: 'robert_louis_stevenson.png'
       },
       {
-        textJa: '人間は、\n結果を得て幸福になるのではない。\n努力そのものが幸福なのだ。',
+        textJa: '人間は、\n結果を得ることで\n幸福になるのではない。\n努力そのものが幸福なのだ。',
         textEn: '',
         authorJa: '夏目漱石',
         authorEn: 'soseki_natsume',
