@@ -341,7 +341,10 @@ export default function QuotesScreen() {
     
     return (
       <Link href={`/quotes/detail?id=${item.id}`} asChild>
-        <Pressable>
+        <Pressable onPress={(e) => {
+          // タップイベントがバブリングするのを防止
+          e.stopPropagation();
+        }}>
           <ThemedView style={styles.quoteItem}>
             <ThemedText style={styles.quoteText}>{item.textJa}</ThemedText>
             <ThemedView style={styles.quoteFooter}>
@@ -399,6 +402,10 @@ export default function QuotesScreen() {
       <Link href={`/quotes/detail?id=${item.id}`} asChild>
         <Pressable 
           style={styles.iconItem}
+          onPress={(e) => {
+            // タップイベントがバブリングするのを防止
+            e.stopPropagation();
+          }}
         >
           <ThemedView style={styles.iconContainer}>
             {imageSource && !imageLoadErrors[item.id] ? (

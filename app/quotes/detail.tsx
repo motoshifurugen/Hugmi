@@ -92,7 +92,9 @@ interface Quote {
 }
 
 export default function QuoteDetailScreen() {
-  const { id: quoteId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const quoteId = typeof params.id === 'string' ? params.id : '';
+  
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -124,6 +126,14 @@ export default function QuoteDetailScreen() {
       try {
         setLoading(true);
         setInitialScrollComplete(false);
+        
+        console.log(`[DEBUG] 名言詳細を読み込み中: ID=${quoteId}`);
+        
+        if (!quoteId) {
+          console.error('URLパラメータからquoteIdを取得できませんでした');
+          setLoading(false);
+          return;
+        }
         
         // すべての名言を取得
         const allQuotes = await getAllQuotes();
@@ -167,7 +177,8 @@ export default function QuoteDetailScreen() {
         );
         
         if (formattedQuotes.length === 0) {
-          // デフォルトの名言を作成（実際のアプリでは適切なデフォルト値に変更してください）
+          console.error('名言データが見つかりませんでした');
+          // デフォルトの名言を作成
           const defaultQuote: Quote = {
             id: 'default',
             textJa: 'これはデフォルトの名言です。',
@@ -182,6 +193,7 @@ export default function QuoteDetailScreen() {
           setQuotes([defaultQuote]);
           setCurrentIndex(0);
         } else {
+          console.log(`[DEBUG] 名言が見つかりました: インデックス=${targetQuoteIndex}, ID=${formattedQuotes[targetQuoteIndex]?.id}`);
           // 先にインデックスを設定してから、データを設定
           setCurrentIndex(targetQuoteIndex);
           // 少し遅延させてデータを設定（順序を保証するため）
@@ -203,6 +215,7 @@ export default function QuoteDetailScreen() {
         }, 100);
         
       } catch (err) {
+        console.error('名言詳細の読み込み中にエラーが発生しました:', err);
         // エラー処理
         setLoading(false);
       }
@@ -505,7 +518,7 @@ export default function QuoteDetailScreen() {
               horizontal
               pagingEnabled={true}
               showsHorizontalScrollIndicator={false}
-              initialScrollIndex={0}
+              initialScrollIndex={currentIndex}
               windowSize={5}
               maxToRenderPerBatch={quotes.length}
               initialNumToRender={1}
@@ -516,12 +529,16 @@ export default function QuoteDetailScreen() {
               })}
               decelerationRate="fast"
               onScrollToIndexFailed={(info) => {
+                console.error(`[ERROR] スクロール失敗: index=${info.index}, averageItemLength=${info.averageItemLength}, highestMeasuredFrameIndex=${info.highestMeasuredFrameIndex}`);
+                // スクロール失敗時の再試行処理
                 const wait = new Promise(resolve => setTimeout(resolve, 100));
                 wait.then(() => {
-                  flatListRef.current?.scrollToIndex({ 
-                    index: info.index, 
-                    animated: false 
-                  });
+                  if (flatListRef.current) {
+                    flatListRef.current.scrollToIndex({ 
+                      index: Math.min(info.index, quotes.length - 1), 
+                      animated: false 
+                    });
+                  }
                 });
               }}
               onMomentumScrollEnd={(e) => {
@@ -558,11 +575,21 @@ export default function QuoteDetailScreen() {
                 e.persist();
               }}
               onLayout={() => {
-                // レイアウト完了時に一度だけ全データを表示するように切り替え
-                if (!initialScrollComplete && visibleQuotes.length === 1) {
+                // レイアウト完了時に正しいインデックスにスクロール
+                if (!initialScrollComplete && visibleQuotes.length > 0) {
                   setTimeout(() => {
-                    setInitialScrollComplete(true);
-                  }, 300);
+                    if (flatListRef.current && currentIndex > 0) {
+                      flatListRef.current.scrollToIndex({
+                        index: currentIndex,
+                        animated: false,
+                        viewPosition: 0.5
+                      });
+                    }
+                    // 少し遅延させてからデータ表示を切り替え
+                    setTimeout(() => {
+                      setInitialScrollComplete(true);
+                    }, 200);
+                  }, 100);
                 }
               }}
             />
