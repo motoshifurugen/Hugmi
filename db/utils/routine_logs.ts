@@ -194,17 +194,45 @@ export const getRoutineCompletionRate = async (
  */
 export async function getTodayRoutineProgress(userId: string) {
   try {
+    console.log(`[DEBUG] getTodayRoutineProgress - ユーザーID: ${userId}`);
+    
     // 日付の取得
     const { getCurrentDate } = await import('@/constants/utils');
     const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
+    console.log(`[DEBUG] 対象日付: ${today}`);
     
     // ユーザーのアクティブなルーティン総数を取得
     const routines = await db.getActiveRoutinesByUserId(userId);
     const total = routines.length;
+    console.log(`[DEBUG] アクティブなルーティン総数: ${total}`);
     
-    // 今日完了したルーティンの数を取得
-    const logs = await db.getRoutineLogsByDate(userId, today);
+    if (total > 0) {
+      routines.forEach((routine, index) => {
+        console.log(`[DEBUG] ルーティン[${index}]: id=${routine.id}, title=${routine.title}`);
+      });
+    }
+    
+    // データベースから直接ログを取得
+    const database = db.getDatabase();
+    const logs = await database.getAllAsync<{
+      id: string;
+      user_id: string;
+      date: string;
+      routine_id: string;
+      status: string;
+      created_at: string;
+    }>(`SELECT * FROM routine_logs WHERE user_id = ? AND date = ?`, [userId, today]);
+    
+    console.log(`[DEBUG] 本日(${today})のログ総数: ${logs.length}`);
+    
+    if (logs.length > 0) {
+      logs.forEach((log, index) => {
+        console.log(`[DEBUG] ルーティンログ[${index}]: routine_id=${log.routine_id}, status=${log.status}, date=${log.date}`);
+      });
+    }
+    
     const completed = logs.filter(log => log.status === 'checked').length;
+    console.log(`[DEBUG] 完了済みルーティン数: ${completed}/${total}`);
     
     return { completed, total };
   } catch (error) {
@@ -216,8 +244,11 @@ export async function getTodayRoutineProgress(userId: string) {
 // 今日のルーティンが完了しているかチェックする関数
 export async function isTodayRoutineCompleted(userId: string) {
   try {
+    console.log(`[DEBUG] isTodayRoutineCompleted - ユーザーID: ${userId}`);
     const progress = await getTodayRoutineProgress(userId);
-    return progress.total > 0 && progress.completed === progress.total;
+    const isCompleted = progress.total > 0 && progress.completed === progress.total;
+    console.log(`[DEBUG] ルーティン完了チェック結果: ${isCompleted}`);
+    return isCompleted;
   } catch (error) {
     console.error('ルーティン完了状態のチェックに失敗しました:', error);
     return false;
@@ -227,14 +258,24 @@ export async function isTodayRoutineCompleted(userId: string) {
 // 今日のルーティンが開始されているかチェックする関数
 export async function isTodayRoutineStarted(userId: string) {
   try {
+    console.log(`[DEBUG] isTodayRoutineStarted - ユーザーID: ${userId}`);
+    
     // 日付の取得
     const { getCurrentDate } = await import('@/constants/utils');
     const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
+    console.log(`[DEBUG] 対象日付: ${today}`);
     
-    // db.raw の代わりに既存の関数を使用
-    const logs = await db.getRoutineLogsByDate(userId, today);
+    // データベースから直接クエリでログを取得
+    const database = db.getDatabase();
+    const result = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM routine_logs WHERE user_id = ? AND date = ?`,
+      [userId, today]
+    );
     
-    return logs.length > 0;
+    const isStarted = !!(result && result.count > 0);
+    console.log(`[DEBUG] ルーティン開始チェック結果: ${isStarted} (ログ数: ${result?.count || 0})`);
+    
+    return isStarted;
   } catch (error) {
     console.error('ルーティン開始状態のチェックに失敗しました:', error);
     return false;

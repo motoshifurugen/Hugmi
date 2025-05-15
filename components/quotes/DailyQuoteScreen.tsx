@@ -206,7 +206,7 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
         // 表示した名言を記録（データベース初期化完了後かつアクティブユーザーIDが有効な場合のみ）
         if (quote.id && quote.id !== 'temp-id' && quote.id !== 'error-id' && quote.id !== 'fallback-id') {
           // 非同期で記録を行い、UIスレッドをブロックしない
-          setTimeout(() => {
+          const recordQuoteView = async () => {
             try {
               // ユーザーIDが初期値のままの場合（チュートリアル前）は記録をスキップ
               if (ACTIVE_USER_ID === 'user1') {
@@ -218,12 +218,31 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
               console.log('[DEBUG] 名言表示イベントを発行:', quote.id);
               emitQuoteViewed(quote.id);
               
+              // タイムゾーンを考慮した現在時刻をログに記録
+              const now = new Date();
+              console.log('[DEBUG] 名言表示記録 - 現在時刻:', now.toISOString());
+              console.log('[DEBUG] 名言表示記録 - 日本時間:', new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString());
+              
               if (DB_INITIALIZED) {
                 // データベースが初期化済みの場合は直接記録
                 console.log('[DEBUG] 名言の表示を記録（DB初期化済み）:', quote.id);
-                recordViewedQuote(ACTIVE_USER_ID, quote.id).catch(err => 
-                  console.error('[DEBUG] 表示記録エラー:', err)
-                );
+                
+                // 確実に記録するために複数回試行
+                let success = false;
+                for (let i = 0; i < 3; i++) {
+                  try {
+                    success = await recordViewedQuote(ACTIVE_USER_ID, quote.id);
+                    console.log(`[DEBUG] 名言表示記録 - 試行 ${i+1}: ${success ? '成功' : '失敗'}`);
+                    if (success) break;
+                  } catch (err) {
+                    console.error(`[DEBUG] 表示記録エラー (試行 ${i+1}):`, err);
+                  }
+                  
+                  // 失敗した場合は少し待ってから再試行
+                  if (!success && i < 2) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                  }
+                }
               } else {
                 // データベース初期化待ちの場合はキューに追加
                 console.log('[DEBUG] 名言の表示記録を保留（DB初期化待ち）:', quote.id);
@@ -232,7 +251,10 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
             } catch (recordError) {
               console.error('[DEBUG] 表示記録リクエスト中のエラー:', recordError);
             }
-          }, 100);
+          };
+          
+          // 記録処理を実行
+          recordQuoteView();
         }
       } else {
         console.log('[DEBUG] 名言データなし。フォールバックを使用');

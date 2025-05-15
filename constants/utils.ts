@@ -111,12 +111,21 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
       return 'daily-quote';
     }
     
-    // 朝の時間帯: 無条件で名言画面からルーティンへ
+    // 朝の時間帯で名言が未表示の場合のみ、名言画面に遷移
+    // 名言が既に表示済みの場合は、ルーティン進行状況に応じて振り分け
     if (timePeriod === 'morning') {
-      return 'daily-quote'; // 名言画面から朝のフローを開始
+      if (!quoteViewed) {
+        console.log('[DEBUG] 朝の時間帯で名言未表示：名言画面へ遷移します');
+        return 'daily-quote';
+      } else if (!routineStarted) {
+        // 朝だけど名言は表示済み、かつルーティン未開始の場合は、ルーティン画面へ
+        console.log('[DEBUG] 朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
+        return '/routine-flow/routine';
+      }
     }
     
     // それ以外の場合はホーム画面へ
+    console.log('[DEBUG] ホーム画面へ遷移します');
     return '(tabs)/home';
   } catch (error) {
     console.error('初期ルートの決定中にエラーが発生しました:', error);

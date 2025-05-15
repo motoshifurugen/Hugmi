@@ -207,13 +207,17 @@ export const getViewedQuotesByUserId = async (userId: string) => {
  */
 export const hasTodayViewedQuote = async (userId: string): Promise<boolean> => {
   try {
+    console.log(`[DEBUG] hasTodayViewedQuote - ユーザーID: ${userId}`);
+    
     // 現在の日本時間
     const now = new Date();
+    console.log(`[DEBUG] 現在時刻: ${now.toISOString()}, 時間: ${now.getHours()}時`);
     
     // 午前0時〜午前2:59の場合は前日の日付をチェック
     const targetDate = new Date(now);
     if (now.getHours() >= 0 && now.getHours() < 3) {
       targetDate.setDate(targetDate.getDate() - 1);
+      console.log(`[DEBUG] 午前0-3時なので前日の日付を使用`);
     }
     
     // 対象日付を YYYY-MM-DD 形式に変換
@@ -221,23 +225,48 @@ export const hasTodayViewedQuote = async (userId: string): Promise<boolean> => {
     const month = String(targetDate.getMonth() + 1).padStart(2, '0');
     const day = String(targetDate.getDate()).padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
+    console.log(`[DEBUG] 対象日付: ${dateString}`);
     
-    // ターゲット日付の0時0分0秒 (視聴記録の開始時間)
-    const startDate = `${dateString}T00:00:00.000Z`;
-    
-    // ターゲット日付の23時59分59秒 (視聴記録の終了時間)
-    const endDate = `${dateString}T23:59:59.999Z`;
-    
-    // 指定した日付範囲の視聴履歴を取得
+    // デバッグのために全ての視聴履歴を取得してログに出力
     const database = db.getDatabase();
-    const result = await database.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM viewed_quotes 
-       WHERE user_id = ? AND viewed_at BETWEEN ? AND ?`,
-      [userId, startDate, endDate]
+    const allRecords = await database.getAllAsync<{
+      id: string;
+      user_id: string;
+      quote_id: string;
+      viewed_at: string;
+    }>(
+      `SELECT * FROM viewed_quotes WHERE user_id = ? ORDER BY viewed_at DESC`,
+      [userId]
     );
+    console.log(`[DEBUG] ユーザー(${userId})の視聴履歴総数: ${allRecords.length}`);
     
-    // 履歴が1件以上あれば表示済み
-    return !!(result && result.count > 0);
+    // 最も単純な方法として: 視聴履歴の日付部分のみを比較
+    let isViewed = false;
+    
+    if (allRecords.length > 0) {
+      allRecords.forEach((record, index) => {
+        // SQLiteから取得したviewed_at値をDateオブジェクトに変換
+        const viewedAt = new Date(record.viewed_at);
+        
+        // 年月日だけを取り出す（タイムゾーンの違いによる問題を避けるため）
+        const viewedYear = viewedAt.getFullYear();
+        const viewedMonth = viewedAt.getMonth() + 1;
+        const viewedDay = viewedAt.getDate();
+        
+        const viewedDateString = `${viewedYear}-${String(viewedMonth).padStart(2, '0')}-${String(viewedDay).padStart(2, '0')}`;
+        
+        console.log(`[DEBUG] 視聴履歴[${index}]: quote_id=${record.quote_id}, viewed_at=${record.viewed_at}, 日付=${viewedDateString}`);
+        
+        // 対象日付と視聴日付が一致するかチェック
+        if (viewedDateString === dateString) {
+          isViewed = true;
+          console.log(`[DEBUG] 一致する視聴履歴を発見: ${viewedDateString} = ${dateString}`);
+        }
+      });
+    }
+    
+    console.log(`[DEBUG] 表示済みチェック結果: ${isViewed}`);
+    return isViewed;
   } catch (error) {
     console.error('名言表示チェックエラー:', error);
     return false; // エラー時はfalseを返す（未表示として扱う）
