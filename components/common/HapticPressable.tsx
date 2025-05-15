@@ -18,13 +18,13 @@ interface HapticPressableProps extends PressableProps {
   disableHaptic?: boolean;
 }
 
-export const HapticPressable: React.FC<HapticPressableProps> = ({ 
+export const HapticPressable = React.forwardRef<React.ComponentRef<typeof Pressable>, HapticPressableProps>(({
   onPress, 
   hapticStyle = Haptics.ImpactFeedbackStyle.Light,
   disableHaptic = false,
   children,
   ...props 
-}) => {
+}, ref) => {
   const handlePress = (event: any) => {
     if (!disableHaptic) {
       // ハプティックフィードバックを実行
@@ -41,8 +41,9 @@ export const HapticPressable: React.FC<HapticPressableProps> = ({
     <Pressable
       {...props}
       onPress={handlePress}
+      ref={ref}
     >
       {children}
     </Pressable>
   );
-}; 
+}); 

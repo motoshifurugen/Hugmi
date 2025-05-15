@@ -18,13 +18,13 @@ interface HapticButtonProps extends TouchableOpacityProps {
   disableHaptic?: boolean;
 }
 
-export const HapticButton: React.FC<HapticButtonProps> = ({ 
+export const HapticButton = React.forwardRef<React.ComponentRef<typeof TouchableOpacity>, HapticButtonProps>(({
   onPress, 
   hapticStyle = Haptics.ImpactFeedbackStyle.Light,
   disableHaptic = false,
   children,
   ...props 
-}) => {
+}, ref) => {
   const handlePress = (event: any) => {
     if (!disableHaptic) {
       // ハプティックフィードバックを実行
@@ -41,8 +41,9 @@ export const HapticButton: React.FC<HapticButtonProps> = ({
     <TouchableOpacity
       {...props}
       onPress={handlePress}
+      ref={ref}
     >
       {children}
     </TouchableOpacity>
   );
-}; 
+}); 
