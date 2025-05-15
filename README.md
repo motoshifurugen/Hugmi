@@ -43,4 +43,4 @@ npx expo start
 
 ## 📝 開発メモ
 
-開発に関する記録や仕様は [Wiki/開発メモ](hhttps://github.com/motoshifurugen/Hugmi/wiki/%E9%96%8B%E7%99%BA%E3%83%A1%E3%83%A2) にまとめています。
+開発に関する記録や仕様は [【Wiki】開発メモ](https://github.com/motoshifurugen/Hugmi/wiki/%E9%96%8B%E7%99%BA%E3%83%A1%E3%83%A2) にまとめています。
