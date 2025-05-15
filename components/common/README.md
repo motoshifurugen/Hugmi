@@ -102,4 +102,3 @@ function MyTabs() {
 - `ThemedView`: テーマに対応したビューコンポーネント
 - `Collapsible`: 折りたたみ可能なコンテナコンポーネント
 - `ExternalLink`: 外部リンク用のプレッサブルコンポーネント
-- `FeedbackBanner`: フィードバック入力促進用のバナーコンポーネント 
