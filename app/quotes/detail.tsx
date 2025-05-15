@@ -194,8 +194,12 @@ export default function QuoteDetailScreen() {
           setCurrentIndex(0);
         } else {
           console.log(`[DEBUG] 名言が見つかりました: インデックス=${targetQuoteIndex}, ID=${formattedQuotes[targetQuoteIndex]?.id}`);
+          // インデックスが有効範囲内かチェック
+          const validIndex = targetQuoteIndex >= 0 && targetQuoteIndex < formattedQuotes.length 
+            ? targetQuoteIndex 
+            : 0;
           // 先にインデックスを設定してから、データを設定
-          setCurrentIndex(targetQuoteIndex);
+          setCurrentIndex(validIndex);
           // 少し遅延させてデータを設定（順序を保証するため）
           setTimeout(() => {
             setQuotes(formattedQuotes);
@@ -324,8 +328,12 @@ export default function QuoteDetailScreen() {
     );
   }
   
-  // 正しいカードのみを表示するためのデータ
-  const visibleQuotes = initialScrollComplete ? quotes : (quotes.length > 0 ? [quotes[currentIndex]] : []);
+  // 表示用の名言配列（初回スクロール完了後はすべて表示、それまでは現在のインデックスのみ）
+  const visibleQuotes = initialScrollComplete ? quotes : (
+    quotes.length > 0 && currentIndex >= 0 && currentIndex < quotes.length 
+      ? [quotes[currentIndex]] 
+      : quotes.length > 0 ? [quotes[0]] : []
+  );
 
   if (quotes.length === 0) {
     return (
@@ -518,7 +526,7 @@ export default function QuoteDetailScreen() {
               horizontal
               pagingEnabled={true}
               showsHorizontalScrollIndicator={false}
-              initialScrollIndex={currentIndex}
+              initialScrollIndex={initialScrollComplete ? currentIndex : 0}
               windowSize={5}
               maxToRenderPerBatch={quotes.length}
               initialNumToRender={1}
@@ -530,14 +538,22 @@ export default function QuoteDetailScreen() {
               decelerationRate="fast"
               onScrollToIndexFailed={(info) => {
                 console.error(`[ERROR] スクロール失敗: index=${info.index}, averageItemLength=${info.averageItemLength}, highestMeasuredFrameIndex=${info.highestMeasuredFrameIndex}`);
-                // スクロール失敗時の再試行処理
+                // スクロール失敗時の代替処理
                 const wait = new Promise(resolve => setTimeout(resolve, 100));
                 wait.then(() => {
                   if (flatListRef.current) {
-                    flatListRef.current.scrollToIndex({ 
-                      index: Math.min(info.index, quotes.length - 1), 
-                      animated: false 
-                    });
+                    // 有効な範囲内のインデックスにスクロール
+                    const safeIndex = Math.min(info.index, visibleQuotes.length - 1);
+                    if (safeIndex >= 0) {
+                      flatListRef.current.scrollToIndex({
+                        index: safeIndex,
+                        animated: false,
+                        viewPosition: 0.5
+                      });
+                    } else {
+                      // データがない場合や無効なインデックスの場合は先頭にスクロール
+                      flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+                    }
                   }
                 });
               }}
@@ -578,12 +594,15 @@ export default function QuoteDetailScreen() {
                 // レイアウト完了時に正しいインデックスにスクロール
                 if (!initialScrollComplete && visibleQuotes.length > 0) {
                   setTimeout(() => {
-                    if (flatListRef.current && currentIndex > 0) {
-                      flatListRef.current.scrollToIndex({
-                        index: currentIndex,
-                        animated: false,
-                        viewPosition: 0.5
-                      });
+                    if (flatListRef.current && currentIndex > 0 && currentIndex < quotes.length) {
+                      // visibleQuotesが1つの場合は初期表示のみなので、スクロールしない
+                      if (visibleQuotes.length > 1) {
+                        flatListRef.current.scrollToIndex({
+                          index: currentIndex,
+                          animated: false,
+                          viewPosition: 0.5
+                        });
+                      }
                     }
                     // 少し遅延させてからデータ表示を切り替え
                     setTimeout(() => {
