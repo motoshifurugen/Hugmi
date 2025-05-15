@@ -3,6 +3,9 @@
     "strict": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
+    "allowJs": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
     "paths": {
       "@/*": [
         "./*"
@@ -14,6 +17,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }
