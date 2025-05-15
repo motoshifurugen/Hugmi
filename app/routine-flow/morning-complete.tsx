@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { StyleSheet, Pressable, Animated, TouchableOpacity, Dimensions, View, Image, SafeAreaView, ScrollView, Easing } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, Dimensions, View, SafeAreaView, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
@@ -10,35 +9,7 @@ import { fonts } from '@/constants/fonts';
 import { projectColors } from '@/constants/Colors';
 import { getAllUsers } from '@/db/utils/users';
 import { getRoutineLogsByDate } from '@/db/utils/routine_logs';
-import { getRoutineById, getActiveRoutinesByUserId } from '@/db/utils/routines';
-
-// シンプルなパーティクルの種類
-enum ParticleType {
-  CIRCLE,
-  PETAL,
-  STAR,    // 星型
-  HEART,   // ハート型
-  SPARKLE, // キラキラ
-  BUBBLE   // 水玉/バブル
-}
-
-// パーティクルのプロパティ
-interface Particle {
-  id: number;
-  x: Animated.Value;
-  y: Animated.Value;
-  rotate: Animated.Value;
-  scale: Animated.Value;
-  opacity: Animated.Value;
-  color: string;
-  type: ParticleType;
-  size: number;
-  duration: number;
-  delay: number; // 遅延用のプロパティを追加
-  initialBurst?: boolean; // 初期バースト効果用
-  burstAngle?: number; // バースト時の角度
-  burstDistance?: number; // バースト時の距離
-}
+import { getActiveRoutinesByUserId } from '@/db/utils/routines';
 
 // ルーティンアイテムの型定義
 interface RoutineItem {
@@ -48,59 +19,113 @@ interface RoutineItem {
   dotAnim: Animated.Value;
 }
 
+// パーティクルの型定義
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  opacity: Animated.Value;
+  rotation: Animated.Value;
+}
+
 export default function MorningCompleteScreen() {
-  // アニメーション値の初期化をメモ化
+  // アニメーション値の初期化
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const routineListAnim = useRef(new Animated.Value(0)).current;
   const tapTextAnim = useRef(new Animated.Value(0)).current;
-  const routineListAnim = useRef(new Animated.Value(0)).current; // ルーティンリストのアニメーション
+  
+  // アクティブなアニメーション参照を保持するref
+  const activeAnimations = useRef<Animated.Value[]>([]);
+  
+  // パーティクル用のステート
+  const [particles, setParticles] = useState<Particle[]>([]);
   
   const [username, setUsername] = useState('');
   const [routines, setRoutines] = useState<RoutineItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const particles = useRef<Particle[]>([]);
-  const animationsRef = useRef<Animated.CompositeAnimation | null>(null);
-  const animationsComplete = useRef(false);
-  const isAnimationStarted = useRef(false); // アニメーション開始フラグを追加
-  const isMounted = useRef(true); // コンポーネントのマウント状態を追跡
-  
-  // 画面の寸法を取得
-  const { width, height } = Dimensions.get('window');
+  const isMounted = useRef(true);
+  const animationsStarted = useRef(false);
 
   // コンポーネントのマウント状態を管理
   useEffect(() => {
-    isMounted.current = true;
     console.log('[DEBUG] MorningCompleteScreen コンポーネントがマウントされました');
+    isMounted.current = true;
+    animationsStarted.current = false;
+    
+    // 初期アニメーション参照を設定
+    activeAnimations.current = [fadeAnim, routineListAnim, tapTextAnim];
+    
+    // パーティクルを生成
+    generateParticles();
     
     return () => {
       console.log('[DEBUG] MorningCompleteScreen コンポーネントがアンマウントされました');
       isMounted.current = false;
       
-      // アニメーション開始フラグをリセット
-      isAnimationStarted.current = false;
-      
-      // アニメーション完了フラグをリセット
-      animationsComplete.current = false;
-      
-      // ここでアニメーションをクリーンアップ
+      // アニメーションを停止
       try {
-        const animation = animationsRef.current;
-        animationsRef.current = null;
-        
-        if (animation) {
-          animation.stop();
-        }
+        activeAnimations.current.forEach(anim => {
+          if (anim) anim.stopAnimation();
+        });
+        console.log('[DEBUG] アニメーション停止完了');
       } catch (error) {
-        console.error('マウント解除時のアニメーション停止エラー:', error);
+        console.error('アニメーション停止エラー:', error);
       }
     };
   }, []);
 
-  // ルーティンドットのアニメーション値をリセットする関数
-  const resetRoutineAnimations = useCallback(() => {
-    routines.forEach(routine => {
-      routine.dotAnim.setValue(0);
+  // パーティクルを生成する関数
+  const generateParticles = useCallback(() => {
+    const windowWidth = Dimensions.get('window').width;
+    const windowHeight = Dimensions.get('window').height;
+    const newParticles: Particle[] = [];
+    
+    // 15個のパーティクルを生成
+    for (let i = 0; i < 15; i++) {
+      newParticles.push({
+        id: i,
+        x: Math.random() * windowWidth,
+        y: Math.random() * windowHeight,
+        size: 5 + Math.random() * 15,
+        opacity: new Animated.Value(0),
+        rotation: new Animated.Value(0)
+      });
+    }
+    
+    setParticles(newParticles);
+  }, []);
+
+  // パーティクルのアニメーションを開始
+  const animateParticles = useCallback(() => {
+    particles.forEach((particle, index) => {
+      // アクティブなアニメーション参照に追加
+      activeAnimations.current.push(particle.opacity);
+      activeAnimations.current.push(particle.rotation);
+      
+      // フェードインとフェードアウトのアニメーション
+      Animated.sequence([
+        Animated.delay(index * 100),
+        Animated.timing(particle.opacity, {
+          toValue: 0.3 + Math.random() * 0.4,
+          duration: 1000 + Math.random() * 1000,
+          useNativeDriver: true
+        }),
+        Animated.timing(particle.opacity, {
+          toValue: 0,
+          duration: 1000 + Math.random() * 1000,
+          useNativeDriver: true
+        })
+      ]).start();
+      
+      // 回転アニメーション
+      Animated.timing(particle.rotation, {
+        toValue: 1,
+        duration: 3000 + Math.random() * 2000,
+        useNativeDriver: true
+      }).start();
     });
-  }, [routines]);
+  }, [particles]);
 
   // ユーザー名とルーティンデータを取得
   useEffect(() => {
@@ -156,7 +181,7 @@ export default function MorningCompleteScreen() {
           id: routine.id,
           title: routine.title,
           status: status,
-          dotAnim: new Animated.Value(0), // ドットアニメーション用の値（完了したもののみアニメーションする）
+          dotAnim: new Animated.Value(0), // ドットアニメーション用の値
         };
       });
       
@@ -167,650 +192,110 @@ export default function MorningCompleteScreen() {
         return 0;
       });
       
-      setRoutines(routineItems);
+      if (isMounted.current) {
+        setRoutines(routineItems);
+      }
     } catch (error) {
+      console.error('ルーティンデータの取得に失敗しました:', error);
       // エラー時は空のルーティンリストを表示
     }
   };
   
-  // アニメーションをクリーンアップする関数
-  const cleanupAnimations = useCallback(() => {
-    // アニメーション開始フラグをリセット
-    isAnimationStarted.current = false;
-    
-    if (animationsRef.current) {
-      try {
-        const animation = animationsRef.current;
-        animationsRef.current = null;
-        
-        if (animation) {
-          animation.stop();
+  // ルーティンデータが設定されたら一度だけアニメーションを開始
+  useEffect(() => {
+    if (!loading && routines.length > 0 && !animationsStarted.current && isMounted.current) {
+      console.log('[DEBUG] アニメーション開始条件が満たされました');
+      animationsStarted.current = true;
+      
+      // 少し遅延させてアニメーションを開始
+      setTimeout(() => {
+        if (isMounted.current) {
+          console.log('[DEBUG] アニメーションを開始します');
+          runAllAnimations();
         }
-      } catch (error) {
-        console.error('アニメーション停止エラー:', error);
-      }
+      }, 100);
     }
+  }, [loading, routines]);
+
+  // すべてのアニメーションを実行
+  const runAllAnimations = useCallback(() => {
+    console.log('[DEBUG] すべてのアニメーションを実行します');
     
-    // 個別のアニメーション値をリセット（try-catchで安全に実行）
-    try {
-      fadeAnim.setValue(0);
-      tapTextAnim.setValue(0);
-      routineListAnim.setValue(0);
-    } catch (error) {
-      console.error('アニメーション値リセットエラー:', error);
-    }
+    // メインコンテンツのフェードイン
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // ルーティンリストのフェードイン
+    Animated.sequence([
+      Animated.delay(500),
+      Animated.timing(routineListAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    // 完了したルーティンのみドットをアニメーション
+    const completedRoutines = routines.filter(routine => routine.status === 'checked');
     
-    // パーティクルのアニメーション値もリセット
-    particles.current.forEach(particle => {
-      try {
-        particle.x.setValue(0);
-        particle.y.setValue(0);
-        particle.scale.setValue(0);
-        particle.opacity.setValue(0);
-        particle.rotate.setValue(0);
-      } catch (error) {
-        console.error('パーティクルリセットエラー:', error);
+    console.log(`[DEBUG] アニメーション開始: 完了ルーティン数=${completedRoutines.length}`);
+    
+    // ドットアニメーション（完了したもののみ）
+    completedRoutines.forEach((routine, index) => {
+      console.log(`[DEBUG] ドットアニメーション設定: ルーティン=${routine.title}, インデックス=${index}`);
+      
+      // アクティブなアニメーション参照に追加
+      activeAnimations.current.push(routine.dotAnim);
+      
+      // 明示的に初期値を設定
+      routine.dotAnim.setValue(0);
+      
+      Animated.sequence([
+        // リストが表示された後に少し遅延させて順番にドットを表示
+        Animated.delay(1000 + index * 200),
+        Animated.spring(routine.dotAnim, {
+          toValue: 1,
+          friction: 4,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        console.log(`[DEBUG] ドットアニメーション完了: ルーティン=${routine.title}, 完了=${finished}`);
+      });
+    });
+
+    // タップテキストのフェードイン
+    Animated.sequence([
+      // ルーティンリストとドットアニメーションの後に表示
+      Animated.delay(1000 + completedRoutines.length * 200 + 300),
+      Animated.timing(tapTextAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished && isMounted.current) {
+        console.log('[DEBUG] アニメーション完了ステータス: 完了');
       }
     });
     
-    // ルーティンドットのアニメーション値をリセット（別の関数に分離）
-    resetRoutineAnimations();
-    
-    // パーティクル配列をクリア
-    particles.current = [];
-  }, [fadeAnim, tapTextAnim, routineListAnim, resetRoutineAnimations]);
-  
-  // コンポーネントのアンマウント時にアニメーションをクリーンアップ
-  useEffect(() => {
-    return () => {
-      cleanupAnimations();
-    };
-  }, [cleanupAnimations]);
-  
-  // パーティクルを作成
-  useEffect(() => {
-    // パーティクルの色
-    const colors = [
-      projectColors.primary,    // 淡い橙
-      projectColors.secondary,  // 淡いピンク
-      '#FFE0D1',               // 淡いピーチ
-      '#FFD6C4',               // 淡いコーラル
-      '#FFEFD6',               // 淡いクリーム
-      '#FFD1E0',               // 淡いピンク
-      '#E0F8FF',               // 淡い水色
-      '#FFF9C4',               // 淡い黄色
-      '#E8F5E9',               // 淡い緑
-      '#FFE57F',               // 淡い金色
-    ];
-    
-    const newParticles: Particle[] = [];
-    
-    // 花びらを画面全体に表示するために、あらかじめ配置場所を決定
-    const positions = [];
-    // 画面を10x12のグリッドに分割（パーティクル数を増やす）
-    const gridX = 10;
-    const gridY = 12;
-    
-    // グリッド内の各セルに花びらを配置
-    for (let y = 0; y < gridY; y++) {
-      for (let x = 0; x < gridX; x++) {
-        // セル内のランダムな位置を計算
-        const posX = (width / gridX) * x + Math.random() * (width / gridX);
-        const posY = (height / gridY) * y + Math.random() * (height / gridY);
-        positions.push({ x: posX, y: posY });
-      }
-    }
-    
-    // 位置をシャッフル
-    for (let i = positions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [positions[i], positions[j]] = [positions[j], positions[i]];
-    }
-    
-    // バースト効果用のパーティクル
-    const centerX = width / 2;
-    const centerY = height / 2.5; // 少し上に配置
-    const burstCount = 20;
-    
-    for (let i = 0; i < burstCount; i++) {
-      const angle = (i / burstCount) * Math.PI * 2; // 円形に均等配置
-      const distance = 30 + Math.random() * 20; // 初期距離
-      const burstType = Math.random() < 0.7 
-        ? (Math.random() < 0.5 ? ParticleType.SPARKLE : ParticleType.STAR)
-        : (Math.random() < 0.5 ? ParticleType.BUBBLE : ParticleType.HEART);
-      
-      newParticles.push({
-        id: i,
-        x: new Animated.Value(centerX),
-        y: new Animated.Value(centerY),
-        rotate: new Animated.Value(0),
-        scale: new Animated.Value(0.1),
-        opacity: new Animated.Value(0.8),
-        color: colors[Math.floor(Math.random() * colors.length)],
-        type: burstType,
-        size: 6 + Math.floor(Math.random() * 10),
-        duration: 3000 + Math.random() * 2000,
-        delay: 500,
-        initialBurst: true,
-        burstAngle: angle,
-        burstDistance: distance + Math.random() * 100
-      });
-    }
-    
-    // 通常のパーティクル (既存の実装を拡張)
-    // パーティクル数を増やす
-    const particleCount = 80;
-    for (let i = 0; i < particleCount; i++) {
-      // シャッフルした位置から取得
-      const position = positions[i % positions.length];
-      
-      // 遅延時間をランダムに設定
-      const delay = Math.random() * 2000;
-      
-      // アニメーション時間
-      const duration = 4000 + Math.random() * 6000; // 4〜10秒
-      
-      // パーティクルタイプの分布を設定
-      const rand = Math.random();
-      let particleType;
-      if (rand < 0.35) {
-        particleType = ParticleType.PETAL;
-      } else if (rand < 0.5) {
-        particleType = ParticleType.CIRCLE;
-      } else if (rand < 0.65) {
-        particleType = ParticleType.BUBBLE;
-      } else if (rand < 0.8) {
-        particleType = ParticleType.SPARKLE;
-      } else if (rand < 0.9) {
-        particleType = ParticleType.STAR;
-      } else {
-        particleType = ParticleType.HEART;
-      }
-      
-      newParticles.push({
-        id: i + burstCount, // バーストパーティクルと重複しないようにする
-        x: new Animated.Value(position.x),
-        y: new Animated.Value(position.y),
-        rotate: new Animated.Value(0),
-        scale: new Animated.Value(0),
-        opacity: new Animated.Value(0),
-        color: colors[Math.floor(Math.random() * colors.length)],
-        type: particleType,
-        size: 6 + Math.floor(Math.random() * 14), // 6-20pxのサイズ
-        duration: duration,
-        delay: delay
-      });
-    }
-    
-    particles.current = newParticles;
-    
-    // アニメーションを開始
-    startAnimation();
-    
-    // クリーンアップ関数
-    return () => {
-      cleanupAnimations();
-    };
-  }, [cleanupAnimations, routines, width, height]);
-  
-  const startAnimation = useCallback(() => {
-    // すでにアニメーションが開始されている場合は二重実行を防止
-    if (isAnimationStarted.current) {
-      console.log('[DEBUG] すでにアニメーションが開始されているため、処理をスキップします');
-      return;
-    }
-    
-    // アニメーション開始フラグを設定
-    isAnimationStarted.current = true;
-    
-    // 既存のアニメーションを安全に停止
-    try {
-      const currentAnimation = animationsRef.current;
-      animationsRef.current = null;
-      
-      if (currentAnimation) {
-        currentAnimation.stop();
-      }
-    } catch (error) {
-      console.error('既存アニメーション停止エラー:', error);
-    }
-    
-    try {
-      // メインメッセージのフェードイン
-      const mainFadeIn = Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      });
-      
-      // パーティクルのアニメーション
-      const particleAnimations = particles.current.map(particle => {
-        // バースト効果のアニメーションかどうかで処理を分ける
-        if (particle.initialBurst && particle.burstAngle !== undefined && particle.burstDistance !== undefined) {
-          // バースト効果用のアニメーション
-          const targetX = Math.cos(particle.burstAngle) * particle.burstDistance + width / 2;
-          const targetY = Math.sin(particle.burstAngle) * particle.burstDistance + height / 2.5;
-          
-          return Animated.sequence([
-            // 遅延
-            Animated.delay(particle.delay),
-            // バースト効果（一斉に飛び散る）
-            Animated.parallel([
-              // 位置アニメーション
-              Animated.timing(particle.x, {
-                toValue: targetX,
-                duration: 1500,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
-              }),
-              Animated.timing(particle.y, {
-                toValue: targetY,
-                duration: 1500,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
-              }),
-              // 回転
-              Animated.timing(particle.rotate, {
-                toValue: Math.random() * 6 - 3, // -3〜3回転
-                duration: 1500,
-                useNativeDriver: true,
-              }),
-              // サイズ変化
-              Animated.sequence([
-                Animated.timing(particle.scale, {
-                  toValue: 0.8 + Math.random() * 0.7,
-                  duration: 700,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(particle.scale, {
-                  toValue: 0,
-                  duration: 800,
-                  useNativeDriver: true,
-                }),
-              ]),
-              // 透明度変化
-              Animated.sequence([
-                Animated.timing(particle.opacity, {
-                  toValue: 0.7 + Math.random() * 0.3,
-                  duration: 700,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(particle.opacity, {
-                  toValue: 0,
-                  duration: 800,
-                  useNativeDriver: true,
-                }),
-              ]),
-            ]),
-          ]);
-        } else {
-          // 通常のパーティクルアニメーション（既存の実装を拡張）
-          // ランダムな速度係数
-          const speedFactor = 0.3 + Math.random() * 0.5;
-          
-          // 現在の位置を取得
-          const currentX = Number(JSON.stringify(particle.x)) || 0;
-          const currentY = Number(JSON.stringify(particle.y)) || 0;
-          
-          // ランダムな移動方向
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 50 + Math.random() * 120;
-          
-          // 角度と距離から移動量を計算
-          const moveX = Math.cos(angle) * distance * speedFactor;
-          const moveY = Math.sin(angle) * distance * speedFactor;
-          
-          // ゆらゆら動くようなアニメーション
-          const wobbleX = currentX + moveX + Math.sin(angle) * 20 * (Math.random() > 0.5 ? 1 : -1);
-          const wobbleY = currentY + moveY;
-          
-          return Animated.sequence([
-            // 遅延
-            Animated.delay(particle.delay),
-            // アニメーション本体
-            Animated.parallel([
-              // X位置のアニメーション（ゆらゆら効果追加）
-              Animated.timing(particle.x, {
-                toValue: wobbleX,
-                duration: particle.duration,
-                easing: Easing.bezier(0.25, 0.1, 0.25, 1), // なめらかな動き
-                useNativeDriver: true,
-              }),
-              // Y位置のアニメーション
-              Animated.timing(particle.y, {
-                toValue: wobbleY,
-                duration: particle.duration,
-                easing: Easing.bezier(0.1, 0.8, 0.2, 1), // 少し重力っぽく
-                useNativeDriver: true,
-              }),
-              // 回転のアニメーション - より多様に
-              Animated.timing(particle.rotate, {
-                toValue: Math.random() * 6 - 3, // -3〜3回転（より変化をつける）
-                duration: particle.duration,
-                useNativeDriver: true,
-              }),
-              // スケールのアニメーション
-              Animated.sequence([
-                Animated.timing(particle.scale, {
-                  toValue: 0.7 + Math.random() * 0.7, // 0.7〜1.4
-                  duration: 1500,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(particle.scale, {
-                  toValue: 0,
-                  duration: particle.duration - 1500,
-                  useNativeDriver: true,
-                }),
-              ]),
-              // 透明度のアニメーション
-              Animated.sequence([
-                Animated.timing(particle.opacity, {
-                  toValue: 0.5 + Math.random() * 0.5, // 0.5〜1.0
-                  duration: 1500,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(particle.opacity, {
-                  toValue: 0,
-                  duration: particle.duration - 1500,
-                  useNativeDriver: true,
-                }),
-              ]),
-            ]),
-          ]);
-        }
-      });
-      
-      // ルーティンリストのフェードイン
-      const routineListFadeIn = Animated.sequence([
-        Animated.delay(500), // メインメッセージ後に表示（遅延を短縮）
-        Animated.timing(routineListAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]);
-      
-      // 完了したルーティンのみドットをアニメーション
-      const completedRoutines = routines.filter(routine => routine.status === 'checked');
-      
-      // ルーティンドットのアニメーション（完了したもののみ）
-      const dotAnimations = completedRoutines.map((routine, index) => {
-        return Animated.sequence([
-          // リストが表示された後に少し遅延させて順番にドットを表示
-          Animated.delay(1000 + index * 200), // 遅延を短縮
-          Animated.spring(routine.dotAnim, {
-            toValue: 1,
-            friction: 4,
-            tension: 40,
-            useNativeDriver: true,
-          }),
-        ]);
-      });
-      
-      // タップテキストのフェードイン
-      const tapTextFadeIn = Animated.sequence([
-        // ルーティンリストとドットアニメーションの後に表示
-        Animated.delay(1000 + completedRoutines.length * 200 + 300), // 遅延を調整
-        Animated.timing(tapTextAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]);
-      
-      // すべてのアニメーションを並行して実行
-      const compositeAnimation = Animated.parallel([
-        mainFadeIn,
-        ...particleAnimations,
-        routineListFadeIn,
-        ...dotAnimations,
-        tapTextFadeIn,
-      ]);
-      
-      // アニメーション参照を保存
-      animationsRef.current = compositeAnimation;
-      
-      compositeAnimation.start((finished) => {
-        // コンポーネントがアンマウントされていないことを確認
-        if (!isMounted.current) {
-          console.log('[DEBUG] コンポーネントがアンマウントされているため、アニメーション完了処理をスキップします');
-          return;
-        }
-        
-        try {
-          // アニメーション完了フラグを設定
-          animationsComplete.current = true;
-          // アニメーション参照をクリア（スタックオーバーフローを防止）
-          animationsRef.current = null;
-          console.log(`[DEBUG] アニメーション完了ステータス: ${finished ? '完了' : '中断'}`);
-        } catch (error) {
-          console.error('アニメーション完了処理エラー:', error);
-          // エラーが発生した場合でも参照をクリア
-          animationsRef.current = null;
-        }
-      });
-    } catch (error) {
-      console.error('アニメーション開始エラー:', error);
-      // エラーが発生した場合のクリーンアップ
-      animationsRef.current = null;
-      isAnimationStarted.current = false;
-      
-      // エラーが発生した場合は、アニメーションをスキップしてUIを表示
-      if (isMounted.current) {
-        fadeAnim.setValue(1);
-        routineListAnim.setValue(1);
-        tapTextAnim.setValue(1);
-        routines.forEach(routine => {
-          if (routine.status === 'checked') {
-            routine.dotAnim.setValue(1);
-          }
-        });
-      }
-    }
-  }, [fadeAnim, tapTextAnim, routineListAnim, routines, width, height, isMounted]);
-  
+    // パーティクルアニメーションを開始
+    animateParticles();
+  }, [fadeAnim, routineListAnim, tapTextAnim, routines, animateParticles]);
+
+  // 画面タップ時の処理
   const handleTap = useCallback(() => {
-    // アニメーションの安全な停止
-    try {
-      // 参照をローカル変数に保存
-      const animation = animationsRef.current;
-      // 参照をnullに設定（これが重要）
-      animationsRef.current = null;
-      
-      // アニメーションがあれば停止
-      if (animation) {
-        animation.stop();
-      }
-    } catch (error) {
-      console.error('アニメーション停止エラー:', error);
-    }
-    
-    // パーティクル配列をクリア
-    particles.current = [];
-    
-    // 新しいアニメーションが作成されないようにフラグを設定
-    isAnimationStarted.current = false;
-    
-    // メモリリークを防ぐために個別のアニメーション値をクリア
-    try {
-      fadeAnim.setValue(1);
-      tapTextAnim.setValue(1);
-      routineListAnim.setValue(1);
-    } catch (error) {
-      console.error('アニメーション値リセットエラー:', error);
-    }
-    
-    // iPad上で安全に画面遷移するための遅延を使用
-    // requestAnimationFrameの代わりにsetTimeoutを使用
-    setTimeout(() => {
-      try {
-        router.replace('/(tabs)/home');
-      } catch (error) {
-        console.error('画面遷移エラー:', error);
-      }
-    }, 100);
-  }, [fadeAnim, tapTextAnim, routineListAnim]);
-  
-  // パーティクルをレンダリング
-  const renderParticle = useCallback((particle: Particle) => {
-    const animatedStyle = {
-      transform: [
-        { translateX: particle.x },
-        { translateY: particle.y },
-        { rotate: particle.rotate.interpolate({
-          inputRange: [-3, 3],
-          outputRange: ['-270deg', '270deg']
-        })},
-        { scale: particle.scale },
-      ],
-      opacity: particle.opacity,
-      backgroundColor: particle.type === ParticleType.SPARKLE ? 'transparent' : particle.color,
-      width: particle.size,
-      height: particle.type === ParticleType.PETAL 
-        ? particle.size * 1.5 
-        : particle.type === ParticleType.HEART 
-          ? particle.size * 1.1 
-          : particle.size,
-    };
-    
-    // タイプに応じた形状
-    let shapeStyle = {};
-    if (particle.type === ParticleType.CIRCLE || particle.type === ParticleType.BUBBLE) {
-      shapeStyle = {
-        borderRadius: particle.size / 2,
-        // バブルの場合は少し透明感を出す
-        ...(particle.type === ParticleType.BUBBLE && {
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.5)',
-          backgroundColor: `${particle.color}99`, // 半透明
-        }),
-      };
-    } else if (particle.type === ParticleType.PETAL) {
-      // 花びら風の楕円形
-      shapeStyle = {
-        borderRadius: particle.size / 2,
-        borderTopLeftRadius: particle.size,
-        borderBottomRightRadius: particle.size,
-        transform: [{ rotate: `${(particle.id * 36) % 360}deg` }],
-      };
-    } else if (particle.type === ParticleType.STAR) {
-      // 星型はビューではなく星形のテキストを使用
-      return (
-        <Animated.Text
-          key={particle.id}
-          style={[
-            styles.particleBase,
-            animatedStyle,
-            {
-              fontSize: particle.size * 1.5,
-              color: particle.color,
-              textAlign: 'center',
-              lineHeight: particle.size * 1.5,
-              backgroundColor: 'transparent',
-              transform: [
-                { translateX: particle.x },
-                { translateY: particle.y },
-                { rotate: particle.rotate.interpolate({
-                  inputRange: [-3, 3],
-                  outputRange: ['-270deg', '270deg']
-                })},
-                { scale: particle.scale },
-              ],
-            },
-          ]}
-        >
-          ★
-        </Animated.Text>
-      );
-    } else if (particle.type === ParticleType.HEART) {
-      // ハート型はテキストで表現
-      return (
-        <Animated.Text
-          key={particle.id}
-          style={[
-            styles.particleBase,
-            animatedStyle,
-            {
-              fontSize: particle.size * 1.5,
-              color: particle.color,
-              textAlign: 'center',
-              lineHeight: particle.size * 1.5,
-              backgroundColor: 'transparent',
-              transform: [
-                { translateX: particle.x },
-                { translateY: particle.y },
-                { rotate: particle.rotate.interpolate({
-                  inputRange: [-3, 3],
-                  outputRange: ['-270deg', '270deg']
-                })},
-                { scale: particle.scale },
-              ],
-            },
-          ]}
-        >
-          ♡
-        </Animated.Text>
-      );
-    } else if (particle.type === ParticleType.SPARKLE) {
-      // キラキラ効果（十字型）
-      return (
-        <Animated.View
-          key={particle.id}
-          style={[
-            styles.particleBase,
-            {
-              transform: [
-                { translateX: particle.x },
-                { translateY: particle.y },
-                { rotate: particle.rotate.interpolate({
-                  inputRange: [-3, 3],
-                  outputRange: ['-270deg', '270deg']
-                })},
-                { scale: particle.scale },
-              ],
-              opacity: particle.opacity,
-              width: particle.size * 2,
-              height: particle.size * 2,
-              backgroundColor: 'transparent',
-              justifyContent: 'center',
-              alignItems: 'center',
-            },
-          ]}
-        >
-          {/* 水平線 */}
-          <View
-            style={{
-              position: 'absolute',
-              width: particle.size * 2,
-              height: particle.size / 3,
-              backgroundColor: particle.color,
-              borderRadius: particle.size / 4,
-            }}
-          />
-          {/* 垂直線 */}
-          <View
-            style={{
-              position: 'absolute',
-              width: particle.size / 3,
-              height: particle.size * 2,
-              backgroundColor: particle.color,
-              borderRadius: particle.size / 4,
-            }}
-          />
-        </Animated.View>
-      );
-    }
-    
-    return (
-      <Animated.View
-        key={particle.id}
-        style={[styles.particleBase, animatedStyle, shapeStyle]}
-      />
-    );
+    // ホーム画面に戻る
+    router.replace('/(tabs)/home');
   }, []);
   
   // ルーティンアイテムをレンダリング
   const renderRoutineItem = useCallback((routine: RoutineItem, index: number) => {
+    console.log(`[DEBUG] レンダリング: ルーティン=${routine.title}, ステータス=${routine.status}`);
+    
     return (
       <View key={routine.id} style={styles.routineItem}>
         {routine.status === 'checked' ? (
@@ -866,14 +351,30 @@ export default function MorningCompleteScreen() {
         activeOpacity={1}
         onPress={handleTap}
       >
-        <View
-          style={[styles.background, { backgroundColor: '#FFF5EC' }]}
-        />
+        <View style={styles.background} />
         
-        {/* パーティクルアニメーション（背景として配置） */}
-        <View style={styles.particleContainer}>
-          {particles.current.map(renderParticle)}
-        </View>
+        {/* パーティクル */}
+        {particles.map(particle => (
+          <Animated.View
+            key={particle.id}
+            style={[
+              styles.particle,
+              {
+                left: particle.x,
+                top: particle.y,
+                width: particle.size,
+                height: particle.size,
+                opacity: particle.opacity,
+                transform: [
+                  { rotate: particle.rotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg']
+                  })}
+                ]
+              }
+            ]}
+          />
+        ))}
         
         {/* メインコンテンツ */}
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
@@ -911,7 +412,7 @@ export default function MorningCompleteScreen() {
           </ScrollView>
         </Animated.View>
         
-        {/* タップで終了（背景色付き） */}
+        {/* タップで終了 */}
         <Animated.View style={[styles.tapContainer, { opacity: tapTextAnim }]}>
           <View style={styles.tapBackground}>
             <ThemedText style={styles.tapText}>画面タップで終了</ThemedText>
@@ -931,7 +432,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start', 
     alignItems: 'center',
-    paddingTop: 10, // 上部の余白を減らす
+    paddingTop: 10,
   },
   background: {
     position: 'absolute',
@@ -939,45 +440,34 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-  },
-  particleContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    overflow: 'hidden',
+    backgroundColor: '#FFF5EC',
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    marginTop: 80, // 上部の余白を減らす
+    marginTop: 80,
     width: '100%',
   },
   username: {
     fontFamily: fonts.families.primary,
     fontSize: fonts.sizes.xl,
     fontWeight: 'bold',
-    marginBottom: 4, // 余白を減らす
+    marginBottom: 4,
     paddingTop: 4,
   },
   congratsText: {
     fontFamily: fonts.families.primary,
     fontSize: fonts.sizes.lg,
     fontWeight: 'bold',
-    marginBottom: 24, // 余白を減らす
+    marginBottom: 24,
     textAlign: 'center',
     maxWidth: '95%',
   },
-  particleBase: {
-    position: 'absolute',
-    pointerEvents: 'none',
-  },
   routineListContainer: {
     width: '90%',
-    maxHeight: '70%', // 表示領域をさらに拡大
-    marginTop: 4, // 上部の余白を減らす
+    maxHeight: '70%',
+    marginTop: 4,
     marginBottom: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 16,
@@ -1038,22 +528,26 @@ const styles = StyleSheet.create({
   },
   tapContainer: {
     position: 'absolute',
-    bottom: 40, // 位置を調整
+    bottom: 40,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
   tapBackground: {
-    backgroundColor: 'rgba(255, 241, 230, 0.85)', // 優しい背景色
+    backgroundColor: 'rgba(255, 241, 230, 0.85)',
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 16,
-    // borderWidth: 1,
-    // borderColor: 'rgba(233, 200, 180, 0.5)', // 薄い境界線
   },
   tapText: {
     fontFamily: fonts.families.primary,
     fontSize: fonts.sizes.sm,
     color: '#8C7E8C',
+  },
+  particle: {
+    position: 'absolute',
+    borderRadius: 100,
+    backgroundColor: projectColors.primary,
+    opacity: 0.5,
   },
 }); 

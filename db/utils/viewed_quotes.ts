@@ -1,4 +1,5 @@
 import { db } from '../';
+import { getCurrentDate } from "@/constants/utils";
 
 /**
  * ランダムなIDを生成する関数（UUIDの代わり）
@@ -199,4 +200,36 @@ export const getViewedQuotesByUserId = async (userId: string) => {
   } catch (error) {
     return [];
   }
-}; 
+};
+
+/**
+ * 今日の名言を表示済みかどうかを確認する
+ * @param userId ユーザーID
+ * @returns 今日の名言を表示済みならtrue、未表示ならfalse
+ */
+export async function hasTodayViewedQuote(userId: string): Promise<boolean> {
+  try {
+    // 現在の日付（JST、3:00AMリセット考慮済み）
+    const todayJST = getCurrentDate();
+    
+    // データベースインスタンス
+    const database = db.getDatabase();
+    
+    // SQL直接クエリで今日の日付のレコードがあるか確認
+    const result = await database.getFirstAsync<{ exists: number }>(
+      `SELECT 1 AS "exists" 
+       FROM viewed_quotes 
+       WHERE user_id = ? 
+       AND DATE(viewed_at) = ? 
+       LIMIT 1`,
+      [userId, todayJST]
+    );
+    
+    // 結果があればtrue、なければfalseを返す
+    return !!result;
+  } catch (error) {
+    console.error('名言表示状態確認中にエラーが発生しました:', error);
+    // エラー時はデフォルトでfalseを返す
+    return false;
+  }
+} 

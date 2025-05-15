@@ -19,6 +19,7 @@ import { router } from 'expo-router';
 import { getUnviewedRandomQuote, recordViewedQuote } from '@/db/utils/viewed_quotes';
 import { createNeomorphicButtonStyle, createNeomorphicButtonPressedStyle } from '@/constants/NeuomorphicStyles';
 import { emitQuoteViewed } from '@/utils/events';
+import { db } from '@/db';
 
 // データベース初期化状態のグローバル変数
 let DB_INITIALIZED = false;
@@ -205,34 +206,82 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
         
         // 表示した名言を記録（データベース初期化完了後かつアクティブユーザーIDが有効な場合のみ）
         if (quote.id && quote.id !== 'temp-id' && quote.id !== 'error-id' && quote.id !== 'fallback-id') {
-          // 非同期で記録を行い、UIスレッドをブロックしない
-          setTimeout(() => {
-            try {
-              // ユーザーIDが初期値のままの場合（チュートリアル前）は記録をスキップ
-              if (ACTIVE_USER_ID === 'user1') {
-                console.log('[DEBUG] ユーザーがまだ作成されていません。表示記録をスキップします。');
-                return;
-              }
-              
-              // 名言表示イベントを発行（コレクション画面で即時反映するため）
-              console.log('[DEBUG] 名言表示イベントを発行:', quote.id);
-              emitQuoteViewed(quote.id);
-              
+          try {
+            // ユーザーIDが初期値のままの場合（チュートリアル前）は記録をスキップ
+            if (ACTIVE_USER_ID === 'user1') {
+              console.log('[DEBUG] ユーザーがまだ作成されていません。表示記録をスキップします。');
+              return;
+            }
+            
+            // 名言表示イベントを発行（コレクション画面で即時反映するため）
+            console.log('[DEBUG] 名言表示イベントを発行:', quote.id);
+            emitQuoteViewed(quote.id);
+            
+            // タイムゾーンを考慮した現在時刻をログに記録
+            const now = new Date();
+            console.log('[DEBUG] 名言表示記録 - 現在時刻:', now.toISOString());
+            console.log('[DEBUG] 名言表示記録 - 日本時間:', new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString());
+            
+            // 直ちに記録するためのコールバック関数
+            const recordWithRetry = async () => {
               if (DB_INITIALIZED) {
                 // データベースが初期化済みの場合は直接記録
                 console.log('[DEBUG] 名言の表示を記録（DB初期化済み）:', quote.id);
-                recordViewedQuote(ACTIVE_USER_ID, quote.id).catch(err => 
-                  console.error('[DEBUG] 表示記録エラー:', err)
-                );
+                
+                // 確実に記録するために複数回試行
+                let success = false;
+                for (let i = 0; i < 3; i++) {
+                  try {
+                    success = await recordViewedQuote(ACTIVE_USER_ID, quote.id);
+                    console.log(`[DEBUG] 名言表示記録 - 試行 ${i+1}: ${success ? '成功' : '失敗'}`);
+                    if (success) break;
+                  } catch (err) {
+                    console.error(`[DEBUG] 表示記録エラー (試行 ${i+1}):`, err);
+                  }
+                  
+                  // 失敗した場合は少し待ってから再試行
+                  if (!success && i < 2) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                  }
+                }
+                
+                // 記録の確認
+                try {
+                  const database = db.getDatabase();
+                  const checkResult = await database.getFirstAsync<{ exists: number }>(
+                    `SELECT 1 AS "exists" FROM viewed_quotes WHERE user_id = ? AND quote_id = ? LIMIT 1`,
+                    [ACTIVE_USER_ID, quote.id]
+                  );
+                  
+                  const isRecorded = !!checkResult;
+                  console.log(`[DEBUG] 名言表示記録の確認: ${isRecorded ? '記録済み' : '未記録'}`);
+                  
+                  // まだ記録されていない場合は再度記録を試みる
+                  if (!isRecorded) {
+                    console.log('[DEBUG] 記録されていないため、最終試行を実施します');
+                    try {
+                      success = await recordViewedQuote(ACTIVE_USER_ID, quote.id);
+                      console.log(`[DEBUG] 名言表示記録 - 最終試行: ${success ? '成功' : '失敗'}`);
+                    } catch (finalErr) {
+                      console.error('[DEBUG] 最終試行でのエラー:', finalErr);
+                    }
+                  }
+                } catch (checkErr) {
+                  console.error('[DEBUG] 記録確認中のエラー:', checkErr);
+                }
               } else {
                 // データベース初期化待ちの場合はキューに追加
                 console.log('[DEBUG] 名言の表示記録を保留（DB初期化待ち）:', quote.id);
                 setPendingRecordQueue(prev => [...prev, quote.id]);
               }
-            } catch (recordError) {
-              console.error('[DEBUG] 表示記録リクエスト中のエラー:', recordError);
-            }
-          }, 100);
+            };
+            
+            // 記録処理を即時実行
+            recordWithRetry();
+            
+          } catch (recordError) {
+            console.error('[DEBUG] 表示記録リクエスト中のエラー:', recordError);
+          }
         }
       } else {
         console.log('[DEBUG] 名言データなし。フォールバックを使用');

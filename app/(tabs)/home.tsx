@@ -155,12 +155,15 @@ export default function HomeScreen() {
   // ユーザーデータ読み込み用の関数
   const loadUserData = async (userId: string) => {
     try {
+      console.log(`[DEBUG] ユーザーデータ読み込み - ユーザーID: ${userId}`);
+      
       // 今日のルーティン進捗を取得
       await loadRoutineData(userId);
       
       // 今日の名言を取得
       await loadQuoteData(userId);
     } catch (error) {
+      console.error('[ERROR] ユーザーデータ読み込みエラー:', error);
       // デフォルト値はすでに初期化済み
     }
   };
@@ -168,8 +171,12 @@ export default function HomeScreen() {
   // ルーティンデータ読み込み用の関数
   const loadRoutineData = async (userId: string) => {
     try {
-      // 今日のルーティン進捗を取得
+      console.log(`[DEBUG] ルーティンデータ読み込み - ユーザーID: ${userId}`);
+      
+      // 今日のルーティン進捗を取得（getCurrentDateが内部で使用され、午前0時〜午前2:59は前日の日付を返す）
       const progress = await getTodayRoutineProgress(userId);
+      console.log(`[DEBUG] 取得したルーティン進捗:`, progress);
+      
       setRoutineProgress({
         completed: progress.completed,
         total: progress.total
@@ -178,9 +185,12 @@ export default function HomeScreen() {
       // ルーティンの状態を取得
       const started = await isTodayRoutineStarted(userId);
       const completed = await isTodayRoutineCompleted(userId);
+      console.log(`[DEBUG] ルーティン状態 - 開始済み: ${started}, 完了済み: ${completed}`);
+      
       setRoutineStarted(started);
       setRoutineCompleted(completed);
     } catch (error) {
+      console.error('[ERROR] ルーティンデータ読み込みエラー:', error);
       // エラー時のデフォルト値
       setRoutineProgress(DEFAULT_ROUTINE_PROGRESS);
       setRoutineStarted(false);
@@ -191,27 +201,35 @@ export default function HomeScreen() {
   // 名言データ読み込み用の関数
   const loadQuoteData = async (userId: string) => {
     try {
+      console.log(`[DEBUG] 名言データ読み込み - ユーザーID: ${userId}`);
+      
+      // 今日の名言を取得（午前0時〜午前2:59は前日の名言を取得）
       const todayQuote = await getTodayViewedQuote(userId);
       
       if (todayQuote) {
+        console.log(`[DEBUG] 今日の名言を取得 - ID: ${todayQuote.id}`);
         setTodayQuote({
           textJa: todayQuote.textJa,
           authorJa: todayQuote.authorJa
         });
       } else {
+        console.log(`[DEBUG] 今日の名言が見つかりません。ランダムな名言を取得します。`);
         // 表示履歴がない場合は、ランダムな名言を表示
         const randomQuote = await getUnviewedRandomQuote(userId);
         if (randomQuote) {
+          console.log(`[DEBUG] ランダムな名言を取得 - ID: ${randomQuote.id}`);
           setTodayQuote({
             textJa: randomQuote.textJa,
             authorJa: randomQuote.authorJa
           });
         } else {
+          console.log(`[DEBUG] 名言が見つかりません。デフォルト値を使用します。`);
           // 名言がない場合のデフォルト
           setTodayQuote(DEFAULT_QUOTE);
         }
       }
     } catch (error) {
+      console.error('[ERROR] 名言データ読み込みエラー:', error);
       // エラー時のデフォルト
       setTodayQuote(DEFAULT_QUOTE);
     }
