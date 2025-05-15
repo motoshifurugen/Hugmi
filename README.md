@@ -1,101 +1,43 @@
-# 🌞 Hugmi（ハグミー） - 忙しい朝も、やさしく始まる
+# Hugmi（ハグミー）
 
-Hugmi は、忙しい毎日を送るあなたに、
-心地よい「朝のルーティン」と「名言のひとこと」を届けるアプリです。
+[![Last Commit](https://img.shields.io/github/last-commit/motoshifurugen/hugmi?style=flat-square)](https://github.com/motoshifurugen/hugmi/commits/main)
+[![License](https://img.shields.io/github/license/motoshifurugen/hugmi?style=flat-square)](https://github.com/motoshifurugen/hugmi/blob/main/LICENSE)
+[![Platform](https://img.shields.io/badge/platform-iOS-blue?style=flat-square&logo=apple)](https://apps.apple.com/us/app/hugmi-%E3%83%8F%E3%82%B0%E3%83%9F%E3%83%BC/id6745621864)
+[![Built with Expo](https://img.shields.io/badge/built%20with-Expo-000020?style=flat-square&logo=expo)](https://expo.dev)
 
-朝がちょっと苦手でも、Hugmiがやさしく背中を押してくれます。
-日々の気分と行動を、無理なく整えていきましょう。
+**名言で始める、やさしいモーニングルーティン。**
 
-## 🚀 はじめかた
+Hugmiは、「がんばらなくても続けられる朝習慣」をテーマにした、そっと寄り添う朝ルーティンのアプリです。
+React Native（Expo）で開発しています。
+
+---
+
+## 📲 ダウンロード
+
+[App Storeで入手](https://apps.apple.com/us/app/hugmi-%E3%83%8F%E3%82%B0%E3%83%9F%E3%83%BC/id6745621864)
+
+---
+
+## 🌼 主な機能
+
+- 朝いちばんに届く、あたたかい「名言」
+- 1ステップずつ進められる、シンプルなルーティン管理
+- あえて「記録しない」設計で、気楽に続けられる
+- 名言コレクションで、お気に入りを振り返る
+
+<p align="center">
+  <img src="https://i.gyazo.com/53aaaed6b9dd152af52342c7cc870d31.png" width="30%" style="margin-right: 8px;" alt="名言で始まるやさしい朝">
+  <img src="https://i.gyazo.com/52bb0d3b03656e85be59331f981bcda1.png" width="30%" style="margin-right: 8px;" alt="最小限のルーティン設計">
+  <img src="https://i.gyazo.com/07edda4aab7ed2abdfaaacacffeb4dd3.png" width="30%" alt="あなたに寄り添う名言コレクション">
+</p>
+
+## 🛠 開発・起動方法
 
 ```bash
 npm install
 npx expo start
 ```
-
-Expoの起動後、以下から開発可能：
-
-- iOSシミュレータ
-- Androidエミュレータ
-- 実機 + Expo Go
-- 開発ビルド
-
-## 🗂 ディレクトリ構成
-
-```
-app/
-  (tabs)/               ← タブ画面（ホーム・設定・名言コレクションなど）
-  routine-flow/         ← 朝のルーティン進行フロー
-  quotes/               ← 名言詳細画面
-  _layout.tsx           ← 全体レイアウト
-  +not-found.tsx
-
-components/
-  common/               ← 共通UIパーツ（ボタン等）
-  routine/              ← ルーティン専用UI
-  quotes/               ← 名言関連UI
-
-constants/
-  colors.ts             ← カラーパレット
-  fonts.ts              ← フォント設定
-  quotes.ts             ← 初期名言データ（仮）
-```
-
-## 🌼 主な機能
-
-- 🗓 朝のルーティン実行・スキップ・進捗管理
-- 💬 名言の表示（気分に合わせて一言）
-- 🤍 名言のお気に入り保存・コレクション表示
-- ⏰ 朝・夜の通知（開始・翌日の予告）
-- 🧭 初回チュートリアル（ユーザー名・使い方案内）
-
-## ✨ チュートリアルフロー（初回のみ）
-
-1. 名言の表示（導入）
-2. Hugmiの紹介
-3. ユーザー名入力
-4. 初期ルーティンの設定
-5. アプリの使い方ガイド
-6. 完了（ホーム画面へ）
-
-一度完了すれば、以降は表示されません。
-
-## 🔄 朝のルーティン分岐ロジック
-
-### 1. アプリ起動時
-
-| 条件 | 遷移先 |
-| ---- | ------ |
-| 5:00〜11:00、かつ未完了のルーティンあり | スプラッシュ → 名言 → ルーティン |
-| 上記以外 | スプラッシュ → ホーム画面 |
-
-### 2. ホーム画面の表示条件
-
-- ✅ ルーティン完了 → 進捗バー（100%）
-- 🕒 未完了 → 再開ボタン（ルーティン画面へ）
-
-## ⚙️ スクリプト
-
-開発を初期化したい場合：
-
-```bash
-npm run reset-project
-```
-
-これは、サンプルコードを app-example に移動し、空の app/ を用意します。
-
-## 📚 Learn More
-
-- [Expo 公式ガイド](https://docs.expo.dev/)
-- [Expo Router](https://docs.expo.dev/router/introduction/)
-
-## 🧡 コミュニティ
-
-- [Expo GitHub](https://github.com/expo/expo)
-- [Expo Discord](https://chat.expo.dev)
-
-## 📄 ライセンス・著作権など
-
-本プロジェクトは個人開発用に設計されています。
-
-アイコン画像や名言データは著作権にご注意ください。
+以下のいずれかの方法でアプリを起動します：
+- iOSシミュレータ（Mac環境）
+- Androidエミュレータ（Android Studio）
+- 実機 + Expo Go アプリ
