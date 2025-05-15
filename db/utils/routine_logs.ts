@@ -212,27 +212,37 @@ export async function getTodayRoutineProgress(userId: string) {
       });
     }
     
-    // データベースから直接ログを取得
+    // 完了したルーティンの数を直接カウント（より効率的なクエリ）
     const database = db.getDatabase();
-    const logs = await database.getAllAsync<{
-      id: string;
-      user_id: string;
-      date: string;
-      routine_id: string;
+    const completedResult = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count 
+       FROM routine_logs 
+       WHERE user_id = ? AND date = ? AND status = 'checked'`,
+      [userId, today]
+    );
+    
+    const completed = completedResult ? completedResult.count : 0;
+    console.log(`[DEBUG] 完了済みルーティン数: ${completed}/${total} (SQLカウント使用)`);
+    
+    // デバッグのために全ログのサマリーを表示
+    const logSummary = await database.getAllAsync<{
       status: string;
-      created_at: string;
-    }>(`SELECT * FROM routine_logs WHERE user_id = ? AND date = ?`, [userId, today]);
+      count: number;
+    }>(
+      `SELECT status, COUNT(*) as count 
+       FROM routine_logs 
+       WHERE user_id = ? AND date = ? 
+       GROUP BY status`,
+      [userId, today]
+    );
     
-    console.log(`[DEBUG] 本日(${today})のログ総数: ${logs.length}`);
-    
-    if (logs.length > 0) {
-      logs.forEach((log, index) => {
-        console.log(`[DEBUG] ルーティンログ[${index}]: routine_id=${log.routine_id}, status=${log.status}, date=${log.date}`);
+    if (logSummary.length > 0) {
+      logSummary.forEach(summary => {
+        console.log(`[DEBUG] ルーティンログサマリー - ステータス: ${summary.status}, 数: ${summary.count}`);
       });
+    } else {
+      console.log(`[DEBUG] 本日(${today})のログはありません`);
     }
-    
-    const completed = logs.filter(log => log.status === 'checked').length;
-    console.log(`[DEBUG] 完了済みルーティン数: ${completed}/${total}`);
     
     return { completed, total };
   } catch (error) {
@@ -265,15 +275,18 @@ export async function isTodayRoutineStarted(userId: string) {
     const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
     console.log(`[DEBUG] 対象日付: ${today}`);
     
-    // データベースから直接クエリでログを取得
+    // ログが1件でもあるかを効率的にチェック
     const database = db.getDatabase();
-    const result = await database.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM routine_logs WHERE user_id = ? AND date = ?`,
+    const result = await database.getFirstAsync<{ exists: number }>(
+      `SELECT 1 AS "exists" 
+       FROM routine_logs 
+       WHERE user_id = ? AND date = ? 
+       LIMIT 1`,
       [userId, today]
     );
     
-    const isStarted = !!(result && result.count > 0);
-    console.log(`[DEBUG] ルーティン開始チェック結果: ${isStarted} (ログ数: ${result?.count || 0})`);
+    const isStarted = !!result;
+    console.log(`[DEBUG] ルーティン開始チェック結果: ${isStarted}`);
     
     return isStarted;
   } catch (error) {

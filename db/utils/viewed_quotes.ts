@@ -1,4 +1,5 @@
 import { db } from '../';
+import { getCurrentDate } from "@/constants/utils";
 
 /**
  * ランダムなIDを生成する関数（UUIDの代わり）
@@ -202,73 +203,33 @@ export const getViewedQuotesByUserId = async (userId: string) => {
 };
 
 /**
- * 今日の名言を表示済みかどうかをチェックする関数
- * 午前0時〜午前2:59は前日の名言をチェックする
+ * 今日の名言を表示済みかどうかを確認する
+ * @param userId ユーザーID
+ * @returns 今日の名言を表示済みならtrue、未表示ならfalse
  */
-export const hasTodayViewedQuote = async (userId: string): Promise<boolean> => {
+export async function hasTodayViewedQuote(userId: string): Promise<boolean> {
   try {
-    console.log(`[DEBUG] hasTodayViewedQuote - ユーザーID: ${userId}`);
+    // 現在の日付（JST、3:00AMリセット考慮済み）
+    const todayJST = getCurrentDate();
     
-    // 現在の日本時間
-    const now = new Date();
-    console.log(`[DEBUG] 現在時刻: ${now.toISOString()}, 時間: ${now.getHours()}時`);
-    
-    // 午前0時〜午前2:59の場合は前日の日付をチェック
-    const targetDate = new Date(now);
-    if (now.getHours() >= 0 && now.getHours() < 3) {
-      targetDate.setDate(targetDate.getDate() - 1);
-      console.log(`[DEBUG] 午前0-3時なので前日の日付を使用`);
-    }
-    
-    // 対象日付を YYYY-MM-DD 形式に変換
-    const year = targetDate.getFullYear();
-    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-    const day = String(targetDate.getDate()).padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
-    console.log(`[DEBUG] 対象日付: ${dateString}`);
-    
-    // デバッグのために全ての視聴履歴を取得してログに出力
+    // データベースインスタンス
     const database = db.getDatabase();
-    const allRecords = await database.getAllAsync<{
-      id: string;
-      user_id: string;
-      quote_id: string;
-      viewed_at: string;
-    }>(
-      `SELECT * FROM viewed_quotes WHERE user_id = ? ORDER BY viewed_at DESC`,
-      [userId]
+    
+    // SQL直接クエリで今日の日付のレコードがあるか確認
+    const result = await database.getFirstAsync<{ exists: number }>(
+      `SELECT 1 AS "exists" 
+       FROM viewed_quotes 
+       WHERE user_id = ? 
+       AND DATE(viewed_at) = ? 
+       LIMIT 1`,
+      [userId, todayJST]
     );
-    console.log(`[DEBUG] ユーザー(${userId})の視聴履歴総数: ${allRecords.length}`);
     
-    // 最も単純な方法として: 視聴履歴の日付部分のみを比較
-    let isViewed = false;
-    
-    if (allRecords.length > 0) {
-      allRecords.forEach((record, index) => {
-        // SQLiteから取得したviewed_at値をDateオブジェクトに変換
-        const viewedAt = new Date(record.viewed_at);
-        
-        // 年月日だけを取り出す（タイムゾーンの違いによる問題を避けるため）
-        const viewedYear = viewedAt.getFullYear();
-        const viewedMonth = viewedAt.getMonth() + 1;
-        const viewedDay = viewedAt.getDate();
-        
-        const viewedDateString = `${viewedYear}-${String(viewedMonth).padStart(2, '0')}-${String(viewedDay).padStart(2, '0')}`;
-        
-        console.log(`[DEBUG] 視聴履歴[${index}]: quote_id=${record.quote_id}, viewed_at=${record.viewed_at}, 日付=${viewedDateString}`);
-        
-        // 対象日付と視聴日付が一致するかチェック
-        if (viewedDateString === dateString) {
-          isViewed = true;
-          console.log(`[DEBUG] 一致する視聴履歴を発見: ${viewedDateString} = ${dateString}`);
-        }
-      });
-    }
-    
-    console.log(`[DEBUG] 表示済みチェック結果: ${isViewed}`);
-    return isViewed;
+    // 結果があればtrue、なければfalseを返す
+    return !!result;
   } catch (error) {
-    console.error('名言表示チェックエラー:', error);
-    return false; // エラー時はfalseを返す（未表示として扱う）
+    console.error('名言表示状態確認中にエラーが発生しました:', error);
+    // エラー時はデフォルトでfalseを返す
+    return false;
   }
-}; 
+} 

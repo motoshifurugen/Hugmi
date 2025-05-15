@@ -111,17 +111,10 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
       return 'daily-quote';
     }
     
-    // 朝の時間帯で名言が未表示の場合のみ、名言画面に遷移
-    // 名言が既に表示済みの場合は、ルーティン進行状況に応じて振り分け
-    if (timePeriod === 'morning') {
-      if (!quoteViewed) {
-        console.log('[DEBUG] 朝の時間帯で名言未表示：名言画面へ遷移します');
-        return 'daily-quote';
-      } else if (!routineStarted) {
-        // 朝だけど名言は表示済み、かつルーティン未開始の場合は、ルーティン画面へ
-        console.log('[DEBUG] 朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
-        return '/routine-flow/routine';
-      }
+    // 朝の時間帯で名言が表示済みかつルーティン未開始の場合のみ、ルーティン画面へ
+    if (timePeriod === 'morning' && !routineStarted) {
+      console.log('[DEBUG] 朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
+      return '/routine-flow/routine';
     }
     
     // それ以外の場合はホーム画面へ
