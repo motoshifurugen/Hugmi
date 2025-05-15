@@ -360,7 +360,7 @@ export const seedQuotes = async () => {
         imagePath: 'john_ruskin.png'
       },
       {
-        textJa: '真実は小説よりも奇なり。\n小説は「可能性のあること」しか\n書けないけれど、\n真実には\nその縛りがないんだ。',
+        textJa: '真実は小説よりも奇なり。\n小説は「可能性のあること」\nしか書けないけれど、\n真実には\nその縛りがないんだ。',
         textEn: 'Truth is stranger than fiction, but it is because Fiction is obliged to stick to possibilities; Truth isn\'t.',
         authorJa: 'マーク・トウェイン',
         authorEn: 'mark_twain',

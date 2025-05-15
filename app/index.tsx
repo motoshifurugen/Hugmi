@@ -12,6 +12,7 @@ import { AppRoute } from '@/types/routeTypes';
 // アプリの初期画面
 export default function Index() {
   const [initialRoute, setInitialRoute] = useState<AppRoute | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // アプリ起動時に通知権限を確認し、適切なルートを決定
   useEffect(() => {
@@ -34,24 +35,32 @@ export default function Index() {
         const userId = await SecureStore.getItemAsync('active_user_id');
         
         if (userId) {
-          // 初期ルートを決定
-          const route = await determineInitialRoute(userId);
-          Logger.debug('index.tsx - 初期ルート決定:', route);
-          setInitialRoute(route);
+          try {
+            // 初期ルートを決定
+            const route = await determineInitialRoute(userId);
+            Logger.debug(`index.tsx - 初期ルート決定: ${route}`);
+            setInitialRoute(route);
+          } catch (routeError) {
+            Logger.error('ルート決定中のエラー:', routeError);
+            setInitialRoute('/(tabs)/home');
+          }
         } else {
           // ユーザーIDがない場合はホーム画面へ
+          Logger.debug('ユーザーIDが見つからないため、ホーム画面へ遷移します');
           setInitialRoute('/(tabs)/home');
         }
       } catch (error) {
-        Logger.error('初期ルート決定エラー:', error);
+        Logger.error('初期化エラー:', error);
         // エラー時はホーム画面へ
         setInitialRoute('/(tabs)/home');
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
   // 初期ルートが決定されるまでローディング表示
-  if (!initialRoute) {
+  if (loading || !initialRoute) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: projectColors.white1 }}>
         <ActivityIndicator size="large" color={projectColors.primary} />

@@ -17,6 +17,7 @@
   "dependencies": {
     "@expo-google-fonts/zen-maru-gothic": "^0.3.0",
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-community/cli-server-api": "^18.0.0",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.1.7",
@@ -44,7 +45,7 @@
     "expo-web-browser": "~14.1.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-native": "0.79.2",
+    "react-native": "^0.79.2",
     "react-native-draggable-flatlist": "^4.0.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",

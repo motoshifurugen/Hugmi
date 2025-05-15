@@ -3,6 +3,9 @@
     "strict": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
+    "allowJs": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
     "paths": {
       "@/*": [
         "./*"

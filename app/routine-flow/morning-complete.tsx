@@ -162,7 +162,8 @@ export default function MorningCompleteScreen() {
   // ユーザーの全ルーティンとその状態を取得
   const fetchRoutineData = async (userId: string) => {
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+      const { getCurrentDate } = await import('@/constants/utils');
+      const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
       
       // すべてのアクティブなルーティンを取得
       const allRoutines = await getActiveRoutinesByUserId(userId);
