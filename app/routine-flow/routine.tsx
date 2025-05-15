@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, Pressable, Animated, Alert, View, Easing } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { 
   useFonts, 
   ZenMaruGothic_400Regular, 
