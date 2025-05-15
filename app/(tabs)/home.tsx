@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
-import { getTimeBasedGreeting, getTimePeriod } from '@/constants/utils';
+import { getTimeBasedGreeting } from '@/constants/utils';
 import { getTodayRoutineProgress, isTodayRoutineStarted, isTodayRoutineCompleted } from '@/db/utils/routine_logs';
 import { getTodayViewedQuote, getUnviewedRandomQuote } from '@/db/utils/viewed_quotes';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';

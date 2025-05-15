@@ -58,5 +58,5 @@ export default function Index() {
   }
 
   // 決定したルートへリダイレクト
-  return <Redirect href={initialRoute as any} />;
+  return <Redirect href={initialRoute} />;
 } 
