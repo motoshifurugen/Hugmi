@@ -3,11 +3,13 @@ import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourc
 import { useLocalSearchParams, router } from 'expo-router';
 import { GestureHandlerRootView, Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
 import { IconSymbol } from '@/components/common/ui/IconSymbol';
 import CornerDecoration from '@/components/common/ui/CornerDecoration';
+import { HapticPressable } from '@/components/common/HapticPressable';
 import { projectColors } from '@/constants/Colors';
 import { emitFavoriteChange } from '@/utils/events';
 
@@ -445,11 +447,12 @@ export default function QuoteDetailScreen() {
           </Animated.View>
           
           {/* お気に入りボタン - カードの外側（下部）に配置 */}
-          <Pressable
+          <HapticPressable
             style={styles.favoriteButtonOutside}
             onPress={() => toggleFavorite(item.id)}
             disabled={favoriteLoading} // 処理中はボタンを無効化
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
           >
             <View style={styles.favoriteButtonContainer}>
               {favoriteLoading && currentIndex === index ? (
@@ -463,7 +466,7 @@ export default function QuoteDetailScreen() {
                 />
               )}
             </View>
-          </Pressable>
+          </HapticPressable>
         </View>
       </View>
     );
@@ -472,9 +475,13 @@ export default function QuoteDetailScreen() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <ThemedView style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <HapticPressable 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+          hapticStyle={Haptics.ImpactFeedbackStyle.Light}
+        >
           <IconSymbol name="chevron.left" size={24} color={projectColors.accent} />
-        </Pressable>
+        </HapticPressable>
         <ThemedText type="title">名言カード</ThemedText>
         <View style={{ width: 40 }} />
       </ThemedView>

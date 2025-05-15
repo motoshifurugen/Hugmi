@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, View, ActivityIndicator, ScrollView, Pressable, Animated, TextStyle, ViewStyle, DimensionValue } from 'react-native';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import { HelloWave } from '@/components/common/HelloWave';
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
+import { HapticPressable } from '@/components/common/HapticPressable';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
 import { getTimeBasedGreeting } from '@/constants/utils';
@@ -277,7 +279,7 @@ export default function HomeScreen() {
           {/* ルーティンが開始されているが完了していない場合 */}
           {showResumeButton && (
             <Animated.View style={{ transform: [{ scale: resumeButtonScale }] }}>
-              <Pressable 
+              <HapticPressable 
                 style={({ pressed }) => [
                   styles.resumeButton,
                   pressed && styles.resumeButtonPressed
@@ -286,9 +288,10 @@ export default function HomeScreen() {
                 // より即時的なフィードバックのために最小の押し下げ時間を設定
                 android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: false }}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
               >
                 <ThemedText style={styles.resumeButtonText}>再開</ThemedText>
-              </Pressable>
+              </HapticPressable>
             </Animated.View>
           )}
         </View>
@@ -321,7 +324,7 @@ export default function HomeScreen() {
       {/* アクションボタン */}
       <View style={styles.actionsContainer}>
         <Animated.View style={{ transform: [{ scale: routineButtonScale }], width: '100%', marginBottom: 16 }}>
-          <Pressable 
+          <HapticPressable 
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed
@@ -330,16 +333,17 @@ export default function HomeScreen() {
             // 押下時の応答性を向上
             android_ripple={{ color: 'rgba(0,0,0,0.05)', borderless: false }}
             hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
           >
             <View style={styles.iconContainer}>
               <IconSymbol name="list.star" size={24} color={projectColors.black1} />
             </View>
             <ThemedText style={styles.buttonText}>明日のルーティン</ThemedText>
-          </Pressable>
+          </HapticPressable>
         </Animated.View>
         
         <Animated.View style={{ transform: [{ scale: quotesButtonScale }], width: '100%' }}>
-          <Pressable 
+          <HapticPressable 
             style={({ pressed }) => [
               styles.button,
               pressed && styles.buttonPressed
@@ -348,12 +352,13 @@ export default function HomeScreen() {
             // 押下時の応答性を向上
             android_ripple={{ color: 'rgba(0,0,0,0.05)', borderless: false }}
             hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
           >
             <View style={styles.iconContainer}>
               <IconSymbol name="sparkles" size={24} color={projectColors.black1} />
             </View>
             <ThemedText style={styles.buttonText}>名言コレクション</ThemedText>
-          </Pressable>
+          </HapticPressable>
         </Animated.View>
       </View>
     </ScrollView>

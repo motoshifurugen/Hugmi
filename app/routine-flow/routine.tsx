@@ -7,9 +7,11 @@ import {
   ZenMaruGothic_500Medium, 
   ZenMaruGothic_700Bold 
 } from '@expo-google-fonts/zen-maru-gothic';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/common/ThemedText';
 import { ThemedView } from '@/components/common/ThemedView';
+import { HapticPressable } from '@/components/common/HapticPressable';
 import { projectColors } from '@/constants/Colors';
 import { fonts } from '@/constants/fonts';
 import { 
@@ -510,29 +512,31 @@ export default function RoutineStepScreen() {
       
       <View style={styles.buttonContainer}>
         <Animated.View style={{ transform: [{ scale: buttonScale }], width: '100%' }}>
-          <Pressable 
+          <HapticPressable 
             style={({ pressed }) => [
               styles.completeButton, 
               pressed && styles.buttonPressed
             ]} 
             onPress={handleCompleteStep}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
           >
             <ThemedText style={styles.buttonText}>できた！</ThemedText>
-          </Pressable>
+          </HapticPressable>
         </Animated.View>
         
         <Animated.View style={{ transform: [{ scale: skipButtonScale }] }}>
-          <Pressable 
+          <HapticPressable 
             onPress={handleSkipStep}
             style={({ pressed }) => [
               styles.skipButtonContainer,
               pressed && styles.skipButtonContainerPressed
             ]}
+            hapticStyle={Haptics.ImpactFeedbackStyle.Light}
           >
             <ThemedText style={styles.skipButtonText}>
               スキップ
             </ThemedText>
-          </Pressable>
+          </HapticPressable>
         </Animated.View>
       </View>
     </ThemedView>
