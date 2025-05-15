@@ -36,7 +36,11 @@ React Native（Expo）で開発しています。
 npm install
 npx expo start
 ```
-以下のいずれかの方法でアプリを起動します：
+以下のいずれかの方法でアプリを起動します。
 - iOSシミュレータ（Mac環境）
 - Androidエミュレータ（Android Studio）
 - 実機 + Expo Go アプリ
+
+## 📝 開発メモ
+
+開発に関する記録や仕様は [Wiki/開発メモ](hhttps://github.com/motoshifurugen/Hugmi/wiki/%E9%96%8B%E7%99%BA%E3%83%A1%E3%83%A2) にまとめています。
