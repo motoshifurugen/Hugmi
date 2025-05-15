@@ -1,7 +1,6 @@
 # Hugmi（ハグミー）
 
 [![Last Commit](https://img.shields.io/github/last-commit/motoshifurugen/hugmi?style=flat-square)](https://github.com/motoshifurugen/hugmi/commits/main)
-[![License](https://img.shields.io/github/license/motoshifurugen/hugmi?style=flat-square)](https://github.com/motoshifurugen/hugmi/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-iOS-blue?style=flat-square&logo=apple)](https://apps.apple.com/us/app/hugmi-%E3%83%8F%E3%82%B0%E3%83%9F%E3%83%BC/id6745621864)
 [![Built with Expo](https://img.shields.io/badge/built%20with-Expo-000020?style=flat-square&logo=expo)](https://expo.dev)
 
