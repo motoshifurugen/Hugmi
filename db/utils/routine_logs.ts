@@ -1,4 +1,5 @@
 import { db } from '@/db';
+import Logger from '@/utils/logger';
 
 /**
  * ランダムなIDを生成する関数（UUIDの代わり）
@@ -32,7 +33,7 @@ export const getRoutineLogsByDate = async (userId: string, date: string) => {
       createdAt: log.created_at
     }));
   } catch (error) {
-    console.error('Error fetching routine logs by date:', error);
+    Logger.error('Error fetching routine logs by date:', error);
     return [];
   }
 };
@@ -54,7 +55,7 @@ export const getRoutineLogByRoutineAndDate = async (routineId: string, date: str
       createdAt: log.created_at
     };
   } catch (error) {
-    console.error('Error fetching routine log:', error);
+    Logger.error('Error fetching routine log:', error);
     return null;
   }
 };
@@ -74,7 +75,7 @@ export const getRoutineLogsByDateRange = async (userId: string, startDate: strin
       createdAt: log.created_at
     }));
   } catch (error) {
-    console.error('Error fetching routine logs by date range:', error);
+    Logger.error('Error fetching routine logs by date range:', error);
     return [];
   }
 };
@@ -118,7 +119,7 @@ export const createRoutineLog = async (logData: {
       createdAt: log.created_at
     };
   } catch (error) {
-    console.error('Error creating routine log:', error);
+    Logger.error('Error creating routine log:', error);
     return null;
   }
 };
@@ -145,7 +146,7 @@ export const updateRoutineLog = async (
       createdAt: log.created_at
     };
   } catch (error) {
-    console.error('Error updating routine log:', error);
+    Logger.error('Error updating routine log:', error);
     return null;
   }
 };
@@ -157,7 +158,7 @@ export const deleteRoutineLog = async (id: string) => {
   try {
     return await db.deleteRoutineLog(id);
   } catch (error) {
-    console.error('Error deleting routine log:', error);
+    Logger.error('Error deleting routine log:', error);
     return false;
   }
 };
@@ -179,7 +180,7 @@ export const getRoutineCompletionRate = async (
       completionRate: stats.total > 0 ? (stats.checked / stats.total) * 100 : 0
     };
   } catch (error) {
-    console.error('Error calculating routine completion rate:', error);
+    Logger.error('Error calculating routine completion rate:', error);
     return {
       total: 0,
       checked: 0,
@@ -194,21 +195,21 @@ export const getRoutineCompletionRate = async (
  */
 export async function getTodayRoutineProgress(userId: string) {
   try {
-    console.log(`[DEBUG] getTodayRoutineProgress - ユーザーID: ${userId}`);
+    Logger.debug(`getTodayRoutineProgress - ユーザーID: ${userId}`);
     
     // 日付の取得
     const { getCurrentDate } = await import('@/constants/utils');
     const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
-    console.log(`[DEBUG] 対象日付: ${today}`);
+    Logger.debug(`対象日付: ${today}`);
     
     // ユーザーのアクティブなルーティン総数を取得
     const routines = await db.getActiveRoutinesByUserId(userId);
     const total = routines.length;
-    console.log(`[DEBUG] アクティブなルーティン総数: ${total}`);
+    Logger.debug(`アクティブなルーティン総数: ${total}`);
     
     if (total > 0) {
       routines.forEach((routine, index) => {
-        console.log(`[DEBUG] ルーティン[${index}]: id=${routine.id}, title=${routine.title}`);
+        Logger.debug(`ルーティン[${index}]: id=${routine.id}, title=${routine.title}`);
       });
     }
     
@@ -222,7 +223,7 @@ export async function getTodayRoutineProgress(userId: string) {
     );
     
     const completed = completedResult ? completedResult.count : 0;
-    console.log(`[DEBUG] 完了済みルーティン数: ${completed}/${total} (SQLカウント使用)`);
+    Logger.debug(`完了済みルーティン数: ${completed}/${total} (SQLカウント使用)`);
     
     // デバッグのために全ログのサマリーを表示
     const logSummary = await database.getAllAsync<{
@@ -238,15 +239,15 @@ export async function getTodayRoutineProgress(userId: string) {
     
     if (logSummary.length > 0) {
       logSummary.forEach(summary => {
-        console.log(`[DEBUG] ルーティンログサマリー - ステータス: ${summary.status}, 数: ${summary.count}`);
+        Logger.debug(`ルーティンログサマリー - ステータス: ${summary.status}, 数: ${summary.count}`);
       });
     } else {
-      console.log(`[DEBUG] 本日(${today})のログはありません`);
+      Logger.debug(`本日(${today})のログはありません`);
     }
     
     return { completed, total };
   } catch (error) {
-    console.error('ルーティン進捗の取得に失敗しました:', error);
+    Logger.error('ルーティン進捗の取得に失敗しました:', error);
     return { completed: 0, total: 0 };
   }
 }
@@ -254,13 +255,13 @@ export async function getTodayRoutineProgress(userId: string) {
 // 今日のルーティンが完了しているかチェックする関数
 export async function isTodayRoutineCompleted(userId: string) {
   try {
-    console.log(`[DEBUG] isTodayRoutineCompleted - ユーザーID: ${userId}`);
+    Logger.debug(`isTodayRoutineCompleted - ユーザーID: ${userId}`);
     const progress = await getTodayRoutineProgress(userId);
     const isCompleted = progress.total > 0 && progress.completed === progress.total;
-    console.log(`[DEBUG] ルーティン完了チェック結果: ${isCompleted}`);
+    Logger.debug(`ルーティン完了チェック結果: ${isCompleted}`);
     return isCompleted;
   } catch (error) {
-    console.error('ルーティン完了状態のチェックに失敗しました:', error);
+    Logger.error('ルーティン完了状態のチェックに失敗しました:', error);
     return false;
   }
 }
@@ -268,12 +269,12 @@ export async function isTodayRoutineCompleted(userId: string) {
 // 今日のルーティンが開始されているかチェックする関数
 export async function isTodayRoutineStarted(userId: string) {
   try {
-    console.log(`[DEBUG] isTodayRoutineStarted - ユーザーID: ${userId}`);
+    Logger.debug(`isTodayRoutineStarted - ユーザーID: ${userId}`);
     
     // 日付の取得
     const { getCurrentDate } = await import('@/constants/utils');
     const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
-    console.log(`[DEBUG] 対象日付: ${today}`);
+    Logger.debug(`対象日付: ${today}`);
     
     // ログが1件でもあるかを効率的にチェック
     const database = db.getDatabase();
@@ -286,11 +287,11 @@ export async function isTodayRoutineStarted(userId: string) {
     );
     
     const isStarted = !!result;
-    console.log(`[DEBUG] ルーティン開始チェック結果: ${isStarted}`);
+    Logger.debug(`ルーティン開始チェック結果: ${isStarted}`);
     
     return isStarted;
   } catch (error) {
-    console.error('ルーティン開始状態のチェックに失敗しました:', error);
+    Logger.error('ルーティン開始状態のチェックに失敗しました:', error);
     return false;
   }
 } 
