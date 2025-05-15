@@ -294,7 +294,8 @@ export default function RoutineStepScreen() {
       animateCompleteButton(async () => {
         try {
           // ルーティンログをデータベースに保存
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          const { getCurrentDate } = await import('@/constants/utils');
+          const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
           
           // ユーザーを取得
           const users = await getAllUsers();
@@ -359,7 +360,8 @@ export default function RoutineStepScreen() {
       animateSkipButton(async () => {
         try {
           // ルーティンログをデータベースに保存
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          const { getCurrentDate } = await import('@/constants/utils');
+          const today = getCurrentDate(); // YYYY-MM-DD形式（午前0時〜午前2:59は前日の日付を返す）
           
           // ユーザーを取得
           const users = await getAllUsers();

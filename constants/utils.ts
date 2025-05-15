@@ -106,23 +106,30 @@ export async function determineInitialRoute(userId: string, isFirstLogin: boolea
     // 今日の名言を表示済みかどうか
     const quoteViewed = await hasTodayViewedQuote(userId);
     
-    Logger.debug(`ルート決定: 時間帯=${timePeriod}, ルーティン開始済み=${routineStarted}, ルーティン完了=${routineCompleted}, 名言表示済み=${quoteViewed}`);
+    Logger.debug(`ルート決定のパラメータ - ユーザーID: ${userId}, 時間帯: ${timePeriod}, ルーティン開始済み: ${routineStarted}, ルーティン完了済み: ${routineCompleted}, 名言表示済み: ${quoteViewed}`);
+    
+    let routeToNavigate: AppRoute = '/(tabs)/home'; // デフォルトはホーム画面
+    let reason = '';
     
     // 名言をまだ表示していない場合は、時間帯に関わらず必ず名言画面へ
     if (!quoteViewed) {
-      Logger.debug('名言未表示：時間帯に関わらず名言画面へ遷移します');
-      return '/daily-quote';
+      routeToNavigate = '/daily-quote';
+      reason = '名言未表示のため名言画面へ遷移';
     }
-    
-    // 朝の時間帯で名言が表示済みかつルーティン未開始の場合のみ、ルーティン画面へ
-    if (timePeriod === 'morning' && !routineStarted) {
-      Logger.debug('朝の時間帯で名言表示済み、ルーティン未開始：ルーティン画面へ遷移します');
-      return '/routine-flow/routine';
+    // 朝の時間帯で名言が表示済みかつルーティン未開始かつルーティン未完了の場合は、ルーティン画面へ
+    else if (timePeriod === 'morning' && quoteViewed && !routineStarted && !routineCompleted) {
+      routeToNavigate = '/routine-flow/routine';
+      reason = '朝の時間帯で名言表示済みかつルーティン未開始のためルーティン画面へ遷移';
     }
-    
     // それ以外の場合はホーム画面へ
-    Logger.debug('ホーム画面へ遷移します');
-    return '/(tabs)/home';
+    else {
+      routeToNavigate = '/(tabs)/home';
+      reason = 'その他の条件のためホーム画面へ遷移';
+    }
+    
+    Logger.debug(`初期ルート決定結果: ${routeToNavigate} (${reason})`);
+    
+    return routeToNavigate;
   } catch (error) {
     Logger.error('初期ルートの決定中にエラーが発生しました:', error);
     // エラー時はデフォルトでホーム画面に遷移
