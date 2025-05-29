@@ -264,6 +264,20 @@ export default function QuotesScreen() {
   // お気に入り状態の更新
   const updateFavorite = async (id: string, isFavorite: boolean) => {
     try {
+      // お気に入りに追加する場合は制限をチェック
+      if (isFavorite) {
+        // 現在のお気に入り数を取得
+        const currentFavorites = await getFavoriteQuotesByUserId(activeUserId);
+        if (currentFavorites.length >= 5) {
+          Alert.alert(
+            'お知らせ',
+            'お気に入り数制限に達しました。',
+            [{ text: 'OK' }]
+          );
+          return false;
+        }
+      }
+
       // データベースを更新
       let success = false;
       if (isFavorite) {
