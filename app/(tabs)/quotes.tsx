@@ -360,6 +360,12 @@ export default function QuotesScreen() {
           e.stopPropagation();
         }}>
           <ThemedView style={styles.quoteItem}>
+            <IconSymbol 
+              name="arrow.right.circle" 
+              size={18} 
+              color={projectColors.black2} 
+              style={styles.detailIconTopRight}
+            />
             <ThemedText style={styles.quoteText}>{item.textJa}</ThemedText>
             <ThemedView style={styles.quoteFooter}>
               <ThemedText style={styles.quoteAuthor}>- {item.authorJa}</ThemedText>
@@ -529,6 +535,9 @@ export default function QuotesScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">名言コレクション</ThemedText>
         <ProgressDisplay current={unlockedCount} total={MAX_QUOTES} />
+        <ThemedText style={styles.hintText}>
+          名言をタップで詳細表示
+        </ThemedText>
       </ThemedView>
       
       <ThemedView style={styles.controlsContainer}>
@@ -885,9 +894,9 @@ const styles = StyleSheet.create({
     
     // ロックされたアイテム用の微妙に異なる効果
     shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25, // より薄い影でタップ不可を示す
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 2, // より低いelevation
   },
   iconText: {
     fontSize: fonts.sizes.lg,
@@ -914,5 +923,16 @@ const styles = StyleSheet.create({
     backgroundColor: projectColors.white1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  hintText: {
+    marginTop: 12,
+    fontSize: fonts.sizes.sm,
+    color: projectColors.black2,
+    textAlign: 'center',
+  },
+  detailIconTopRight: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
   },
 }); 

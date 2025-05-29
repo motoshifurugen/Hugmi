@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, View, ActivityIndicator, ScrollView, Pressable, Animated, TextStyle, ViewStyle, DimensionValue } from 'react-native';
-import { router } from 'expo-router';
+import { router, Link } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { HelloWave } from '@/components/common/HelloWave';
@@ -53,6 +53,7 @@ const actionButtonPressedStyle = {
 
 // デフォルト値の定義
 const DEFAULT_QUOTE = {
+  id: undefined,
   textJa: '今日も新しい一日の始まりです',
   authorJa: 'Hugmi'
 };
@@ -63,7 +64,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [routineProgress, setRoutineProgress] = useState(DEFAULT_ROUTINE_PROGRESS);
-  const [todayQuote, setTodayQuote] = useState(DEFAULT_QUOTE);
+  const [todayQuote, setTodayQuote] = useState<{id?: string, textJa: string, authorJa: string}>(DEFAULT_QUOTE);
   const [userId, setUserId] = useState('');
   const [routineStarted, setRoutineStarted] = useState(false);
   const [routineCompleted, setRoutineCompleted] = useState(false);
@@ -211,6 +212,7 @@ export default function HomeScreen() {
       if (todayQuote) {
         console.log(`[DEBUG] 今日の名言を取得 - ID: ${todayQuote.id}`);
         setTodayQuote({
+          id: todayQuote.id,
           textJa: todayQuote.textJa,
           authorJa: todayQuote.authorJa
         });
@@ -221,6 +223,7 @@ export default function HomeScreen() {
         if (randomQuote) {
           console.log(`[DEBUG] ランダムな名言を取得 - ID: ${randomQuote.id}`);
           setTodayQuote({
+            id: randomQuote.id,
             textJa: randomQuote.textJa,
             authorJa: randomQuote.authorJa
           });
@@ -312,14 +315,35 @@ export default function HomeScreen() {
       </View>
       
       {/* 3. 今日の名言（朝に表示したもの） */}
-      <View style={[styles.quoteContainer, cardNeomorphStyle]}>
-        <ThemedText style={styles.quoteText}>
-          {todayQuote.textJa.replace(/\\n/g, '\n')}
-        </ThemedText>
-        <ThemedText style={styles.quoteAuthor}>
-          – {todayQuote.authorJa}
-        </ThemedText>
-      </View>
+      {todayQuote.id ? (
+        <Link href={`/quotes/detail?id=${todayQuote.id}`} asChild>
+          <Pressable>
+            <View style={[styles.quoteContainer, cardNeomorphStyle]}>
+              <IconSymbol 
+                name="arrow.right.circle" 
+                size={18} 
+                color={projectColors.black2} 
+                style={styles.detailIconTopRight}
+              />
+              <ThemedText style={styles.quoteText}>
+                {todayQuote.textJa.replace(/\\n/g, '\n')}
+              </ThemedText>
+              <ThemedText style={styles.quoteAuthor}>
+                – {todayQuote.authorJa}
+              </ThemedText>
+            </View>
+          </Pressable>
+        </Link>
+      ) : (
+        <View style={[styles.quoteContainer, cardNeomorphStyle]}>
+          <ThemedText style={styles.quoteText}>
+            {todayQuote.textJa.replace(/\\n/g, '\n')}
+          </ThemedText>
+          <ThemedText style={styles.quoteAuthor}>
+            – {todayQuote.authorJa}
+          </ThemedText>
+        </View>
+      )}
       
       {/* アクションボタン */}
       <View style={styles.actionsContainer}>
@@ -507,4 +531,9 @@ const styles = StyleSheet.create({
     fontWeight: fonts.weights.bold,
     color: projectColors.white1,
   } as TextStyle,
+  detailIconTopRight: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
 }); 
