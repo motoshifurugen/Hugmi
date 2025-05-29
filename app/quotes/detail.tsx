@@ -15,7 +15,7 @@ import { emitFavoriteChange } from '@/utils/events';
 
 // データベース関連のインポート
 import { getQuoteById, getAllQuotes } from '@/db/utils/quotes';
-import { isFavoriteQuote, addFavoriteQuote, removeFavoriteQuote } from '@/db/utils/favorite_quotes';
+import { isFavoriteQuote, addFavoriteQuote, removeFavoriteQuote, getFavoriteQuotesByUserId } from '@/db/utils/favorite_quotes';
 import { getViewedQuotesByUserId } from '@/db/utils/viewed_quotes';
 
 // グローバル状態管理
@@ -101,10 +101,12 @@ export default function QuoteDetailScreen() {
   const [initialScrollComplete, setInitialScrollComplete] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false); // お気に入り操作中のローディング状態
   const [favoriteError, setFavoriteError] = useState<string | null>(null); // お気に入り操作のエラー状態
+  const [favoriteLimit, setFavoriteLimit] = useState<string | null>(null); // お気に入り制限通知
   
   // アニメーション用の参照
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
+  const limitFadeAnim = useRef(new Animated.Value(0)).current; // 制限通知のフェードアニメーション
   const flatListRef = useRef<FlatList>(null);
   const scrollViewRef = useRef(null); // ScrollView用の参照を追加
   
@@ -234,6 +236,7 @@ export default function QuoteDetailScreen() {
       // お気に入り処理中のローディング状態をセット
       setFavoriteLoading(true);
       setFavoriteError(null);
+      setFavoriteLimit(null); // 制限通知をクリア
 
       // 現在の名言を取得
       const currentQuote = quotes[currentIndex];
@@ -241,6 +244,35 @@ export default function QuoteDetailScreen() {
       
       // お気に入り状態を反転
       const newFavoriteStatus = !currentQuote.isFavorite;
+      
+      // お気に入りに追加する場合は制限をチェック
+      if (newFavoriteStatus) {
+        // 現在のお気に入り数を取得
+        const currentFavorites = await getFavoriteQuotesByUserId(activeUserId);
+        if (currentFavorites.length >= 5) {
+          setFavoriteLimit('お気に入り数制限に達しました。');
+          
+          // フェードインアニメーション
+          Animated.timing(limitFadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+          
+          // 2秒後にフェードアウト
+          setTimeout(() => {
+            Animated.timing(limitFadeAnim, {
+              toValue: 0,
+              duration: 500,
+              useNativeDriver: true,
+            }).start(() => {
+              setFavoriteLimit(null);
+            });
+          }, 2000);
+          
+          return;
+        }
+      }
       
       // データベースを更新
       let success = false;
@@ -463,6 +495,13 @@ export default function QuoteDetailScreen() {
                 <View style={styles.errorMessage}>
                   <ThemedText style={styles.errorText}>{favoriteError}</ThemedText>
                 </View>
+              )}
+
+              {/* お気に入り制限通知メッセージ */}
+              {favoriteLimit && currentIndex === index && (
+                <Animated.View style={[styles.limitMessage, { opacity: limitFadeAnim }]}>
+                  <ThemedText style={styles.limitText}>{favoriteLimit}</ThemedText>
+                </Animated.View>
               )}
             </ThemedView>
           </Animated.View>
@@ -812,5 +851,25 @@ const styles = StyleSheet.create({
     color: projectColors.red1,
     fontSize: 12,
     textAlign: 'center',
+  },
+  limitMessage: {
+    position: 'absolute',
+    bottom: -20, // お気に入りボタンにより近づける
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 165, 0, 0.1)', // オレンジ色の背景で優しい印象に
+    padding: 8,
+    borderRadius: 6,
+    marginHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 165, 0, 0.3)',
+  },
+  limitText: {
+    color: '#FF8C00', // オレンジ色で優しい印象に
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
