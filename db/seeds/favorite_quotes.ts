@@ -27,7 +27,7 @@ export const seedFavoriteQuotes = async () => {
   }
   console.log(`[DEBUG] 公開済み名言を${quotes.length}件取得`);
   
-  // お気に入りにする名言の数 - 初期アプリでは少なめに（5件）
+  // お気に入りにする名言の数 - 制限なし（初期データは5件）
   const favoritesCount = 5;
   
   // 引用リストをシャッフル
