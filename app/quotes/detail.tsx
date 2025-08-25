@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType, ActivityIndicator } from 'react-native';
+import { StyleSheet, Pressable, Animated, Dimensions, View, FlatList, ImageSourcePropType, ActivityIndicator, ScrollView as RNScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { GestureHandlerRootView, Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
@@ -109,15 +109,16 @@ export default function QuoteDetailScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const scrollViewRef = useRef(null); // ScrollView用の参照を追加
+  const paginationScrollRef = useRef<RNScrollView>(null); // ページネーションスクロール用の参照
   
   // グローバルに保存されているアクティブユーザーIDを取得
   const activeUserId = useActiveUserIdSimple();
   
   const { width } = Dimensions.get('window');
   
-  // 小さい画面用のレスポンシブ対応
-  const isSmallScreen = width < 350; // iPhone SE等の小さい画面
-  const isMediumScreen = width < 400; // iPhone 12 mini等の中型画面
+  // 画面サイズ判定（コンポーネント内で定義）
+  const isSmallScreen = width < 350;
+  const isMediumScreen = width < 400;
   
   // カード幅の設定（画面サイズに応じて調整）
   const CARD_WIDTH = width * (isSmallScreen ? 0.95 : 0.85);
@@ -354,6 +355,80 @@ export default function QuoteDetailScreen() {
   }
   
   const currentQuote = quotes[currentIndex];
+  
+  // ページネーションの自動スクロール
+  const scrollPaginationToCenter = (index: number) => {
+    if (paginationScrollRef.current) {
+      const dotWidth = isSmallScreen ? 10 : 16; // ドット幅 + マージン
+      const scrollX = Math.max(0, (index * dotWidth) - (width * 0.45)); // 画面中央に来るように調整
+      paginationScrollRef.current.scrollTo({ x: scrollX, animated: true });
+    }
+  };
+
+  // ページインジケーターのレンダリング
+  const renderPaginationIndicator = () => {
+    const totalQuotes = quotes.length;
+    const maxDotsBeforeSwitch = isSmallScreen ? 8 : 12; // 小さい画面では8個、通常は12個まで
+    
+    if (totalQuotes <= maxDotsBeforeSwitch) {
+      // ドット形式（少数の場合）
+      return (
+        <View style={styles.paginationContainer}>
+          {quotes.map((_, i) => (
+            <View 
+              key={i} 
+              style={[
+                styles.paginationDot,
+                {
+                  backgroundColor: i === currentIndex ? projectColors.primary : '#E0E0E0',
+                  width: isSmallScreen ? 6 : 8,
+                  height: isSmallScreen ? 6 : 8,
+                  borderRadius: isSmallScreen ? 3 : 4,
+                  marginHorizontal: isSmallScreen ? 2 : 4,
+                }
+              ]} 
+            />
+          ))}
+        </View>
+      );
+    } else if (totalQuotes <= 20) {
+      // スクロール可能なドット形式（中程度の場合）
+      return (
+        <RNScrollView 
+          ref={paginationScrollRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollablePaginationContent}
+          style={styles.scrollablePagination}
+        >
+          {quotes.map((_, i) => (
+            <View 
+              key={i} 
+              style={[
+                styles.paginationDot,
+                {
+                  backgroundColor: i === currentIndex ? projectColors.primary : '#E0E0E0',
+                  width: isSmallScreen ? 6 : 8,
+                  height: isSmallScreen ? 6 : 8,
+                  borderRadius: isSmallScreen ? 3 : 4,
+                  marginHorizontal: isSmallScreen ? 2 : 4,
+                }
+              ]} 
+            />
+          ))}
+        </RNScrollView>
+      );
+    } else {
+      // テキスト形式（多数の場合）
+      return (
+        <View style={styles.textPaginationContainer}>
+          <ThemedText style={[styles.paginationText, { fontSize: isSmallScreen ? 12 : 14 }]}>
+            {currentIndex + 1} / {totalQuotes}
+          </ThemedText>
+        </View>
+      );
+    }
+  };
   
   // 名言カードのレンダリング
   const renderQuoteCard = ({ item, index }: { item: Quote, index: number }) => {
@@ -600,6 +675,12 @@ export default function QuoteDetailScreen() {
                     });
                   }
                   setCurrentIndex(newIndex);
+                  // ページネーションスクロールを実行
+                  setTimeout(() => {
+                    if (quotes.length > 0 && quotes.length > (isSmallScreen ? 8 : 12)) {
+                      scrollPaginationToCenter(newIndex);
+                    }
+                  }, 100);
                 }
               }}
               // 縦方向のスクロールを防止する追加設定
@@ -640,26 +721,15 @@ export default function QuoteDetailScreen() {
         </GestureDetector>
         
         {/* ページインジケーター */}
-        <View style={styles.paginationContainer}>
-          {quotes.length > 1 && quotes.map((_, i) => (
-            <View 
-              key={i} 
-              style={[
-                styles.paginationDot,
-                { backgroundColor: i === currentIndex ? projectColors.primary : '#E0E0E0' }
-              ]} 
-            />
-          ))}
-        </View>
+        {quotes.length > 1 && (
+          <View style={styles.paginationWrapper}>
+            {renderPaginationIndicator()}
+          </View>
+        )}
       </ThemedView>
     </GestureHandlerRootView>
   );
 }
-
-// 画面サイズ取得
-const { width: screenWidth } = Dimensions.get('window');
-const isSmallScreen = screenWidth < 350;
-const isMediumScreen = screenWidth < 400;
 
 const styles = StyleSheet.create({
   container: {
@@ -712,7 +782,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    padding: isSmallScreen ? 12 : isMediumScreen ? 16 : 20,
+    padding: 16,
     position: 'relative',
     flexDirection: 'column',
   },
@@ -724,30 +794,30 @@ const styles = StyleSheet.create({
   quoteScrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingVertical: isSmallScreen ? 8 : 15,
-    paddingHorizontal: isSmallScreen ? 2 : 5,
+    paddingVertical: 15,
+    paddingHorizontal: 5,
   },
   quoteTextContainer: {
     width: '100%',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    paddingRight: isSmallScreen ? 5 : 10,
-    paddingVertical: isSmallScreen ? 5 : 10,
+    paddingRight: 10,
+    paddingVertical: 10,
   },
   quoteTextJa: {
-    lineHeight: isSmallScreen ? 26 : isMediumScreen ? 30 : 36,
+    lineHeight: 30,
     fontWeight: '500',
     textAlign: 'left',
-    marginBottom: isSmallScreen ? 16 : 24,
+    marginBottom: 24,
     width: '100%',
   },
   quoteTextEn: {
-    fontSize: isSmallScreen ? 13 : 16,
-    lineHeight: isSmallScreen ? 20 : 26,
+    fontSize: 16,
+    lineHeight: 26,
     fontStyle: 'italic',
     textAlign: 'left',
     color: '#666666',
-    marginTop: isSmallScreen ? 8 : 12,
+    marginTop: 12,
     width: '100%',
   },
   separator: {
@@ -807,16 +877,46 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  paginationWrapper: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+    minHeight: 24, // 一定の高さを確保
+  },
   paginationContainer: {
     flexDirection: 'row',
-    marginTop: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
-    marginBottom: 24
+  },
+  scrollablePagination: {
+    maxWidth: '90%', // 画面幅の90%まで
+    maxHeight: 24,
+  },
+  scrollablePaginationContent: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  textPaginationContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  paginationText: {
+    fontSize: 14,
+    fontFamily: 'ZenMaruGothic_500Medium',
+    color: projectColors.black2,
+    letterSpacing: 0.5,
   },
   cornerDecorationWrapper: {
     position: 'absolute',

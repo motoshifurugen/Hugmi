@@ -110,6 +110,11 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   const [pendingRecordQueue, setPendingRecordQueue] = useState<string[]>([]);
   const [animationReady, setAnimationReady] = useState(false);
   
+  // レスポンシブ対応
+  const { width } = Dimensions.get('window');
+  const isSmallScreen = width < 350;
+  const isMediumScreen = width < 400;
+  
   // アニメーション用の値
   const fadeTextJa = useRef(new Animated.Value(0)).current;
   const fadeTextEn = useRef(new Animated.Value(0)).current;
@@ -385,10 +390,27 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[
+      styles.container,
+      {
+        padding: isSmallScreen ? 12 : 20,
+      }
+    ]}>
       {/* 名言カード */}
-      <View style={styles.quoteCardWrapper}>
-        <View style={styles.quoteCardContainer}>
+      <View style={[
+        styles.quoteCardWrapper,
+        {
+          width: isSmallScreen ? '98%' : '95%',
+          maxWidth: isSmallScreen ? 320 : 380,
+        }
+      ]}>
+        <View style={[
+          styles.quoteCardContainer,
+          {
+            padding: isSmallScreen ? 15 : 25,
+            paddingHorizontal: isSmallScreen ? 12 : 18,
+          }
+        ]}>
           {/* 装飾の角飾り */}
           <CornerDecoration 
             position="topLeft" 
@@ -416,15 +438,38 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           />
           
           {/* 名言本文（日本語） */}
-          <Animated.View style={{ opacity: fadeTextJa, marginTop: 12, paddingBottom: 12 }}>
-            <ThemedText style={styles.quoteTextJa}>
+          <Animated.View style={{ 
+            opacity: fadeTextJa, 
+            marginTop: 12, 
+            paddingBottom: 12,
+            width: '100%'
+          }}>
+            <ThemedText style={[
+              styles.quoteTextJa,
+              {
+                fontSize: isSmallScreen ? 18 : isMediumScreen ? 19 : 21,
+                lineHeight: isSmallScreen ? 28 : isMediumScreen ? 30 : 34,
+                paddingHorizontal: isSmallScreen ? 4 : 0,
+              }
+            ]}>
               {dailyQuote.textJa.replace(/\\n/g, '\n')}
             </ThemedText>
           </Animated.View>
           
           {/* 名言本文（英語） */}
-          <Animated.View style={{ opacity: fadeTextEn, marginTop: 12 }}>
-            <ThemedText style={styles.quoteTextEn}>
+          <Animated.View style={{ 
+            opacity: fadeTextEn, 
+            marginTop: 12,
+            width: '100%'
+          }}>
+            <ThemedText style={[
+              styles.quoteTextEn,
+              {
+                fontSize: isSmallScreen ? 12 : 14,
+                lineHeight: isSmallScreen ? 18 : 20,
+                paddingHorizontal: isSmallScreen ? 4 : 0,
+              }
+            ]}>
               {dailyQuote.textEn}
             </ThemedText>
           </Animated.View>
@@ -479,17 +524,13 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
 const { width } = Dimensions.get('window');
 const cardWidth = width * 0.9;
 
-// 小さい画面用のレスポンシブ対応
-const isSmallScreen = width < 350; // iPhone SE等の小さい画面
-const isMediumScreen = width < 400; // iPhone 12 mini等の中型画面
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: projectColors.white1,
-    padding: isSmallScreen ? 12 : 20,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -505,16 +546,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   quoteCardWrapper: {
-    width: isSmallScreen ? '98%' : '95%',
+    width: '95%',
     position: 'relative',
     borderRadius: 20,
     overflow: 'hidden',
-    maxWidth: isSmallScreen ? 320 : 380,
+    maxWidth: 380,
   },
   quoteCardContainer: {
     width: '100%',
-    padding: isSmallScreen ? 15 : 25,
-    paddingHorizontal: isSmallScreen ? 12 : 18,
+    padding: 25,
+    paddingHorizontal: 18,
     backgroundColor: '#fff',
     borderRadius: 20,
     shadowColor: '#000',
@@ -527,22 +568,23 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   quoteTextJa: {
-    fontSize: isSmallScreen ? 18 : isMediumScreen ? 19 : 21,
+    fontSize: 19,
     fontFamily: 'ZenMaruGothic_700Bold',
     color: projectColors.black1,
     textAlign: 'left',
-    lineHeight: isSmallScreen ? 28 : isMediumScreen ? 30 : 34,
+    lineHeight: 30,
     width: '100%',
     flexWrap: 'wrap',
   },
   quoteTextEn: {
-    fontSize: isSmallScreen ? 12 : 14,
+    fontSize: 14,
     fontFamily: 'ZenMaruGothic_400Regular',
     color: projectColors.black2,
     textAlign: 'left',
     fontStyle: 'italic',
-    lineHeight: isSmallScreen ? 18 : 20,
+    lineHeight: 20,
     width: '100%',
+    flexWrap: 'wrap',
   },
   authorContainer: {
     flexDirection: 'row',
