@@ -110,6 +110,11 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   const [pendingRecordQueue, setPendingRecordQueue] = useState<string[]>([]);
   const [animationReady, setAnimationReady] = useState(false);
   
+  // レスポンシブ対応
+  const { width } = Dimensions.get('window');
+  const isSmallScreen = width < 350;
+  const isMediumScreen = width < 400;
+  
   // アニメーション用の値
   const fadeTextJa = useRef(new Animated.Value(0)).current;
   const fadeTextEn = useRef(new Animated.Value(0)).current;
@@ -156,6 +161,10 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
         
         // 処理後にキューをクリア
         setPendingRecordQueue([]);
+        
+        // 保留中記録処理完了
+        // 祝福画面はルーティン終了後に表示されるため、ここでは記録のみ
+        console.log('[DEBUG] 保留中の名言表示記録が完了しました。達成判定はルーティン完了時に実行されます。');
       }
     };
     
@@ -269,6 +278,12 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
                 } catch (checkErr) {
                   console.error('[DEBUG] 記録確認中のエラー:', checkErr);
                 }
+
+                // 50件達成チェック（記録成功後）
+                // 記録は成功したが、祝福画面はルーティン終了後に表示される
+                if (success) {
+                  console.log('[DEBUG] 名言表示記録が完了しました。達成判定はルーティン完了時に実行されます。');
+                }
               } else {
                 // データベース初期化待ちの場合はキューに追加
                 console.log('[DEBUG] 名言の表示記録を保留（DB初期化待ち）:', quote.id);
@@ -375,10 +390,27 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[
+      styles.container,
+      {
+        padding: isSmallScreen ? 12 : 20,
+      }
+    ]}>
       {/* 名言カード */}
-      <View style={styles.quoteCardWrapper}>
-        <View style={styles.quoteCardContainer}>
+      <View style={[
+        styles.quoteCardWrapper,
+        {
+          width: isSmallScreen ? '98%' : '95%',
+          maxWidth: isSmallScreen ? 320 : 380,
+        }
+      ]}>
+        <View style={[
+          styles.quoteCardContainer,
+          {
+            padding: isSmallScreen ? 15 : 25,
+            paddingHorizontal: isSmallScreen ? 12 : 18,
+          }
+        ]}>
           {/* 装飾の角飾り */}
           <CornerDecoration 
             position="topLeft" 
@@ -406,15 +438,38 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           />
           
           {/* 名言本文（日本語） */}
-          <Animated.View style={{ opacity: fadeTextJa, marginTop: 12, paddingBottom: 12 }}>
-            <ThemedText style={styles.quoteTextJa}>
+          <Animated.View style={{ 
+            opacity: fadeTextJa, 
+            marginTop: 12, 
+            paddingBottom: 12,
+            width: '100%'
+          }}>
+            <ThemedText style={[
+              styles.quoteTextJa,
+              {
+                fontSize: isSmallScreen ? 18 : isMediumScreen ? 19 : 21,
+                lineHeight: isSmallScreen ? 28 : isMediumScreen ? 30 : 34,
+                paddingHorizontal: isSmallScreen ? 4 : 0,
+              }
+            ]}>
               {dailyQuote.textJa.replace(/\\n/g, '\n')}
             </ThemedText>
           </Animated.View>
           
           {/* 名言本文（英語） */}
-          <Animated.View style={{ opacity: fadeTextEn, marginTop: 12 }}>
-            <ThemedText style={styles.quoteTextEn}>
+          <Animated.View style={{ 
+            opacity: fadeTextEn, 
+            marginTop: 12,
+            width: '100%'
+          }}>
+            <ThemedText style={[
+              styles.quoteTextEn,
+              {
+                fontSize: isSmallScreen ? 12 : 14,
+                lineHeight: isSmallScreen ? 18 : 20,
+                paddingHorizontal: isSmallScreen ? 4 : 0,
+              }
+            ]}>
               {dailyQuote.textEn}
             </ThemedText>
           </Animated.View>
@@ -460,6 +515,8 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           </ThemedText>
         </Pressable>
       </Animated.View>
+
+      {/* 祝福画面はルーティン終了後に表示されるため、ここでは削除 */}
     </ThemedView>
   );
 }
@@ -511,11 +568,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   quoteTextJa: {
-    fontSize: 21,
+    fontSize: 19,
     fontFamily: 'ZenMaruGothic_700Bold',
     color: projectColors.black1,
     textAlign: 'left',
-    lineHeight: 34,
+    lineHeight: 30,
     width: '100%',
     flexWrap: 'wrap',
   },
@@ -526,6 +583,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     fontStyle: 'italic',
     lineHeight: 20,
+    width: '100%',
+    flexWrap: 'wrap',
   },
   authorContainer: {
     flexDirection: 'row',

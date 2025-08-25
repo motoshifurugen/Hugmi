@@ -163,6 +163,8 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
       const users = await db.getAllUsers();
       console.log(`[DEBUG] チュートリアル完了後のユーザー数: ${users.length}`);
       
+      // 本番では初期データシードは実行しない
+      
       // 完了コールバックを呼び出す
       console.log('[DEBUG] チュートリアル完了処理が正常に終了しました');
       onComplete();

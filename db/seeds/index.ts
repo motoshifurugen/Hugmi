@@ -4,6 +4,7 @@ import { seedRoutineLogs } from './routine_logs';
 import { seedMoodLogs } from './mood_logs';
 import { seedFavoriteQuotes } from './favorite_quotes';
 import { seedUsers } from './users';
+// 本番では初期データシードは実行しない
 import { db } from '@/db';
 
 /**
@@ -91,25 +92,25 @@ export const runAllSeeds = async (development: boolean = false) => {
       await clearAllData();
     }
     
-    // // 1. ユーザーデータのシード（最初に実行する必要がある）
-    // const user = await seedUsers();
-    // if (!user) {
-    //   throw new Error('ユーザーシードに失敗しました');
-    // }
+    // 1. ユーザーデータのシード（最初に実行する必要がある）
+    const user = await seedUsers();
+    if (!user) {
+      throw new Error('ユーザーシードに失敗しました');
+    }
     
     // 2. 名言データのシード（ユーザーに依存しない）
     await seedQuotes();
     
-    // // 3. ルーティンデータのシード（ユーザーに依存）
+    // // 4. ルーティンデータのシード（ユーザーに依存）
     // await seedRoutines();
     
-    // // 4. ルーティンログデータのシード（ユーザーとルーティンに依存）
+    // // 5. ルーティンログデータのシード（ユーザーとルーティンに依存）
     // await seedRoutineLogs();
     
-    // // 5. 気分ログデータのシード（ユーザーと名言に依存）
+    // // 6. 気分ログデータのシード（ユーザーと名言に依存）
     // await seedMoodLogs();
     
-    // // 6. お気に入り名言データのシード（ユーザーと名言に依存）
+    // // 7. お気に入り名言データのシード（ユーザーと名言に依存）
     // await seedFavoriteQuotes();
     
     console.log('すべてのシードデータが正常に投入されました！');
@@ -117,4 +118,6 @@ export const runAllSeeds = async (development: boolean = false) => {
     console.error('シードデータ投入中にエラーが発生しました:', error);
     throw error;
   }
-}; 
+};
+
+// 本番では初期データシードはエクスポートしない 
