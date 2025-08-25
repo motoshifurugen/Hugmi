@@ -156,6 +156,10 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
         
         // 処理後にキューをクリア
         setPendingRecordQueue([]);
+        
+        // 保留中記録処理完了
+        // 祝福画面はルーティン終了後に表示されるため、ここでは記録のみ
+        console.log('[DEBUG] 保留中の名言表示記録が完了しました。達成判定はルーティン完了時に実行されます。');
       }
     };
     
@@ -268,6 +272,12 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
                   }
                 } catch (checkErr) {
                   console.error('[DEBUG] 記録確認中のエラー:', checkErr);
+                }
+
+                // 50件達成チェック（記録成功後）
+                // 記録は成功したが、祝福画面はルーティン終了後に表示される
+                if (success) {
+                  console.log('[DEBUG] 名言表示記録が完了しました。達成判定はルーティン完了時に実行されます。');
                 }
               } else {
                 // データベース初期化待ちの場合はキューに追加
@@ -460,6 +470,8 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
           </ThemedText>
         </Pressable>
       </Animated.View>
+
+      {/* 祝福画面はルーティン終了後に表示されるため、ここでは削除 */}
     </ThemedView>
   );
 }

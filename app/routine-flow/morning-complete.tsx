@@ -10,6 +10,8 @@ import { projectColors } from '@/constants/Colors';
 import { getAllUsers } from '@/db/utils/users';
 import { getRoutineLogsByDate } from '@/db/utils/routine_logs';
 import { getActiveRoutinesByUserId } from '@/db/utils/routines';
+import { checkNewAchievement } from '@/utils/achievement';
+import CelebrationModal from '@/components/celebration/CelebrationModal';
 
 // ルーティンアイテムの型定義
 interface RoutineItem {
@@ -44,6 +46,7 @@ export default function MorningCompleteScreen() {
   const [username, setUsername] = useState('');
   const [routines, setRoutines] = useState<RoutineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
   const isMounted = useRef(true);
   const animationsStarted = useRef(false);
 
@@ -288,9 +291,34 @@ export default function MorningCompleteScreen() {
   }, [fadeAnim, routineListAnim, tapTextAnim, routines, animateParticles]);
 
   // 画面タップ時の処理
-  const handleTap = useCallback(() => {
-    // ホーム画面に戻る
-    router.replace('/(tabs)/home');
+  const handleTap = useCallback(async () => {
+    try {
+      // ユーザーを取得
+      const users = await getAllUsers();
+      if (users.length > 0) {
+        const userId = users[0].id;
+        
+        // 50件達成チェック
+        console.log('[DEBUG] 50件達成チェックを開始');
+        const isNewAchievement = await checkNewAchievement(userId);
+        if (isNewAchievement) {
+          console.log('[DEBUG] 50件達成！祝福画面を表示');
+          setShowCelebration(true);
+        } else {
+          console.log('[DEBUG] 50件未達成または既に表示済み。ホーム画面へ遷移');
+          // 達成していない場合は直接ホーム画面へ
+          router.replace('/(tabs)/home');
+        }
+      } else {
+        console.log('[DEBUG] ユーザーが見つかりません。ホーム画面へ遷移');
+        // ユーザーが見つからない場合は直接ホーム画面へ
+        router.replace('/(tabs)/home');
+      }
+    } catch (error) {
+      console.error('[DEBUG] 達成チェック中のエラー:', error);
+      // エラー時は直接ホーム画面へ
+      router.replace('/(tabs)/home');
+    }
   }, []);
   
   // ルーティンアイテムをレンダリング
@@ -420,6 +448,17 @@ export default function MorningCompleteScreen() {
           </View>
         </Animated.View>
       </TouchableOpacity>
+
+      {/* 50件達成祝福モーダル */}
+      <CelebrationModal
+        visible={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          // 祝福画面を閉じた後にホーム画面へ遷移
+          router.replace('/(tabs)/home');
+        }}
+        userName={username}
+      />
     </SafeAreaView>
   );
 }

@@ -4,6 +4,12 @@ import { seedRoutineLogs } from './routine_logs';
 import { seedMoodLogs } from './mood_logs';
 import { seedFavoriteQuotes } from './favorite_quotes';
 import { seedUsers } from './users';
+import { 
+  seedTestAchievement, 
+  seed49Achievement, 
+  resetAchievementStatus, 
+  clearAllViewedQuotes 
+} from './test_achievement';
 import { db } from '@/db';
 
 /**
@@ -117,4 +123,12 @@ export const runAllSeeds = async (development: boolean = false) => {
     console.error('シードデータ投入中にエラーが発生しました:', error);
     throw error;
   }
+};
+
+// テスト用関数をエクスポート
+export { 
+  seedTestAchievement, 
+  seed49Achievement, 
+  resetAchievementStatus, 
+  clearAllViewedQuotes 
 }; 
