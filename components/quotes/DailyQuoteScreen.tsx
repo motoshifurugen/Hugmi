@@ -479,13 +479,17 @@ export default function DailyQuoteScreen({ onStart }: DailyQuoteScreenProps) {
 const { width } = Dimensions.get('window');
 const cardWidth = width * 0.9;
 
+// 小さい画面用のレスポンシブ対応
+const isSmallScreen = width < 350; // iPhone SE等の小さい画面
+const isMediumScreen = width < 400; // iPhone 12 mini等の中型画面
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: projectColors.white1,
-    padding: 20,
+    padding: isSmallScreen ? 12 : 20,
   },
   loadingContainer: {
     flex: 1,
@@ -501,16 +505,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   quoteCardWrapper: {
-    width: '95%',
+    width: isSmallScreen ? '98%' : '95%',
     position: 'relative',
     borderRadius: 20,
     overflow: 'hidden',
-    maxWidth: 380,
+    maxWidth: isSmallScreen ? 320 : 380,
   },
   quoteCardContainer: {
     width: '100%',
-    padding: 25,
-    paddingHorizontal: 18,
+    padding: isSmallScreen ? 15 : 25,
+    paddingHorizontal: isSmallScreen ? 12 : 18,
     backgroundColor: '#fff',
     borderRadius: 20,
     shadowColor: '#000',
@@ -523,21 +527,22 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   quoteTextJa: {
-    fontSize: 21,
+    fontSize: isSmallScreen ? 18 : isMediumScreen ? 19 : 21,
     fontFamily: 'ZenMaruGothic_700Bold',
     color: projectColors.black1,
     textAlign: 'left',
-    lineHeight: 34,
+    lineHeight: isSmallScreen ? 28 : isMediumScreen ? 30 : 34,
     width: '100%',
     flexWrap: 'wrap',
   },
   quoteTextEn: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     fontFamily: 'ZenMaruGothic_400Regular',
     color: projectColors.black2,
     textAlign: 'left',
     fontStyle: 'italic',
-    lineHeight: 20,
+    lineHeight: isSmallScreen ? 18 : 20,
+    width: '100%',
   },
   authorContainer: {
     flexDirection: 'row',

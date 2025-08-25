@@ -115,8 +115,12 @@ export default function QuoteDetailScreen() {
   
   const { width } = Dimensions.get('window');
   
-  // カード幅の設定（画面幅の85%）
-  const CARD_WIDTH = width * 0.85;
+  // 小さい画面用のレスポンシブ対応
+  const isSmallScreen = width < 350; // iPhone SE等の小さい画面
+  const isMediumScreen = width < 400; // iPhone 12 mini等の中型画面
+  
+  // カード幅の設定（画面サイズに応じて調整）
+  const CARD_WIDTH = width * (isSmallScreen ? 0.95 : 0.85);
   // カード全体の幅（スクロール計算用）
   const FULL_ITEM_WIDTH = width;
   // 画面の左右余白（画面中央に配置するため）
@@ -353,15 +357,27 @@ export default function QuoteDetailScreen() {
   
   // 名言カードのレンダリング
   const renderQuoteCard = ({ item, index }: { item: Quote, index: number }) => {
-    // フォントサイズを動的に計算（テキストの長さに応じて）
+    // フォントサイズを動的に計算（テキストの長さと画面サイズに応じて）
     const calculateFontSize = (text: string): number => {
-      const baseSize = 18; // ベースサイズを少し大きくする
+      const baseSize = isSmallScreen ? 16 : isMediumScreen ? 17 : 18;
       const length = text.length;
       
-      if (length > 100) return 15;
-      if (length > 80) return 16;
-      if (length > 60) return 17;
-      return baseSize;
+      if (isSmallScreen) {
+        if (length > 100) return 13;
+        if (length > 80) return 14;
+        if (length > 60) return 15;
+        return baseSize;
+      } else if (isMediumScreen) {
+        if (length > 100) return 14;
+        if (length > 80) return 15;
+        if (length > 60) return 16;
+        return baseSize;
+      } else {
+        if (length > 100) return 15;
+        if (length > 80) return 16;
+        if (length > 60) return 17;
+        return baseSize;
+      }
     };
     
     const jaFontSize = calculateFontSize(item.textJa);
@@ -640,6 +656,11 @@ export default function QuoteDetailScreen() {
   );
 }
 
+// 画面サイズ取得
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 350;
+const isMediumScreen = screenWidth < 400;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -691,7 +712,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    padding: 20,
+    padding: isSmallScreen ? 12 : isMediumScreen ? 16 : 20,
     position: 'relative',
     flexDirection: 'column',
   },
@@ -703,29 +724,31 @@ const styles = StyleSheet.create({
   quoteScrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingVertical: 15,
-    paddingHorizontal: 5,
+    paddingVertical: isSmallScreen ? 8 : 15,
+    paddingHorizontal: isSmallScreen ? 2 : 5,
   },
   quoteTextContainer: {
     width: '100%',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    paddingRight: 10,
-    paddingVertical: 10,
+    paddingRight: isSmallScreen ? 5 : 10,
+    paddingVertical: isSmallScreen ? 5 : 10,
   },
   quoteTextJa: {
-    lineHeight: 36,
+    lineHeight: isSmallScreen ? 26 : isMediumScreen ? 30 : 36,
     fontWeight: '500',
     textAlign: 'left',
-    marginBottom: 24,
+    marginBottom: isSmallScreen ? 16 : 24,
+    width: '100%',
   },
   quoteTextEn: {
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: isSmallScreen ? 13 : 16,
+    lineHeight: isSmallScreen ? 20 : 26,
     fontStyle: 'italic',
     textAlign: 'left',
     color: '#666666',
-    marginTop: 12,
+    marginTop: isSmallScreen ? 8 : 12,
+    width: '100%',
   },
   separator: {
     height: 1,
