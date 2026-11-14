@@ -9,13 +9,13 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-import { IconSymbol } from '@/components/common/ui/IconSymbol';
+import { IconSymbol, type IconSymbolName } from '@/components/common/ui/IconSymbol';
 import { projectColors } from '@/constants/Colors';
 
 // かわいいアイコンを使用
 export const HelloWave = () => {
   const rotation = useSharedValue(0);
-  const [iconName, setIconName] = useState('sun.max.fill');
+  const [iconName, setIconName] = useState<IconSymbolName>('sun.max.fill');
 
   useEffect(() => {
     // 現在の時間に基づいてアイコンを設定

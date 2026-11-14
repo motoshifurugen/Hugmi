@@ -1,6 +1,6 @@
 /**
  * カラースキームを常にlightモードに固定します
  */
-export function useColorScheme() {
+export function useColorScheme(): 'light' | 'dark' {
   return 'light';
 }
