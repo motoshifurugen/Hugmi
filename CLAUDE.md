@@ -11,8 +11,8 @@ Hugmi is a cross-platform mobile app (iOS/Android) built with React Native and E
 
 ## Tech Stack
 
-- **Framework:** React Native 0.76.9 + Expo 52.0.0
-- **Language:** TypeScript 5.3.3
+- **Framework:** React Native 0.81 + Expo SDK 54 (New Architecture)
+- **Language:** TypeScript 5.9
 - **Routing:** Expo Router (file-based routing)
 - **Database:** SQLite via expo-sqlite (local, offline-first)
 - **State:** React Hooks + SecureStore

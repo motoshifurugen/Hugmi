@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hugmi",
     "slug": "Hugmi",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -22,13 +22,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cocoa-hearts.Hugmi",
-      "infoPlist": {
-        "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
-        ]
-      }
+      "bundleIdentifier": "com.cocoa-hearts.Hugmi"
     },
     "android": {
       "adaptiveIcon": {
@@ -70,7 +64,7 @@
         "projectId": "cc3bc9aa-a3b0-42ae-95c6-9d2f0a0dbde5"
       }
     },
-    "runtimeVersion": "1.2.0",
+    "runtimeVersion": "1.3.0",
     "updates": {
       "url": "https://u.expo.dev/cc3bc9aa-a3b0-42ae-95c6-9d2f0a0dbde5"
     },

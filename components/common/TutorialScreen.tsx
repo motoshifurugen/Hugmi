@@ -522,7 +522,7 @@ export default function TutorialScreen({ visible, onComplete }: TutorialScreenPr
                 style={styles.backButton}
                 onPress={goToPreviousStep}
               >
-                <AntDesign name="arrowleft" size={24} color={projectColors.text} />
+                <AntDesign name="arrow-left" size={24} color={projectColors.text} />
               </TouchableOpacity>
             )}
           </SafeAreaView>

@@ -4,7 +4,6 @@ import { Link } from 'expo-router';
 import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/common/ThemedText';
